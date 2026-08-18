@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Stop setting a pairing icon from Homey device class. Devices keep the driver icon; users can pick Homey's icon override.
+- Show "Repair the device" with a subtitle on the first repair view.
 
 ## [0.1.0] - 2026-08-18
 

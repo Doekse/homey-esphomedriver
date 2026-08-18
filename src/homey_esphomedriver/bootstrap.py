@@ -247,6 +247,13 @@ def _copy_shared(root: Path, app_dir: Path, result: BootstrapResult) -> None:
             overwrite=True,
         )
     _copy_dir(
+        root / "compose" / "drivers" / "repair",
+        app_dir / ".homeycompose" / "drivers" / "repair",
+        app_dir,
+        result,
+        overwrite=True,
+    )
+    _copy_dir(
         root / "assets" / "capabilities",
         app_dir / "assets" / "capabilities",
         app_dir,

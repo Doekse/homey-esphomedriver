@@ -28,6 +28,12 @@
       "setup_bluetooth": "Bluetooth로 설정…"
     }
   },
+  "repair": {
+    "configure_manual": {
+      "title": "기기 복구하기",
+      "subtitle": "이 기기의 IP 주소 또는 호스트 이름을 입력하세요."
+    }
+  },
   "errors": {
     "cannot_connect": "ESPHome 기기에 연결할 수 없어요. 같은 네트워크에 있는지, YAML에 api: 섹션이 있는지 확인하세요.",
     "connection_lost": "ESPHome 연결이 끊어졌어요",

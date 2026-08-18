@@ -28,6 +28,12 @@
       "setup_bluetooth": "Set up via Bluetooth…"
     }
   },
+  "repair": {
+    "configure_manual": {
+      "title": "Repair the device",
+      "subtitle": "Enter the IP address or hostname of this device."
+    }
+  },
   "errors": {
     "cannot_connect": "Could not connect to the ESPHome device. Make sure it is on the same network and its YAML includes an api: section.",
     "connection_lost": "ESPHome connection lost",

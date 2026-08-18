@@ -28,6 +28,12 @@
       "setup_bluetooth": "Instellen via Bluetooth…"
     }
   },
+  "repair": {
+    "configure_manual": {
+      "title": "Apparaat repareren",
+      "subtitle": "Voer het IP-adres of de hostnaam van dit apparaat in."
+    }
+  },
   "errors": {
     "cannot_connect": "Kan geen verbinding maken met het ESPHome-apparaat. Controleer of het op hetzelfde netwerk zit en of de YAML een api:-sectie heeft.",
     "connection_lost": "Verbinding met ESPHome verbroken",

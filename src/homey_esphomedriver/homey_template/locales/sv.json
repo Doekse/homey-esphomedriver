@@ -28,6 +28,12 @@
       "setup_bluetooth": "Konfigurera via Bluetooth…"
     }
   },
+  "repair": {
+    "configure_manual": {
+      "title": "Reparera enheten",
+      "subtitle": "Ange IP-adressen eller värdnamnet för den här enheten."
+    }
+  },
   "errors": {
     "cannot_connect": "Kan inte ansluta till ESPHome-enheten. Kontrollera att den är på samma nätverk och att YAML-filen har ett api:-avsnitt.",
     "connection_lost": "Anslutningen till ESPHome bröts",
