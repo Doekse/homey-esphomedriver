@@ -2,7 +2,7 @@
 
 [PyPI version](https://pypi.org/project/homey-esphomedriver/)
 [PyPI downloads](https://pypi.org/project/homey-esphomedriver/)
-[Python 3.11+](https://www.python.org/downloads/)
+[Python 3.14](https://www.python.org/downloads/)
 [CI](https://github.com/Doekse/homey-esphomedriver/actions/workflows/ci.yml)
 [License: MIT](LICENSE)
 [Ruff](https://github.com/astral-sh/ruff)
@@ -50,7 +50,7 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ## Requirements
 
-This module requires Homey Apps SDK v3 (Python runtime) and Python 3.11+.
+This module requires Homey Apps SDK v3 (Python 3.14 runtime).
 
 ## Usage
 
