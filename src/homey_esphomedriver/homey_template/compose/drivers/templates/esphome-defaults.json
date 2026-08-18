@@ -135,6 +135,9 @@
   "connectivity": [
     "lan"
   ],
+  "energy": {
+    "batteries": ["INTERNAL"]
+  },
   "discovery": "esphome",
   "images": {
     "small": "{{driverAssetsPath}}/images/small.png",

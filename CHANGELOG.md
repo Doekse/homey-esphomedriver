@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Declare `energy.batteries` as `INTERNAL` so Homey publish validation accepts `alarm_battery` / `measure_battery`.
+
 ### Changed
 
 - Stop setting a pairing icon from Homey device class. Devices keep the driver icon; users can pick Homey's icon override.
