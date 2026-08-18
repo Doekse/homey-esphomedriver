@@ -7,6 +7,7 @@ and state subscriptions re-arm on each connect.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -60,6 +61,7 @@ class EspHomeClient:
         on_disconnected: DisconnectedCallback | None = None,
         on_connect_error: ConnectErrorCallback | None = None,
         debug: DebugCallback | None = None,
+        error: DebugCallback | None = None,
         client_info: str = DEFAULT_CLIENT_INFO,
         deep_sleep: bool = False,
     ) -> None:
@@ -76,6 +78,7 @@ class EspHomeClient:
             on_disconnected: Called with whether the drop was expected.
             on_connect_error: Called when a connect attempt fails.
             debug: Optional debug logger.
+            error: Optional error logger for callback failures.
             client_info: Name shown on the node for this Homey client.
             deep_sleep: Treat disconnects as expected while the node is sleeping.
         """
@@ -95,6 +98,7 @@ class EspHomeClient:
         self._on_disconnected = on_disconnected
         self._on_connect_error = on_connect_error
         self._debug_log = debug
+        self._error_log = error
 
         self._cli: APIClient | None = None
         self._reconnect: ReconnectLogic | None = None
@@ -282,7 +286,7 @@ class EspHomeClient:
             return
 
         if self._on_connected is not None:
-            await self._on_connected(device_info)
+            self._schedule(self._on_connected(device_info))
 
     async def _handle_disconnect(self, expected_disconnect: bool) -> None:
         self._available = False
@@ -291,13 +295,13 @@ class EspHomeClient:
             f"expected={expected_disconnect}"
         )
         if self._on_disconnected is not None:
-            await self._on_disconnected(expected_disconnect)
+            self._schedule(self._on_disconnected(expected_disconnect))
 
     async def _handle_connect_error(self, error: Exception) -> None:
         self._available = False
         self._debug(f"Connect error for {self._host}:{self._port}: {error}")
         if self._on_connect_error is not None:
-            await self._on_connect_error(error)
+            self._schedule(self._on_connect_error(error))
         if self._reconnect is None:
             return
         if should_stop_reconnect(error):
@@ -308,6 +312,17 @@ class EspHomeClient:
             # Keep _started so a later discovery address change can restart.
             await self._reconnect.stop()
             self._reconnect = None
+
+    def _schedule(self, coro: Awaitable[None]) -> None:
+        task = asyncio.ensure_future(coro)
+        task.add_done_callback(self._on_callback_done)
+
+    def _on_callback_done(self, task: asyncio.Future[Any]) -> None:
+        if task.cancelled():
+            return
+        error = task.exception()
+        if error is not None and self._error_log is not None:
+            self._error_log(error)
 
     def _debug(self, *args: object) -> None:
         if self._debug_log is not None:

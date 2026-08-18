@@ -615,6 +615,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
             on_disconnected=self._on_client_disconnected,
             on_connect_error=self._on_client_connect_error,
             debug=self.debug,
+            error=self.error,
             deep_sleep=self.get_setting("deep_sleep") == "Yes",
         )
         await self._client.start()
