@@ -360,10 +360,6 @@ class DeviceEntityMapper:
         if current and current != "sensor":
             return
         homey_device["class"] = device_class
-        icon = _active_profile.icon_for(device_class)
-        homey_device["icon"] = (
-            icon if icon is not None else f"/assets/devices/{device_class}.svg"
-        )
 
 
 def _get_mappers() -> dict[type[EntityInfo], _EntityMapper]:

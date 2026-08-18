@@ -253,13 +253,6 @@ def _copy_shared(root: Path, app_dir: Path, result: BootstrapResult) -> None:
         result,
         overwrite=True,
     )
-    _copy_dir(
-        root / "assets" / "devices",
-        app_dir / "assets" / "devices",
-        app_dir,
-        result,
-        overwrite=True,
-    )
     _merge_locales(root / "locales", app_dir / "locales", app_dir, result)
 
 

@@ -70,8 +70,7 @@ Product identity lives on the Homey driver like Zigbee `productId`: an `esphome`
     "projects": ["EverythingSmart.AQ-1"],
     "hiddenEntities": ["status_led"],
     "deviceEntities": { "voc": "measure_tvoc" },
-    "deviceClassOverrides": { "aq_1": "sensor" },
-    "icons": { "sensor": "/drivers/aq-1/assets/icon.svg" }
+    "deviceClassOverrides": { "aq_1": "sensor" }
   }
 }
 ```
@@ -85,7 +84,6 @@ Product identity lives on the Homey driver like Zigbee `productId`: an `esphome`
 | `hiddenEntities`       | `hidden_entities`           | Hide extra entities (status LED, OTA helpers)    |
 | `deviceEntities`       | `device_entities`           | Remap an entity to a Homey capability            |
 | `deviceClassOverrides` | `device_class_overrides`    | Force Homey class from an entity id              |
-| `icons`                | `icons`                     | Pairing icon path per Homey class                |
 
 
 Omit `projects` / `projectPrefix` to accept every project (`io.esphome`). If both are set, either match is enough.

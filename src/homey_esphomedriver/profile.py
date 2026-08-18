@@ -55,9 +55,6 @@ class BrandProfile:
     device_class_overrides: Mapping[str, str] = field(default_factory=dict)
     """Entity object id to Homey device class."""
 
-    icons: Mapping[str, str] = field(default_factory=dict)
-    """Homey device class to pairing icon path, relative to driver assets."""
-
     native_apps: Mapping[str, str] = field(default_factory=dict)
     """ESPHome ``project.name`` to Homey App Store name (``io.esphome`` only)."""
 
@@ -125,9 +122,6 @@ class BrandProfile:
             ),
             device_class_overrides=_string_map(
                 _pick(data, "deviceClassOverrides", "device_class_overrides") or {}
-            ),
-            icons=_string_map(
-                _pick(data, "icons", "iconOverrides", "icon_overrides") or {}
             ),
             native_apps=_string_map(_pick(data, "nativeApps", "native_apps") or {}),
             capability_overrides=_capability_overrides(
@@ -197,10 +191,6 @@ class BrandProfile:
         if entity is None:
             return None
         return self.device_class_overrides.get(entity.object_id)
-
-    def icon_for(self, device_class: str) -> str | None:
-        """Return a pairing icon path, or ``None`` for the default class SVG."""
-        return self.icons.get(device_class)
 
     def after_map(
         self,

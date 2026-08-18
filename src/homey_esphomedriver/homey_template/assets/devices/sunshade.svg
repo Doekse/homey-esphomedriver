@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="960px" height="960px" viewBox="0 0 960 960" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <title>sunshade</title>
-    <g id="sunshade" stroke="none" fill="none" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M218.288877,104.548405 L218.288877,932.346925 L760.87399,841.737492 L760.87399,141.088961 L785.878772,133.857031 L785.878772,80.1114789 L223.386893,27.5714335 L192.420775,34.4074687 C189.890504,61.583174 189.890504,76.8178441 192.420775,80.1114789 C194.951047,83.4051137 199.30444,90.3230488 205.480954,100.865284 L218.288877,104.548405 Z" id="Path-126" stroke="#000000" stroke-width="40"></path>
-        <line x1="217.288877" y1="94.5484051" x2="759.87399" y2="131.088961" id="Path-127" stroke="#000000" stroke-width="20"></line>
-        <line x1="215.460032" y1="893.300647" x2="755.669896" y2="803.10757" id="Path-128" stroke="#000000" stroke-width="20"></line>
-    </g>
-</svg>

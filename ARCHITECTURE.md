@@ -58,7 +58,7 @@ Typical setup:
 
 Homey CLI does not copy these templates. `esphome-homey sync` writes them into `.homeycompose/`; commit that output so `homey app run` works on a stock CLI. Re-run `sync` after a core upgrade.
 
-Until the package is on PyPI, skip step 2 for `homey-esphomedriver` and run `sync` from a local checkout. `io.esphome` does that with `./scripts/sync-local-core.sh`.
+The generic `io.esphome` app installs this package from PyPI the same way (`homey app dependencies add homey-esphomedriver`).
 
 ### Brand profile (compose `esphome`)
 
@@ -73,7 +73,6 @@ Normally there is one Homey driver per product SKU. Product filters go on that d
 | `hiddenEntities`         | Hide things like status LEDs, OTA helpers or duplicate sensors                                                    |
 | `deviceEntities`         | Map VOC, NOx, PM and similar entities to proper Homey capabilities instead of generic gauges                      |
 | `deviceClassOverrides`   | Force a Homey device class such as socket, sensor or speaker                                                      |
-| `icons`                  | Use a product-specific icon instead of the generic device class SVG                                               |
 
 
 If both `projects` and `projectPrefix` are configured, a match on either is enough.
