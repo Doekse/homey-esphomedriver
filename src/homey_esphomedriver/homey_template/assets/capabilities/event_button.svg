@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="65px" height="64px" viewBox="0 0 65 64" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>event_button</title>
+    <g id="event_button" stroke="none" fill="none" transform="translate(0.5, 0)" fill-rule="evenodd">
+        <path d="M32,8 C45.254834,8 56,18.745166 56,32 C56,45.254834 45.254834,56 32,56 C18.745166,56 8,45.254834 8,32 C8,18.745166 18.745166,8 32,8 Z M32,12 C20.954305,12 12,20.954305 12,32 C12,43.045695 20.954305,52 32,52 C43.045695,52 52,43.045695 52,32 C52,20.954305 43.045695,12 32,12 Z M32,16 C40.836556,16 48,23.163444 48,32 C48,40.836556 40.836556,48 32,48 C23.163444,48 16,40.836556 16,32 C16,23.163444 23.163444,16 32,16 Z" id="Shape" fill="#000000"></path>
+    </g>
+</svg>

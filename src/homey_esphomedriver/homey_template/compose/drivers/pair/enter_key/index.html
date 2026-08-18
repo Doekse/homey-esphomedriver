@@ -1,0 +1,99 @@
+<style>
+  input[type='password'] {
+    -webkit-text-security: disc;
+  }
+
+  #view-enter-key .content-container img {
+    margin-bottom: var(--homey-su-4);
+  }
+
+  .key-container {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+  }
+
+  .key-container > .content-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+  }
+
+  .key-container fieldset {
+    width: 100%;
+  }
+</style>
+<div class="key-container" id="view-enter-key">
+  <div class="content-container">
+    <img src="{{assets}}/encryption-big.svg" alt="Encryption" width="80" />
+    <fieldset class="homey-form-fieldset">
+      <div class="homey-form-group">
+        <input
+          class="homey-form-input"
+          id="noise-psk"
+          type="password"
+          autocomplete="new-password"
+          autocapitalize="off"
+          spellcheck="false"
+        />
+      </div>
+    </fieldset>
+  </div>
+  <button
+    id="btn-continue"
+    class="homey-button-primary-shadow-full is-disabled"
+    data-i18n="__continue"
+    disabled
+  ></button>
+</div>
+<script type="text/javascript">
+  (function () {
+    var $container = document.querySelector('#view-enter-key');
+    var $btnContinue = $container.querySelector('#btn-continue');
+    var $inputKey = $container.querySelector('#noise-psk');
+
+    Homey.setTitle(Homey.__('pair.enter_key.title'));
+    Homey.setSubtitle(Homey.__('pair.enter_key.subtitle'));
+    $inputKey.placeholder = Homey.__('pair.enter_key.key');
+    $inputKey.focus();
+
+    function syncContinue() {
+      if ($inputKey.value.trim().length > 0) {
+        $btnContinue.classList.remove('is-disabled');
+        $btnContinue.disabled = false;
+      } else {
+        $btnContinue.classList.add('is-disabled');
+        $btnContinue.disabled = true;
+      }
+    }
+
+    $inputKey.addEventListener('input', syncContinue);
+    $inputKey.addEventListener('keyup', function (event) {
+      if (event.key === 'Enter') {
+        $btnContinue.click();
+      }
+    });
+
+    $btnContinue.addEventListener('click', function () {
+      if ($btnContinue.disabled || $btnContinue.classList.contains('is-loading')) return;
+      $btnContinue.classList.add('is-loading');
+
+      Homey.emit('enter_key', {
+        noise_psk: $inputKey.value,
+      })
+        .then(function () {
+          $btnContinue.classList.remove('is-loading');
+        })
+        .catch(function (err) {
+          $btnContinue.classList.remove('is-loading');
+          Homey.alert(err);
+          Homey.setSubtitle(Homey.__('pair.enter_key.subtitle'));
+        });
+    });
+  })();
+</script>

@@ -1,0 +1,73 @@
+{
+  "pair": {
+    "configure_manual": {
+      "title": "أدخل عنوان IP",
+      "macLabel": "عنوان MAC",
+      "hostLabel": "عنوان IP أو اسم المضيف",
+      "hostPlaceholder": "192.168.1.100 أو device.local",
+      "portLabel": "المنفذ",
+      "portPlaceholder": "6053",
+      "connect": "اتصال"
+    },
+    "enter_wifi": {
+      "title": "الاتصال بـ Wi-Fi",
+      "subtitle": "أدخل شبكة Wi-Fi التي يجب أن يتصل بها هذا الجهاز.",
+      "ssid": "اسم الشبكة (SSID)",
+      "password_optional": "كلمة مرور Wi-Fi (اختياري)"
+    },
+    "enter_key": {
+      "title": "مفتاح التشفير",
+      "subtitle": "يحتاج جهاز ESPHome هذا إلى مفتاح تشفير.",
+      "key": "مفتاح التشفير"
+    },
+    "add_device": {
+      "title": "جارٍ إضافة الجهاز"
+    },
+    "list": {
+      "add_by_ip": "إضافة عبر IP…",
+      "setup_bluetooth": "الإعداد عبر Bluetooth…"
+    }
+  },
+  "errors": {
+    "cannot_connect": "يتعذّر الاتصال بجهاز ESPHome. تأكد أنه على نفس الشبكة وأن ملف YAML يتضمن قسماً api:.",
+    "connection_lost": "فُقد الاتصال بـ ESPHome",
+    "timeout": "لم يستجب الجهاز في الوقت المناسب. حاول مرة أخرى.",
+    "resolve_error": "يتعذّر العثور على الجهاز في الشبكة. تحقق أنه متصل، أو استخدم عنوان IP ثابتاً.",
+    "invalid_encryption_key": "مفتاح التشفير غير صالح. تحقق أنه يطابق api → encryption → key في YAML الجهاز.",
+    "requires_encryption_key": "يحتاج جهاز ESPHome هذا إلى مفتاح تشفير. أعد ربطه وأدخل المفتاح من api → encryption → key في YAML الجهاز.",
+    "invalid_auth": "كلمة مرور API غير صالحة.",
+    "encryption_plaintext": "هذا الجهاز لا يستخدم التشفير. احذف مفتاح التشفير في Homey، أو فعّل التشفير على الجهاز.",
+    "encryption_hello": "انقطع الاتصال المشفّر فوراً. تحقق أن التشفير مفعّل على الجهاز، ثم حاول مرة أخرى.",
+    "handshake": "تعذّر إنشاء الاتصال المشفّر. تحقق من مفتاح التشفير وأن برنامج الجهاز محدّث.",
+    "device_mismatch": "الجهاز على هذا العنوان ليس الذي ربطه Homey. تحقق من عنوان IP أو حجز DHCP.",
+    "mac_missing": "لم يُرسل جهاز ESPHome عنوان MAC.",
+    "no_supported_entities": "جهاز ESPHome هذا لا يحتوي على عناصر يدعمها Homey.",
+    "device_not_connected": "جهاز ESPHome غير متصل",
+    "device_not_prepared": "الجهاز غير جاهز. ارجع وأعد الاتصال.",
+    "no_device_selected": "لم يتم اختيار جهاز",
+    "host_required": "أدخل مضيفاً أو عنوان IP",
+    "port_number": "يجب أن يكون المنفذ رقماً",
+    "port_range": "يجب أن يكون المنفذ بين 1 و 65535",
+    "bluetooth_device_required": "اختر جهاز Bluetooth أولاً",
+    "ssid_required": "أدخل اسم الشبكة",
+    "encryption_key_required": "أدخل مفتاح التشفير",
+    "improv": {
+      "invalid_rpc": "رفض الجهاز أمر الإعداد.",
+      "unknown_rpc": "الجهاز لا يدعم أمر الإعداد هذا.",
+      "unable_to_connect": "يتعذّر الاتصال بـ Wi-Fi. تحقق من اسم الشبكة وكلمة المرور.",
+      "not_authorized": "اضغط الزر على الجهاز وحاول مرة أخرى.",
+      "unknown": "فشل إعداد Wi-Fi.",
+      "scan_failed": "يتعذّر البحث عن أجهزة Bluetooth. أبقِ الجهاز أقرب إلى Homey وحاول مرة أخرى.",
+      "none_found": "لم يُعثر على أجهزة ESPHome عبر Bluetooth. أبقِ الجهاز أقرب إلى Homey وتأكد أن Improv مفعّل.",
+      "bluetooth_connect": "يتعذّر الاتصال عبر Bluetooth. أبقِ الجهاز قريباً من Homey وحاول مرة أخرى.",
+      "not_connected": "Bluetooth غير متصل.",
+      "setup_timeout": "انتهت مهلة إعداد Wi-Fi. تحقق من اسم الشبكة وكلمة المرور.",
+      "setup_incomplete": "لم يكتمل إعداد Wi-Fi.",
+      "already_provisioned": "هذا الجهاز مُعدّ مسبقاً. اختره من قائمة Wi-Fi.",
+      "not_ready": "الجهاز غير جاهز بعد لإعداد Wi-Fi.",
+      "ssid_too_long": "SSID أو كلمة المرور طويلة جداً",
+      "invalid_value": "أرسل جهاز Improv قيمة غير صالحة"
+    }
+  },
+  "nativeAppSuggestion": "أخبار سارة! لهذا الجهاز تطبيق خاص به! ابحث في Homey App Store عن __appName__."
+}

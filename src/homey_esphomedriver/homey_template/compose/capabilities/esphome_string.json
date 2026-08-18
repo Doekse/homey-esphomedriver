@@ -1,0 +1,22 @@
+{
+  "type": "string",
+  "title": {
+    "en": "Text",
+    "ar": "نص",
+    "da": "Tekst",
+    "de": "Text",
+    "es": "Texto",
+    "fr": "Texte",
+    "it": "Testo",
+    "ko": "텍스트",
+    "nl": "Tekst",
+    "no": "Tekst",
+    "pl": "Tekst",
+    "ru": "Текст",
+    "sv": "Text"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/esphome_string.svg"
+}

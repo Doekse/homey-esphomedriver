@@ -1,0 +1,27 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Battery voltage",
+    "ar": "جهد البطارية",
+    "da": "Batterispænding",
+    "de": "Batteriespannung",
+    "es": "Voltaje de la batería",
+    "fr": "Tension de la batterie",
+    "it": "Tensione batteria",
+    "ko": "배터리 전압",
+    "nl": "Batterijspanning",
+    "no": "Batterispenning",
+    "pl": "Napięcie baterii",
+    "ru": "Напряжение батареи",
+    "sv": "Batterispänning"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/measure_battery_voltage.svg",
+  "insights": true,
+  "decimals": 2,
+  "units": {
+    "en": "V"
+  }
+}

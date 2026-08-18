@@ -1,0 +1,27 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Reactive power",
+    "ar": "القدرة التفاعلية",
+    "da": "Reaktiv effekt",
+    "de": "Blindleistung",
+    "es": "Potencia reactiva",
+    "fr": "Puissance réactive",
+    "it": "Potenza reattiva",
+    "ko": "무효 전력",
+    "nl": "Blindvermogen",
+    "no": "Reaktiv effekt",
+    "pl": "Moc bierna",
+    "ru": "Реактивная мощность",
+    "sv": "Reaktiv effekt"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/esphome_number.svg",
+  "insights": true,
+  "decimals": 2,
+  "units": {
+    "en": "var"
+  }
+}

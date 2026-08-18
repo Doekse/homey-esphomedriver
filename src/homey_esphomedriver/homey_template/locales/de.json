@@ -1,0 +1,73 @@
+{
+  "pair": {
+    "configure_manual": {
+      "title": "IP-Adresse eingeben",
+      "macLabel": "MAC-Adresse",
+      "hostLabel": "IP-Adresse oder Hostname",
+      "hostPlaceholder": "192.168.1.100 oder device.local",
+      "portLabel": "Port",
+      "portPlaceholder": "6053",
+      "connect": "Verbinden"
+    },
+    "enter_wifi": {
+      "title": "Mit Wi-Fi verbinden",
+      "subtitle": "Gib das Wi-Fi-Netzwerk ein, mit dem dieses Gerät sich verbinden soll.",
+      "ssid": "Netzwerkname (SSID)",
+      "password_optional": "Wi-Fi-Passwort (optional)"
+    },
+    "enter_key": {
+      "title": "Verschlüsselungsschlüssel",
+      "subtitle": "Dieses ESPHome-Gerät braucht einen Verschlüsselungsschlüssel.",
+      "key": "Verschlüsselungsschlüssel"
+    },
+    "add_device": {
+      "title": "Gerät wird hinzugefügt"
+    },
+    "list": {
+      "add_by_ip": "Per IP hinzufügen…",
+      "setup_bluetooth": "Über Bluetooth einrichten…"
+    }
+  },
+  "errors": {
+    "cannot_connect": "Keine Verbindung zum ESPHome-Gerät möglich. Stelle sicher, dass es im selben Netzwerk ist und die YAML einen api:-Abschnitt hat.",
+    "connection_lost": "Verbindung zu ESPHome verloren",
+    "timeout": "Das Gerät hat nicht rechtzeitig geantwortet. Versuche es erneut.",
+    "resolve_error": "Das Gerät wurde im Netzwerk nicht gefunden. Prüfe, ob es online ist, oder verwende eine feste IP-Adresse.",
+    "invalid_encryption_key": "Der Verschlüsselungsschlüssel ist ungültig. Prüfe, ob er mit api → encryption → key in der YAML des Geräts übereinstimmt.",
+    "requires_encryption_key": "Dieses ESPHome-Gerät braucht einen Verschlüsselungsschlüssel. Kopple es erneut und gib den Schlüssel aus api → encryption → key in der YAML des Geräts ein.",
+    "invalid_auth": "Ungültiges API-Passwort.",
+    "encryption_plaintext": "Dieses Gerät verwendet keine Verschlüsselung. Entferne den Verschlüsselungsschlüssel in Homey, oder aktiviere die Verschlüsselung auf dem Gerät.",
+    "encryption_hello": "Die verschlüsselte Verbindung wurde sofort getrennt. Prüfe, ob die Verschlüsselung auf dem Gerät aktiviert ist, und versuche es erneut.",
+    "handshake": "Die verschlüsselte Verbindung konnte nicht hergestellt werden. Prüfe den Verschlüsselungsschlüssel und ob die Firmware des Geräts aktuell ist.",
+    "device_mismatch": "Das Gerät unter dieser Adresse ist nicht das, das Homey gekoppelt hat. Prüfe die IP-Adresse oder die DHCP-Reservierung.",
+    "mac_missing": "Das ESPHome-Gerät hat keine MAC-Adresse übermittelt.",
+    "no_supported_entities": "Dieses ESPHome-Gerät hat keine Komponenten, die Homey unterstützt.",
+    "device_not_connected": "ESPHome-Gerät ist nicht verbunden",
+    "device_not_prepared": "Das Gerät ist nicht vorbereitet. Geh zurück und stelle die Verbindung erneut her.",
+    "no_device_selected": "Kein Gerät ausgewählt",
+    "host_required": "Gib einen Host oder eine IP-Adresse ein",
+    "port_number": "Port muss eine Zahl sein",
+    "port_range": "Port muss zwischen 1 und 65535 liegen",
+    "bluetooth_device_required": "Wähle zuerst ein Bluetooth-Gerät",
+    "ssid_required": "Gib einen Netzwerknamen ein",
+    "encryption_key_required": "Gib den Verschlüsselungsschlüssel ein",
+    "improv": {
+      "invalid_rpc": "Das Gerät hat den Einrichtungsbefehl abgelehnt.",
+      "unknown_rpc": "Das Gerät unterstützt diesen Einrichtungsbefehl nicht.",
+      "unable_to_connect": "Keine Verbindung zum Wi-Fi möglich. Prüfe Netzwerkname und Passwort.",
+      "not_authorized": "Drücke die Taste am Gerät und versuche es erneut.",
+      "unknown": "Wi-Fi-Einrichtung fehlgeschlagen.",
+      "scan_failed": "Bluetooth-Geräte konnten nicht gesucht werden. Halte das Gerät näher an Homey und versuche es erneut.",
+      "none_found": "Keine ESPHome-Geräte über Bluetooth gefunden. Halte das Gerät näher an Homey und stelle sicher, dass Improv aktiviert ist.",
+      "bluetooth_connect": "Keine Bluetooth-Verbindung möglich. Halte das Gerät nah an Homey und versuche es erneut.",
+      "not_connected": "Bluetooth ist nicht verbunden.",
+      "setup_timeout": "Die Wi-Fi-Einrichtung ist abgelaufen. Prüfe Netzwerkname und Passwort.",
+      "setup_incomplete": "Die Wi-Fi-Einrichtung wurde nicht abgeschlossen.",
+      "already_provisioned": "Dieses Gerät ist bereits eingerichtet. Wähle es aus der Wi-Fi-Liste.",
+      "not_ready": "Das Gerät ist noch nicht bereit für die Wi-Fi-Einrichtung.",
+      "ssid_too_long": "SSID oder Passwort ist zu lang",
+      "invalid_value": "Improv-Gerät hat einen ungültigen Wert gesendet"
+    }
+  },
+  "nativeAppSuggestion": "Gute Nachrichten! Dieses Gerät hat eine eigene App! Suche im Homey App Store nach __appName__."
+}

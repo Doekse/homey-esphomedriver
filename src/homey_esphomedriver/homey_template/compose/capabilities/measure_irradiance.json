@@ -1,0 +1,27 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Irradiance",
+    "ar": "الإشعاع",
+    "da": "Irradians",
+    "de": "Bestrahlungsstärke",
+    "es": "Irradiancia",
+    "fr": "Irradiance",
+    "it": "Irradianza",
+    "ko": "일사량",
+    "nl": "Instraling",
+    "no": "Irradians",
+    "pl": "Natężenie napromieniowania",
+    "ru": "Облучённость",
+    "sv": "Irradians"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/esphome_number.svg",
+  "insights": true,
+  "decimals": 2,
+  "units": {
+    "en": "W/m²"
+  }
+}

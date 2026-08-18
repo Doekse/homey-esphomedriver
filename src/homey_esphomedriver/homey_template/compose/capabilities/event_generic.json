@@ -1,0 +1,42 @@
+{
+  "type": "enum",
+  "title": {
+    "en": "Event",
+    "ar": "حدث",
+    "da": "Begivenhed",
+    "de": "Ereignis",
+    "es": "Evento",
+    "fr": "Evénement",
+    "it": "Evento",
+    "ko": "이벤트",
+    "nl": "Evenement",
+    "no": "Hendelse",
+    "pl": "Zdarzenie",
+    "ru": "Событие",
+    "sv": "Händelse"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/event_generic.svg",
+  "values": [
+    {
+      "id": "idle",
+      "title": {
+        "en": "Idle",
+        "ar": "خامل",
+        "da": "Inaktiv",
+        "de": "Inaktiv",
+        "es": "Inactivo",
+        "fr": "Inactif",
+        "it": "Inattivo",
+        "ko": "대기",
+        "nl": "Inactief",
+        "no": "Inaktiv",
+        "pl": "Bezczynny",
+        "ru": "Простой",
+        "sv": "Inaktiv"
+      }
+    }
+  ]
+}

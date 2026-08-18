@@ -1,0 +1,22 @@
+{
+  "type": "string",
+  "title": {
+    "en": "Date",
+    "ar": "التاريخ",
+    "da": "Dato",
+    "de": "Datum",
+    "es": "Fecha",
+    "fr": "Date",
+    "it": "Data",
+    "ko": "날짜",
+    "nl": "Datum",
+    "no": "Dato",
+    "pl": "Data",
+    "ru": "Дата",
+    "sv": "Datum"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/measure_date.svg"
+}

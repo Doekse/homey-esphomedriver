@@ -1,0 +1,73 @@
+{
+  "pair": {
+    "configure_manual": {
+      "title": "Enter IP address",
+      "macLabel": "MAC address",
+      "hostLabel": "IP address or hostname",
+      "hostPlaceholder": "192.168.1.100 or device.local",
+      "portLabel": "Port",
+      "portPlaceholder": "6053",
+      "connect": "Connect"
+    },
+    "enter_wifi": {
+      "title": "Connect to Wi-Fi",
+      "subtitle": "Enter the Wi-Fi network this device should join.",
+      "ssid": "Network SSID",
+      "password_optional": "Wi-Fi password (optional)"
+    },
+    "enter_key": {
+      "title": "Encryption key",
+      "subtitle": "This ESPHome device requires an encryption key.",
+      "key": "Encryption key"
+    },
+    "add_device": {
+      "title": "Adding device"
+    },
+    "list": {
+      "add_by_ip": "Add by IP…",
+      "setup_bluetooth": "Set up via Bluetooth…"
+    }
+  },
+  "errors": {
+    "cannot_connect": "Could not connect to the ESPHome device. Make sure it is on the same network and its YAML includes an api: section.",
+    "connection_lost": "ESPHome connection lost",
+    "timeout": "The device did not respond in time. Try again.",
+    "resolve_error": "Could not find the device on the network. Check that it is online, or use a static IP address.",
+    "invalid_encryption_key": "The encryption key is invalid. Check that it matches api → encryption → key in the device YAML.",
+    "requires_encryption_key": "This ESPHome device requires an encryption key. Repair it and enter the key from api → encryption → key in the device YAML.",
+    "invalid_auth": "Invalid API password.",
+    "encryption_plaintext": "This device is not using encryption. Remove the encryption key in Homey, or enable encryption on the device.",
+    "encryption_hello": "The encrypted connection was dropped immediately. Check that encryption is enabled on the device, and try again.",
+    "handshake": "Could not complete the encrypted handshake. Check the encryption key and that the device firmware is up to date.",
+    "device_mismatch": "The device at this address is not the one Homey paired. Check the IP address or DHCP reservation.",
+    "mac_missing": "The ESPHome device did not report a MAC address.",
+    "no_supported_entities": "This ESPHome node has no supported entities for Homey.",
+    "device_not_connected": "ESPHome device is not connected",
+    "device_not_prepared": "Device was not prepared. Go back and reconnect.",
+    "no_device_selected": "No device selected",
+    "host_required": "Host or IP address is required",
+    "port_number": "Port must be a number",
+    "port_range": "Port must be between 1 and 65535",
+    "bluetooth_device_required": "Select a Bluetooth device first",
+    "ssid_required": "Network name is required",
+    "encryption_key_required": "Encryption key is required",
+    "improv": {
+      "invalid_rpc": "The device rejected the setup command.",
+      "unknown_rpc": "The device does not support this setup command.",
+      "unable_to_connect": "Could not connect to Wi-Fi. Check the network name and password.",
+      "not_authorized": "Press the button on the device and try again.",
+      "unknown": "Wi-Fi setup failed.",
+      "scan_failed": "Could not scan for Bluetooth devices. Bring the device closer to Homey and try again.",
+      "none_found": "No ESPHome devices found over Bluetooth. Bring the device closer to Homey and make sure it has Improv enabled.",
+      "bluetooth_connect": "Could not connect over Bluetooth. Keep the device close to Homey and try again.",
+      "not_connected": "Bluetooth is not connected.",
+      "setup_timeout": "Wi-Fi setup timed out. Check the network name and password.",
+      "setup_incomplete": "Wi-Fi setup did not finish.",
+      "already_provisioned": "This device is already set up. Pick it from the Wi-Fi list.",
+      "not_ready": "The device is not ready for Wi-Fi setup.",
+      "ssid_too_long": "SSID or password is too long",
+      "invalid_value": "Improv device sent an invalid value"
+    }
+  },
+  "nativeAppSuggestion": "Good news! This device has its own app! Search in the Homey App Store for __appName__."
+}

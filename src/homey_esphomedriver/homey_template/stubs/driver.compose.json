@@ -1,0 +1,11 @@
+{
+  "name": {
+    "en": "__DRIVER_NAME__"
+  },
+  "class": "__DEVICE_CLASS__",
+  "$extends": ["esphome-defaults"],
+  "esphome": {
+    "clientInfo": "__CLIENT_INFO__",
+    "projects": ["__PROJECT_NAME__"]
+  }
+}

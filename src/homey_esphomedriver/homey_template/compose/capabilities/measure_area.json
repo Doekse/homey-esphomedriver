@@ -1,0 +1,27 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Area",
+    "ar": "المساحة",
+    "da": "Areal",
+    "de": "Fläche",
+    "es": "Área",
+    "fr": "Surface",
+    "it": "Area",
+    "ko": "면적",
+    "nl": "Oppervlakte",
+    "no": "Areal",
+    "pl": "Powierzchnia",
+    "ru": "Площадь",
+    "sv": "Area"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/esphome_number.svg",
+  "insights": true,
+  "decimals": 2,
+  "units": {
+    "en": "m²"
+  }
+}

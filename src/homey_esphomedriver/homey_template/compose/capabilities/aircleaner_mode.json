@@ -1,0 +1,71 @@
+{
+  "type": "enum",
+  "title": {
+    "en": "Mode",
+    "ar": "الوضع",
+    "da": "Tilstand",
+    "de": "Modus",
+    "es": "Modo",
+    "fr": "Mode",
+    "it": "Modalità",
+    "ko": "모드",
+    "nl": "Modus",
+    "no": "Modus",
+    "pl": "Tryb",
+    "ru": "Режим",
+    "sv": "Läge"
+  },
+  "uiComponent": "picker",
+  "getable": true,
+  "setable": true,
+  "values": [
+    {
+      "id": "fan",
+      "title": {
+        "en": "Fan",
+        "ar": "مروحة",
+        "da": "Ventilator",
+        "de": "Lüfter",
+        "es": "Ventilador",
+        "fr": "Ventilateur",
+        "it": "Ventilatore",
+        "ko": "팬",
+        "nl": "Ventilator",
+        "no": "Vifte",
+        "pl": "Wentylator",
+        "ru": "Вентилятор",
+        "sv": "Fläkt"
+      }
+    },
+    {
+      "id": "auto",
+      "title": {
+        "en": "Auto"
+      }
+    },
+    {
+      "id": "silent",
+      "title": {
+        "en": "Silent",
+        "ar": "صامت",
+        "da": "Stille",
+        "de": "Leise",
+        "es": "Silencioso",
+        "fr": "Silencieux",
+        "it": "Silenzioso",
+        "ko": "조용히",
+        "nl": "Stil",
+        "no": "Stille",
+        "pl": "Cichy",
+        "ru": "Тихий",
+        "sv": "Tyst"
+      }
+    },
+    {
+      "id": "favorite",
+      "title": {
+        "en": "Favorite"
+      }
+    }
+  ]
+}

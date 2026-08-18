@@ -1,0 +1,22 @@
+{
+  "type": "boolean",
+  "title": {
+    "en": "Identify",
+    "ar": "تعرّف",
+    "da": "Identificer",
+    "de": "Identifizieren",
+    "es": "Identificar",
+    "fr": "Identifier",
+    "it": "Identifica",
+    "ko": "식별",
+    "nl": "Identificeren",
+    "no": "Identifiser",
+    "pl": "Identyfikuj",
+    "ru": "Идентифицировать",
+    "sv": "Identifiera"
+  },
+  "getable": false,
+  "setable": true,
+  "uiComponent": "button",
+  "icon": "/assets/capabilities/identify.svg"
+}

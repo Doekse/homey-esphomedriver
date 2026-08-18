@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="960px" height="960px" viewBox="0 0 960 960" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>garagedoor</title>
+    <g id="garagedoor" stroke="none" fill="none">
+        <path d="M758.451417,808.106954 L758,685 M758.451417,587.045639 L758.451417,229.643505 L275.152969,173.687581 L275.152969,901.363123 M275.152969,901.363123 L275,633" id="Shape" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"></path>
+        <line x1="674.389892" y1="264.616763" x2="275.152969" y2="229.643505" id="Path-390" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"></line>
+        <polyline id="Path-391" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" points="455.603073 253.931266 813.607118 649.649429 802.486192 677.365853 319.190368 730.649773 275.152969 631.814313"></polyline>
+        <polyline id="Path-392" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" points="275.152969 578.612629 334.052317 701.35472 813.607118 648.649429"></polyline>
+        <line x1="275.152969" y1="596.122463" x2="733.31026" y2="561.102794" id="Path-393" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"></line>
+        <line x1="654.292572" y1="473.192421" x2="275.152969" y2="485.858014" id="Path-394" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"></line>
+        <line x1="572.838418" y1="382.266163" x2="275.152969" y2="387.002255" id="Path-395" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"></line>
+        <line x1="505.894265" y1="310.317084" x2="275.152969" y2="308.874582" id="Path-396" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"></line>
+        <polyline id="Path-397" stroke="#000000" stroke-width="40" stroke-linecap="round" stroke-linejoin="round" points="762.138641 807.37507 877.432204 784.490221 877.432204 122.888833 113.838432 26.8867003 113.838432 932.496293 275.152969 901.363123"></polyline>
+        <polyline id="Path" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" points="758.451417 229.643505 674.389892 264.616763 674.389892 494.212365"></polyline>
+        <polyline id="Path-385" stroke="#000000" stroke-width="40" stroke-linecap="round" stroke-linejoin="round" points="226.05736 910.874342 287.614162 898.56682 287.614162 693.138295 317.075189 741.587117 657.7308 704.524289 662.938167 794.892671 758 808.106954"></polyline>
+        <polygon id="Path-71" fill="#000000" fill-rule="evenodd" points="456.204689 247.130134 674.389892 264.616763 674.389892 494.212365"></polygon>
+    </g>
+</svg>

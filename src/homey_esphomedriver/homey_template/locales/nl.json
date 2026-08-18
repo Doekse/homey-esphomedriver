@@ -1,0 +1,73 @@
+{
+  "pair": {
+    "configure_manual": {
+      "title": "IP-adres invoeren",
+      "macLabel": "MAC-adres",
+      "hostLabel": "IP-adres of hostnaam",
+      "hostPlaceholder": "192.168.1.100 of device.local",
+      "portLabel": "Poort",
+      "portPlaceholder": "6053",
+      "connect": "Verbinden"
+    },
+    "enter_wifi": {
+      "title": "Verbinden met wifi",
+      "subtitle": "Voer het wifinetwerk in waarmee dit apparaat verbinding moet maken.",
+      "ssid": "Netwerknaam (SSID)",
+      "password_optional": "Wifi-wachtwoord (optioneel)"
+    },
+    "enter_key": {
+      "title": "Encryptiesleutel",
+      "subtitle": "Dit ESPHome-apparaat heeft een encryptiesleutel nodig.",
+      "key": "Encryptiesleutel"
+    },
+    "add_device": {
+      "title": "Apparaat toevoegen"
+    },
+    "list": {
+      "add_by_ip": "Toevoegen via IP…",
+      "setup_bluetooth": "Instellen via Bluetooth…"
+    }
+  },
+  "errors": {
+    "cannot_connect": "Kan geen verbinding maken met het ESPHome-apparaat. Controleer of het op hetzelfde netwerk zit en of de YAML een api:-sectie heeft.",
+    "connection_lost": "Verbinding met ESPHome verbroken",
+    "timeout": "Het apparaat reageerde niet op tijd. Probeer het opnieuw.",
+    "resolve_error": "Kan het apparaat niet vinden op het netwerk. Controleer of het online is, of gebruik een vast IP-adres.",
+    "invalid_encryption_key": "De encryptiesleutel is ongeldig. Controleer of deze overeenkomt met api → encryption → key in de YAML van het apparaat.",
+    "requires_encryption_key": "Dit ESPHome-apparaat heeft een encryptiesleutel nodig. Koppel het opnieuw en vul de sleutel in uit api → encryption → key in de YAML van het apparaat.",
+    "invalid_auth": "Ongeldig API-wachtwoord.",
+    "encryption_plaintext": "Dit apparaat gebruikt geen encryptie. Verwijder de encryptiesleutel in Homey, of schakel encryptie in op het apparaat.",
+    "encryption_hello": "De versleutelde verbinding werd meteen verbroken. Controleer of encryptie is ingeschakeld op het apparaat en probeer het opnieuw.",
+    "handshake": "De versleutelde verbinding kon niet tot stand komen. Controleer de encryptiesleutel en of de firmware van het apparaat up-to-date is.",
+    "device_mismatch": "Het apparaat op dit adres is niet het apparaat dat Homey heeft gekoppeld. Controleer het IP-adres of de DHCP-reservering.",
+    "mac_missing": "Het ESPHome-apparaat heeft geen MAC-adres doorgegeven.",
+    "no_supported_entities": "Dit ESPHome-apparaat heeft geen capabilities die Homey ondersteunt.",
+    "device_not_connected": "ESPHome-apparaat is niet verbonden",
+    "device_not_prepared": "Het apparaat is niet voorbereid. Ga terug en maak opnieuw verbinding.",
+    "no_device_selected": "Geen apparaat geselecteerd",
+    "host_required": "Vul een host of IP-adres in",
+    "port_number": "Poort moet een getal zijn",
+    "port_range": "Poort moet tussen 1 en 65535 liggen",
+    "bluetooth_device_required": "Kies eerst een Bluetooth-apparaat",
+    "ssid_required": "Vul een netwerknaam in",
+    "encryption_key_required": "Vul de encryptiesleutel in",
+    "improv": {
+      "invalid_rpc": "Het apparaat heeft de installatieopdracht geweigerd.",
+      "unknown_rpc": "Het apparaat ondersteunt deze installatieopdracht niet.",
+      "unable_to_connect": "Kan geen verbinding maken met wifi. Controleer de netwerknaam en het wachtwoord.",
+      "not_authorized": "Druk op de knop op het apparaat en probeer het opnieuw.",
+      "unknown": "Wifi-installatie mislukt.",
+      "scan_failed": "Kan geen Bluetooth-apparaten zoeken. Houd het apparaat dichter bij Homey en probeer het opnieuw.",
+      "none_found": "Geen ESPHome-apparaten gevonden via Bluetooth. Houd het apparaat dichter bij Homey en zorg dat Improv is ingeschakeld.",
+      "bluetooth_connect": "Kan geen verbinding maken via Bluetooth. Houd het apparaat dicht bij Homey en probeer het opnieuw.",
+      "not_connected": "Bluetooth is niet verbonden.",
+      "setup_timeout": "De wifi-installatie is verlopen. Controleer de netwerknaam en het wachtwoord.",
+      "setup_incomplete": "De wifi-installatie is niet afgerond.",
+      "already_provisioned": "Dit apparaat is al ingesteld. Kies het uit de wifi-lijst.",
+      "not_ready": "Het apparaat is nog niet klaar voor de wifi-installatie.",
+      "ssid_too_long": "SSID of wachtwoord is te lang",
+      "invalid_value": "Improv-apparaat stuurde een ongeldige waarde"
+    }
+  },
+  "nativeAppSuggestion": "Goed nieuws! Dit apparaat heeft een eigen app! Zoek in de Homey App Store naar __appName__."
+}

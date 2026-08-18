@@ -1,0 +1,27 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Blood glucose",
+    "ar": "سكر الدم",
+    "da": "Blodsukker",
+    "de": "Blutzucker",
+    "es": "Glucosa en sangre",
+    "fr": "Glycémie",
+    "it": "Glicemia",
+    "ko": "혈당",
+    "nl": "Bloedglucose",
+    "no": "Blodsukker",
+    "pl": "Glukoza we krwi",
+    "ru": "Глюкоза крови",
+    "sv": "Blodsocker"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/esphome_number.svg",
+  "insights": true,
+  "decimals": 2,
+  "units": {
+    "en": "mg/dL"
+  }
+}

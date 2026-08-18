@@ -1,0 +1,73 @@
+{
+  "pair": {
+    "configure_manual": {
+      "title": "Ange IP-adress",
+      "macLabel": "MAC-adress",
+      "hostLabel": "IP-adress eller värdnamn",
+      "hostPlaceholder": "192.168.1.100 eller device.local",
+      "portLabel": "Port",
+      "portPlaceholder": "6053",
+      "connect": "Anslut"
+    },
+    "enter_wifi": {
+      "title": "Anslut till Wi-Fi",
+      "subtitle": "Ange det Wi-Fi-nätverk som den här enheten ska ansluta till.",
+      "ssid": "Nätverksnamn (SSID)",
+      "password_optional": "Wi-Fi-lösenord (valfritt)"
+    },
+    "enter_key": {
+      "title": "Krypteringsnyckel",
+      "subtitle": "Den här ESPHome-enheten behöver en krypteringsnyckel.",
+      "key": "Krypteringsnyckel"
+    },
+    "add_device": {
+      "title": "Lägger till enhet"
+    },
+    "list": {
+      "add_by_ip": "Lägg till via IP…",
+      "setup_bluetooth": "Konfigurera via Bluetooth…"
+    }
+  },
+  "errors": {
+    "cannot_connect": "Kan inte ansluta till ESPHome-enheten. Kontrollera att den är på samma nätverk och att YAML-filen har ett api:-avsnitt.",
+    "connection_lost": "Anslutningen till ESPHome bröts",
+    "timeout": "Enheten svarade inte i tid. Försök igen.",
+    "resolve_error": "Hittar inte enheten på nätverket. Kontrollera att den är online, eller använd en fast IP-adress.",
+    "invalid_encryption_key": "Krypteringsnyckeln är ogiltig. Kontrollera att den matchar api → encryption → key i enhetens YAML.",
+    "requires_encryption_key": "Den här ESPHome-enheten behöver en krypteringsnyckel. Para om den och ange nyckeln från api → encryption → key i enhetens YAML.",
+    "invalid_auth": "Ogiltigt API-lösenord.",
+    "encryption_plaintext": "Den här enheten använder inte kryptering. Ta bort krypteringsnyckeln i Homey, eller aktivera kryptering på enheten.",
+    "encryption_hello": "Den krypterade anslutningen bröts genast. Kontrollera att kryptering är aktiverad på enheten, och försök igen.",
+    "handshake": "Den krypterade anslutningen kunde inte upprättas. Kontrollera krypteringsnyckeln och att enhetens firmware är uppdaterad.",
+    "device_mismatch": "Enheten på den här adressen är inte den Homey parade. Kontrollera IP-adressen eller DHCP-reservationen.",
+    "mac_missing": "ESPHome-enheten har inte skickat någon MAC-adress.",
+    "no_supported_entities": "Den här ESPHome-enheten har inga delar som Homey stöder.",
+    "device_not_connected": "ESPHome-enheten är inte ansluten",
+    "device_not_prepared": "Enheten är inte redo. Gå tillbaka och anslut igen.",
+    "no_device_selected": "Ingen enhet vald",
+    "host_required": "Ange en värd eller IP-adress",
+    "port_number": "Porten måste vara ett tal",
+    "port_range": "Porten måste vara mellan 1 och 65535",
+    "bluetooth_device_required": "Välj en Bluetooth-enhet först",
+    "ssid_required": "Ange ett nätverksnamn",
+    "encryption_key_required": "Ange krypteringsnyckeln",
+    "improv": {
+      "invalid_rpc": "Enheten avvisade konfigureringskommandot.",
+      "unknown_rpc": "Enheten stöder inte det här konfigureringskommandot.",
+      "unable_to_connect": "Kan inte ansluta till Wi-Fi. Kontrollera nätverksnamn och lösenord.",
+      "not_authorized": "Tryck på knappen på enheten och försök igen.",
+      "unknown": "Wi-Fi-konfigurationen misslyckades.",
+      "scan_failed": "Kan inte söka efter Bluetooth-enheter. Håll enheten närmare Homey och försök igen.",
+      "none_found": "Inga ESPHome-enheter hittades via Bluetooth. Håll enheten närmare Homey och se till att Improv är aktiverat.",
+      "bluetooth_connect": "Kan inte ansluta via Bluetooth. Håll enheten nära Homey och försök igen.",
+      "not_connected": "Bluetooth är inte anslutet.",
+      "setup_timeout": "Wi-Fi-konfigurationen tog för lång tid. Kontrollera nätverksnamn och lösenord.",
+      "setup_incomplete": "Wi-Fi-konfigurationen blev inte klar.",
+      "already_provisioned": "Den här enheten är redan konfigurerad. Välj den från Wi-Fi-listan.",
+      "not_ready": "Enheten är inte redo för Wi-Fi-konfiguration ännu.",
+      "ssid_too_long": "SSID eller lösenord är för långt",
+      "invalid_value": "Improv-enheten skickade ett ogiltigt värde"
+    }
+  },
+  "nativeAppSuggestion": "Goda nyheter! Denna enhet har en egen app! Sök i Homey App Store efter __appName__."
+}

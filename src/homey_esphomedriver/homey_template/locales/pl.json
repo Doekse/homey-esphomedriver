@@ -1,0 +1,73 @@
+{
+  "pair": {
+    "configure_manual": {
+      "title": "Wprowadź adres IP",
+      "macLabel": "Adres MAC",
+      "hostLabel": "Adres IP lub nazwa hosta",
+      "hostPlaceholder": "192.168.1.100 lub device.local",
+      "portLabel": "Port",
+      "portPlaceholder": "6053",
+      "connect": "Połącz"
+    },
+    "enter_wifi": {
+      "title": "Połącz z Wi-Fi",
+      "subtitle": "Wprowadź sieć Wi-Fi, do której ma się podłączyć to urządzenie.",
+      "ssid": "Nazwa sieci (SSID)",
+      "password_optional": "Hasło Wi-Fi (opcjonalne)"
+    },
+    "enter_key": {
+      "title": "Klucz szyfrowania",
+      "subtitle": "To urządzenie ESPHome potrzebuje klucza szyfrowania.",
+      "key": "Klucz szyfrowania"
+    },
+    "add_device": {
+      "title": "Dodawanie urządzenia"
+    },
+    "list": {
+      "add_by_ip": "Dodaj przez IP…",
+      "setup_bluetooth": "Skonfiguruj przez Bluetooth…"
+    }
+  },
+  "errors": {
+    "cannot_connect": "Nie można połączyć się z urządzeniem ESPHome. Sprawdź, czy jest w tej samej sieci i czy plik YAML ma sekcję api:.",
+    "connection_lost": "Utracono połączenie z ESPHome",
+    "timeout": "Urządzenie nie odpowiedziało na czas. Spróbuj ponownie.",
+    "resolve_error": "Nie można znaleźć urządzenia w sieci. Sprawdź, czy jest online, lub użyj stałego adresu IP.",
+    "invalid_encryption_key": "Klucz szyfrowania jest nieprawidłowy. Sprawdź, czy zgadza się z api → encryption → key w YAML urządzenia.",
+    "requires_encryption_key": "To urządzenie ESPHome potrzebuje klucza szyfrowania. Sparuj je ponownie i wpisz klucz z api → encryption → key w YAML urządzenia.",
+    "invalid_auth": "Nieprawidłowe hasło API.",
+    "encryption_plaintext": "To urządzenie nie używa szyfrowania. Usuń klucz szyfrowania w Homey albo włącz szyfrowanie na urządzeniu.",
+    "encryption_hello": "Połączenie szyfrowane zostało od razu przerwane. Sprawdź, czy szyfrowanie jest włączone na urządzeniu, i spróbuj ponownie.",
+    "handshake": "Nie udało się nawiązać szyfrowanego połączenia. Sprawdź klucz szyfrowania oraz czy oprogramowanie urządzenia jest aktualne.",
+    "device_mismatch": "Urządzenie pod tym adresem nie jest tym, które Homey sparował. Sprawdź adres IP lub rezerwację DHCP.",
+    "mac_missing": "Urządzenie ESPHome nie przesłało adresu MAC.",
+    "no_supported_entities": "To urządzenie ESPHome nie ma elementów obsługiwanych przez Homey.",
+    "device_not_connected": "Urządzenie ESPHome nie jest połączone",
+    "device_not_prepared": "Urządzenie nie jest gotowe. Wróć i połącz ponownie.",
+    "no_device_selected": "Nie wybrano urządzenia",
+    "host_required": "Wpisz host lub adres IP",
+    "port_number": "Port musi być liczbą",
+    "port_range": "Port musi być w zakresie od 1 do 65535",
+    "bluetooth_device_required": "Najpierw wybierz urządzenie Bluetooth",
+    "ssid_required": "Wpisz nazwę sieci",
+    "encryption_key_required": "Wpisz klucz szyfrowania",
+    "improv": {
+      "invalid_rpc": "Urządzenie odrzuciło polecenie konfiguracji.",
+      "unknown_rpc": "Urządzenie nie obsługuje tego polecenia konfiguracji.",
+      "unable_to_connect": "Nie można połączyć się z Wi-Fi. Sprawdź nazwę sieci i hasło.",
+      "not_authorized": "Naciśnij przycisk na urządzeniu i spróbuj ponownie.",
+      "unknown": "Konfiguracja Wi-Fi nie powiodła się.",
+      "scan_failed": "Nie można wyszukać urządzeń Bluetooth. Trzymaj urządzenie bliżej Homey i spróbuj ponownie.",
+      "none_found": "Nie znaleziono urządzeń ESPHome przez Bluetooth. Trzymaj urządzenie bliżej Homey i upewnij się, że Improv jest włączony.",
+      "bluetooth_connect": "Nie można połączyć się przez Bluetooth. Trzymaj urządzenie blisko Homey i spróbuj ponownie.",
+      "not_connected": "Bluetooth nie jest połączony.",
+      "setup_timeout": "Konfiguracja Wi-Fi przekroczyła limit czasu. Sprawdź nazwę sieci i hasło.",
+      "setup_incomplete": "Konfiguracja Wi-Fi nie została ukończona.",
+      "already_provisioned": "To urządzenie jest już skonfigurowane. Wybierz je z listy Wi-Fi.",
+      "not_ready": "Urządzenie nie jest jeszcze gotowe do konfiguracji Wi-Fi.",
+      "ssid_too_long": "SSID lub hasło jest za długie",
+      "invalid_value": "Urządzenie Improv wysłało nieprawidłową wartość"
+    }
+  },
+  "nativeAppSuggestion": "Dobre wieści! To urządzenie ma własną aplikację! Wyszukaj __appName__ w Homey App Store."
+}

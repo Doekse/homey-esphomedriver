@@ -1,0 +1,73 @@
+{
+  "pair": {
+    "configure_manual": {
+      "title": "Saisir l’adresse IP",
+      "macLabel": "Adresse MAC",
+      "hostLabel": "Adresse IP ou nom d’hôte",
+      "hostPlaceholder": "192.168.1.100 ou device.local",
+      "portLabel": "Port",
+      "portPlaceholder": "6053",
+      "connect": "Connecter"
+    },
+    "enter_wifi": {
+      "title": "Se connecter au Wi-Fi",
+      "subtitle": "Saisis le réseau Wi-Fi auquel cet appareil doit se connecter.",
+      "ssid": "Nom du réseau (SSID)",
+      "password_optional": "Mot de passe Wi-Fi (facultatif)"
+    },
+    "enter_key": {
+      "title": "Clé de chiffrement",
+      "subtitle": "Cet appareil ESPHome a besoin d’une clé de chiffrement.",
+      "key": "Clé de chiffrement"
+    },
+    "add_device": {
+      "title": "Ajout de l’appareil"
+    },
+    "list": {
+      "add_by_ip": "Ajouter par IP…",
+      "setup_bluetooth": "Configurer via Bluetooth…"
+    }
+  },
+  "errors": {
+    "cannot_connect": "Impossible de se connecter à l’appareil ESPHome. Vérifie qu’il est sur le même réseau et que son YAML contient une section api :.",
+    "connection_lost": "Connexion à ESPHome perdue",
+    "timeout": "L’appareil n’a pas répondu à temps. Réessaie.",
+    "resolve_error": "Impossible de trouver l’appareil sur le réseau. Vérifie qu’il est en ligne, ou utilise une adresse IP fixe.",
+    "invalid_encryption_key": "La clé de chiffrement n’est pas valide. Vérifie qu’elle correspond à api → encryption → key dans le YAML de l’appareil.",
+    "requires_encryption_key": "Cet appareil ESPHome a besoin d’une clé de chiffrement. Associe-le à nouveau et saisis la clé depuis api → encryption → key dans le YAML de l’appareil.",
+    "invalid_auth": "Mot de passe API invalide.",
+    "encryption_plaintext": "Cet appareil n’utilise pas le chiffrement. Supprime la clé de chiffrement dans Homey, ou active le chiffrement sur l’appareil.",
+    "encryption_hello": "La connexion chiffrée a été interrompue tout de suite. Vérifie que le chiffrement est activé sur l’appareil, puis réessaie.",
+    "handshake": "Impossible d’établir la connexion chiffrée. Vérifie la clé de chiffrement et que le firmware de l’appareil est à jour.",
+    "device_mismatch": "L’appareil à cette adresse n’est pas celui associé à Homey. Vérifie l’adresse IP ou la réservation DHCP.",
+    "mac_missing": "L’appareil ESPHome n’a pas transmis d’adresse MAC.",
+    "no_supported_entities": "Cet appareil ESPHome n’a aucun élément pris en charge par Homey.",
+    "device_not_connected": "L’appareil ESPHome n’est pas connecté",
+    "device_not_prepared": "L’appareil n’est pas prêt. Reviens en arrière et reconnecte-toi.",
+    "no_device_selected": "Aucun appareil sélectionné",
+    "host_required": "Saisis un hôte ou une adresse IP",
+    "port_number": "Le port doit être un nombre",
+    "port_range": "Le port doit être compris entre 1 et 65535",
+    "bluetooth_device_required": "Choisis d’abord un appareil Bluetooth",
+    "ssid_required": "Saisis un nom de réseau",
+    "encryption_key_required": "Saisis la clé de chiffrement",
+    "improv": {
+      "invalid_rpc": "L’appareil a refusé la commande de configuration.",
+      "unknown_rpc": "L’appareil ne prend pas en charge cette commande de configuration.",
+      "unable_to_connect": "Impossible de se connecter au Wi-Fi. Vérifie le nom du réseau et le mot de passe.",
+      "not_authorized": "Appuie sur le bouton de l’appareil et réessaie.",
+      "unknown": "La configuration Wi-Fi a échoué.",
+      "scan_failed": "Impossible de rechercher des appareils Bluetooth. Rapproche l’appareil de Homey et réessaie.",
+      "none_found": "Aucun appareil ESPHome trouvé via Bluetooth. Rapproche l’appareil de Homey et assure-toi qu’Improv est activé.",
+      "bluetooth_connect": "Impossible de se connecter via Bluetooth. Garde l’appareil près de Homey et réessaie.",
+      "not_connected": "Bluetooth n’est pas connecté.",
+      "setup_timeout": "La configuration Wi-Fi a expiré. Vérifie le nom du réseau et le mot de passe.",
+      "setup_incomplete": "La configuration Wi-Fi n’est pas terminée.",
+      "already_provisioned": "Cet appareil est déjà configuré. Choisis-le dans la liste Wi-Fi.",
+      "not_ready": "L’appareil n’est pas encore prêt pour la configuration Wi-Fi.",
+      "ssid_too_long": "Le SSID ou le mot de passe est trop long",
+      "invalid_value": "L’appareil Improv a envoyé une valeur invalide"
+    }
+  },
+  "nativeAppSuggestion": "Bonne nouvelle ! Cet appareil a sa propre app ! Cherchez __appName__ dans le Homey App Store."
+}

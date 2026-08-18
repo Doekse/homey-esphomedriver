@@ -1,0 +1,73 @@
+{
+  "pair": {
+    "configure_manual": {
+      "title": "Introducir dirección IP",
+      "macLabel": "Dirección MAC",
+      "hostLabel": "Dirección IP o nombre de host",
+      "hostPlaceholder": "192.168.1.100 o device.local",
+      "portLabel": "Puerto",
+      "portPlaceholder": "6053",
+      "connect": "Conectar"
+    },
+    "enter_wifi": {
+      "title": "Conectar al Wi-Fi",
+      "subtitle": "Introduce la red Wi-Fi a la que debe conectarse este dispositivo.",
+      "ssid": "Nombre de la red (SSID)",
+      "password_optional": "Contraseña Wi-Fi (opcional)"
+    },
+    "enter_key": {
+      "title": "Clave de cifrado",
+      "subtitle": "Este dispositivo ESPHome necesita una clave de cifrado.",
+      "key": "Clave de cifrado"
+    },
+    "add_device": {
+      "title": "Añadiendo dispositivo"
+    },
+    "list": {
+      "add_by_ip": "Añadir por IP…",
+      "setup_bluetooth": "Configurar por Bluetooth…"
+    }
+  },
+  "errors": {
+    "cannot_connect": "No se puede conectar al dispositivo ESPHome. Comprueba que esté en la misma red y que su YAML incluya una sección api:.",
+    "connection_lost": "Conexión con ESPHome perdida",
+    "timeout": "El dispositivo no respondió a tiempo. Inténtalo de nuevo.",
+    "resolve_error": "No se encuentra el dispositivo en la red. Comprueba que esté en línea, o usa una dirección IP fija.",
+    "invalid_encryption_key": "La clave de cifrado no es válida. Comprueba que coincida con api → encryption → key en el YAML del dispositivo.",
+    "requires_encryption_key": "Este dispositivo ESPHome necesita una clave de cifrado. Vuelve a emparejarlo e introduce la clave de api → encryption → key en el YAML del dispositivo.",
+    "invalid_auth": "Contraseña de API no válida.",
+    "encryption_plaintext": "Este dispositivo no usa cifrado. Elimina la clave de cifrado en Homey, o activa el cifrado en el dispositivo.",
+    "encryption_hello": "La conexión cifrada se cortó enseguida. Comprueba que el cifrado esté activado en el dispositivo e inténtalo de nuevo.",
+    "handshake": "No se pudo establecer la conexión cifrada. Comprueba la clave de cifrado y que el firmware del dispositivo esté actualizado.",
+    "device_mismatch": "El dispositivo en esta dirección no es el que Homey emparejó. Comprueba la dirección IP o la reserva DHCP.",
+    "mac_missing": "El dispositivo ESPHome no ha enviado una dirección MAC.",
+    "no_supported_entities": "Este dispositivo ESPHome no tiene elementos compatibles con Homey.",
+    "device_not_connected": "El dispositivo ESPHome no está conectado",
+    "device_not_prepared": "El dispositivo no está preparado. Vuelve atrás y conéctalo de nuevo.",
+    "no_device_selected": "Ningún dispositivo seleccionado",
+    "host_required": "Introduce un host o una dirección IP",
+    "port_number": "El puerto debe ser un número",
+    "port_range": "El puerto debe estar entre 1 y 65535",
+    "bluetooth_device_required": "Elige primero un dispositivo Bluetooth",
+    "ssid_required": "Introduce un nombre de red",
+    "encryption_key_required": "Introduce la clave de cifrado",
+    "improv": {
+      "invalid_rpc": "El dispositivo ha rechazado el comando de configuración.",
+      "unknown_rpc": "El dispositivo no admite este comando de configuración.",
+      "unable_to_connect": "No se puede conectar al Wi-Fi. Comprueba el nombre de la red y la contraseña.",
+      "not_authorized": "Pulsa el botón del dispositivo e inténtalo de nuevo.",
+      "unknown": "La configuración Wi-Fi ha fallado.",
+      "scan_failed": "No se pueden buscar dispositivos Bluetooth. Acerca el dispositivo a Homey e inténtalo de nuevo.",
+      "none_found": "No se han encontrado dispositivos ESPHome por Bluetooth. Acerca el dispositivo a Homey y asegúrate de que Improv esté activado.",
+      "bluetooth_connect": "No se puede conectar por Bluetooth. Mantén el dispositivo cerca de Homey e inténtalo de nuevo.",
+      "not_connected": "Bluetooth no está conectado.",
+      "setup_timeout": "Se ha agotado el tiempo de la configuración Wi-Fi. Comprueba el nombre de la red y la contraseña.",
+      "setup_incomplete": "La configuración Wi-Fi no ha terminado.",
+      "already_provisioned": "Este dispositivo ya está configurado. Elígelo de la lista Wi-Fi.",
+      "not_ready": "El dispositivo aún no está listo para la configuración Wi-Fi.",
+      "ssid_too_long": "El SSID o la contraseña es demasiado largo",
+      "invalid_value": "El dispositivo Improv ha enviado un valor no válido"
+    }
+  },
+  "nativeAppSuggestion": "¡Buenas noticias! ¡Este dispositivo tiene su propia app! Busca en la Homey App Store por __appName__."
+}

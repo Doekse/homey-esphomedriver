@@ -1,0 +1,73 @@
+{
+  "pair": {
+    "configure_manual": {
+      "title": "Skriv inn IP-adresse",
+      "macLabel": "MAC-adresse",
+      "hostLabel": "IP-adresse eller vertsnavn",
+      "hostPlaceholder": "192.168.1.100 eller device.local",
+      "portLabel": "Port",
+      "portPlaceholder": "6053",
+      "connect": "Koble til"
+    },
+    "enter_wifi": {
+      "title": "Koble til Wi-Fi",
+      "subtitle": "Skriv inn Wi-Fi-nettverket denne enheten skal koble seg til.",
+      "ssid": "Nettverksnavn (SSID)",
+      "password_optional": "Wi-Fi-passord (valgfritt)"
+    },
+    "enter_key": {
+      "title": "Krypteringsnøkkel",
+      "subtitle": "Denne ESPHome-enheten trenger en krypteringsnøkkel.",
+      "key": "Krypteringsnøkkel"
+    },
+    "add_device": {
+      "title": "Legger til enhet"
+    },
+    "list": {
+      "add_by_ip": "Legg til via IP…",
+      "setup_bluetooth": "Sett opp via Bluetooth…"
+    }
+  },
+  "errors": {
+    "cannot_connect": "Kan ikke koble til ESPHome-enheten. Sjekk at den er på samme nettverk, og at YAML-filen har en api:-seksjon.",
+    "connection_lost": "Tilkoblingen til ESPHome er brutt",
+    "timeout": "Enheten svarte ikke i tide. Prøv igjen.",
+    "resolve_error": "Finner ikke enheten på nettverket. Sjekk at den er online, eller bruk en fast IP-adresse.",
+    "invalid_encryption_key": "Krypteringsnøkkelen er ugyldig. Sjekk at den samsvarer med api → encryption → key i enhetens YAML.",
+    "requires_encryption_key": "Denne ESPHome-enheten trenger en krypteringsnøkkel. Par den på nytt, og skriv inn nøkkelen fra api → encryption → key i enhetens YAML.",
+    "invalid_auth": "Ugyldig API-passord.",
+    "encryption_plaintext": "Denne enheten bruker ikke kryptering. Fjern krypteringsnøkkelen i Homey, eller slå på kryptering på enheten.",
+    "encryption_hello": "Den krypterte tilkoblingen ble brutt med en gang. Sjekk at kryptering er slått på på enheten, og prøv igjen.",
+    "handshake": "Den krypterte tilkoblingen kunne ikke opprettes. Sjekk krypteringsnøkkelen, og at enhetens firmware er oppdatert.",
+    "device_mismatch": "Enheten på denne adressen er ikke den Homey parerte. Sjekk IP-adressen eller DHCP-reservasjonen.",
+    "mac_missing": "ESPHome-enheten har ikke sendt en MAC-adresse.",
+    "no_supported_entities": "Denne ESPHome-enheten har ingen deler Homey støtter.",
+    "device_not_connected": "ESPHome-enheten er ikke tilkoblet",
+    "device_not_prepared": "Enheten er ikke klar. Gå tilbake og koble til på nytt.",
+    "no_device_selected": "Ingen enhet valgt",
+    "host_required": "Skriv inn en vert eller IP-adresse",
+    "port_number": "Port må være et tall",
+    "port_range": "Port må være mellom 1 og 65535",
+    "bluetooth_device_required": "Velg en Bluetooth-enhet først",
+    "ssid_required": "Skriv inn et nettverksnavn",
+    "encryption_key_required": "Skriv inn krypteringsnøkkelen",
+    "improv": {
+      "invalid_rpc": "Enheten avviste oppsettskommandoen.",
+      "unknown_rpc": "Enheten støtter ikke denne oppsettskommandoen.",
+      "unable_to_connect": "Kan ikke koble til Wi-Fi. Sjekk nettverksnavn og passord.",
+      "not_authorized": "Trykk på knappen på enheten, og prøv igjen.",
+      "unknown": "Wi-Fi-oppsett mislyktes.",
+      "scan_failed": "Kan ikke søke etter Bluetooth-enheter. Hold enheten nærmere Homey, og prøv igjen.",
+      "none_found": "Ingen ESPHome-enheter funnet via Bluetooth. Hold enheten nærmere Homey, og sørg for at Improv er slått på.",
+      "bluetooth_connect": "Kan ikke koble til via Bluetooth. Hold enheten nær Homey, og prøv igjen.",
+      "not_connected": "Bluetooth er ikke tilkoblet.",
+      "setup_timeout": "Wi-Fi-oppsettet fikk tidsavbrudd. Sjekk nettverksnavn og passord.",
+      "setup_incomplete": "Wi-Fi-oppsettet ble ikke fullført.",
+      "already_provisioned": "Denne enheten er allerede satt opp. Velg den fra Wi-Fi-listen.",
+      "not_ready": "Enheten er ikke klar for Wi-Fi-oppsett ennå.",
+      "ssid_too_long": "SSID eller passord er for langt",
+      "invalid_value": "Improv-enheten sendte en ugyldig verdi"
+    }
+  },
+  "nativeAppSuggestion": "Gode nyheter! Denne enheten har sin egen app! Søk i Homey App Store etter __appName__."
+}

@@ -1,0 +1,15 @@
+{
+  "type": "number",
+  "title": {
+    "en": "PM4"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/measure_pm4.svg",
+  "insights": true,
+  "decimals": 2,
+  "units": {
+    "en": "\u03bcg/m\u00b3"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Energy per distance",
+    "ar": "الطاقة لكل مسافة",
+    "da": "Energi pr. afstand",
+    "de": "Energie pro Distanz",
+    "es": "Energía por distancia",
+    "fr": "Énergie par distance",
+    "it": "Energia per distanza",
+    "ko": "거리당 에너지",
+    "nl": "Energie per afstand",
+    "no": "Energi per avstand",
+    "pl": "Energia na dystans",
+    "ru": "Энергия на расстояние",
+    "sv": "Energi per avstånd"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/esphome_number.svg",
+  "insights": true,
+  "decimals": 2,
+  "units": {
+    "en": "kWh/100km"
+  }
+}

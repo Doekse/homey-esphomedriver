@@ -1,0 +1,27 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Conductivity",
+    "ar": "التوصيلية",
+    "da": "Ledningsevne",
+    "de": "Leitfähigkeit",
+    "es": "Conductividad",
+    "fr": "Conductivité",
+    "it": "Conduttività",
+    "ko": "전도도",
+    "nl": "Geleidbaarheid",
+    "no": "Konduktivitet",
+    "pl": "Przewodność",
+    "ru": "Проводимость",
+    "sv": "Konduktivitet"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/esphome_number.svg",
+  "insights": true,
+  "decimals": 2,
+  "units": {
+    "en": "µS/cm"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "pair": {
+    "configure_manual": {
+      "title": "IP 주소 입력",
+      "macLabel": "MAC 주소",
+      "hostLabel": "IP 주소 또는 호스트 이름",
+      "hostPlaceholder": "192.168.1.100 또는 device.local",
+      "portLabel": "포트",
+      "portPlaceholder": "6053",
+      "connect": "연결"
+    },
+    "enter_wifi": {
+      "title": "Wi-Fi에 연결",
+      "subtitle": "이 기기가 연결할 Wi-Fi 네트워크를 입력하세요.",
+      "ssid": "네트워크 이름 (SSID)",
+      "password_optional": "Wi-Fi 비밀번호 (선택 사항)"
+    },
+    "enter_key": {
+      "title": "암호화 키",
+      "subtitle": "이 ESPHome 기기에는 암호화 키가 필요해요.",
+      "key": "암호화 키"
+    },
+    "add_device": {
+      "title": "기기 추가 중"
+    },
+    "list": {
+      "add_by_ip": "IP로 추가…",
+      "setup_bluetooth": "Bluetooth로 설정…"
+    }
+  },
+  "errors": {
+    "cannot_connect": "ESPHome 기기에 연결할 수 없어요. 같은 네트워크에 있는지, YAML에 api: 섹션이 있는지 확인하세요.",
+    "connection_lost": "ESPHome 연결이 끊어졌어요",
+    "timeout": "기기가 제시간에 응답하지 않았어요. 다시 시도해 보세요.",
+    "resolve_error": "네트워크에서 기기를 찾을 수 없어요. 온라인인지 확인하거나 고정 IP 주소를 사용하세요.",
+    "invalid_encryption_key": "암호화 키가 올바르지 않아요. 기기 YAML의 api → encryption → key와 일치하는지 확인하세요.",
+    "requires_encryption_key": "이 ESPHome 기기에는 암호화 키가 필요해요. 다시 페어링하고 기기 YAML의 api → encryption → key에서 키를 입력하세요.",
+    "invalid_auth": "API 비밀번호가 올바르지 않아요.",
+    "encryption_plaintext": "이 기기는 암호화를 사용하지 않아요. Homey에서 암호화 키를 제거하거나 기기에서 암호화를 켜세요.",
+    "encryption_hello": "암호화 연결이 바로 끊어졌어요. 기기에서 암호화가 켜져 있는지 확인한 뒤 다시 시도해 보세요.",
+    "handshake": "암호화 연결을 맺을 수 없어요. 암호화 키와 기기 펌웨어가 최신인지 확인하세요.",
+    "device_mismatch": "이 주소의 기기는 Homey가 페어링한 기기가 아니에요. IP 주소나 DHCP 예약을 확인하세요.",
+    "mac_missing": "ESPHome 기기가 MAC 주소를 보내지 않았어요.",
+    "no_supported_entities": "이 ESPHome 기기에는 Homey가 지원하는 구성 요소가 없어요.",
+    "device_not_connected": "ESPHome 기기가 연결되어 있지 않아요",
+    "device_not_prepared": "기기가 준비되지 않았어요. 돌아가서 다시 연결하세요.",
+    "no_device_selected": "선택된 기기가 없어요",
+    "host_required": "호스트 또는 IP 주소를 입력하세요",
+    "port_number": "포트는 숫자여야 해요",
+    "port_range": "포트는 1에서 65535 사이여야 해요",
+    "bluetooth_device_required": "먼저 Bluetooth 기기를 선택하세요",
+    "ssid_required": "네트워크 이름을 입력하세요",
+    "encryption_key_required": "암호화 키를 입력하세요",
+    "improv": {
+      "invalid_rpc": "기기가 설정 명령을 거부했어요.",
+      "unknown_rpc": "기기가 이 설정 명령을 지원하지 않아요.",
+      "unable_to_connect": "Wi-Fi에 연결할 수 없어요. 네트워크 이름과 비밀번호를 확인하세요.",
+      "not_authorized": "기기의 버튼을 누른 뒤 다시 시도해 보세요.",
+      "unknown": "Wi-Fi 설정에 실패했어요.",
+      "scan_failed": "Bluetooth 기기를 검색할 수 없어요. 기기를 Homey에 더 가까이 두고 다시 시도해 보세요.",
+      "none_found": "Bluetooth로 ESPHome 기기를 찾지 못했어요. 기기를 Homey에 더 가까이 두고 Improv가 켜져 있는지 확인하세요.",
+      "bluetooth_connect": "Bluetooth로 연결할 수 없어요. 기기를 Homey 가까이에 두고 다시 시도해 보세요.",
+      "not_connected": "Bluetooth가 연결되어 있지 않아요.",
+      "setup_timeout": "Wi-Fi 설정 시간이 초과됐어요. 네트워크 이름과 비밀번호를 확인하세요.",
+      "setup_incomplete": "Wi-Fi 설정이 끝나지 않았어요.",
+      "already_provisioned": "이 기기는 이미 설정되어 있어요. Wi-Fi 목록에서 선택하세요.",
+      "not_ready": "기기가 아직 Wi-Fi 설정을 할 준비가 되지 않았어요.",
+      "ssid_too_long": "SSID 또는 비밀번호가 너무 길어요",
+      "invalid_value": "Improv 기기가 잘못된 값을 보냈어요"
+    }
+  },
+  "nativeAppSuggestion": "좋은 소식이 있어요! 이 기기에는 전용 앱이 있어요! Homey 앱 스토어에서 __appName__을 검색해보세요."
+}

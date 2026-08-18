@@ -1,0 +1,27 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Reactive energy",
+    "ar": "الطاقة التفاعلية",
+    "da": "Reaktiv energi",
+    "de": "Blindenergie",
+    "es": "Energía reactiva",
+    "fr": "Énergie réactive",
+    "it": "Energia reattiva",
+    "ko": "무효 에너지",
+    "nl": "Blindenergie",
+    "no": "Reaktiv energi",
+    "pl": "Energia bierna",
+    "ru": "Реактивная энергия",
+    "sv": "Reaktiv energi"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/esphome_number.svg",
+  "insights": true,
+  "decimals": 2,
+  "units": {
+    "en": "varh"
+  }
+}

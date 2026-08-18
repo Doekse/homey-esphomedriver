@@ -1,0 +1,112 @@
+<style>
+  #view-enter-wifi input:not([type='password']) {
+    font-family: 'Roboto Mono', monospace;
+  }
+
+  input[type='password'] {
+    -webkit-text-security: disc;
+  }
+
+  #view-enter-wifi .content-container img {
+    margin-bottom: var(--homey-su-4);
+  }
+
+  .wifi-container {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+  }
+
+  .wifi-container > .content-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+  }
+
+  .wifi-container fieldset {
+    width: 100%;
+  }
+</style>
+<div class="wifi-container" id="view-enter-wifi">
+  <div class="content-container">
+    <img src="{{assets}}/wifi-big.svg" alt="Wi-Fi" width="80" />
+    <fieldset class="homey-form-fieldset">
+      <div class="homey-form-group">
+        <input class="homey-form-input" id="wifi-ssid" type="text" autocomplete="off" />
+      </div>
+      <div class="homey-form-group">
+        <input
+          class="homey-form-input"
+          id="wifi-password"
+          type="password"
+          autocomplete="new-password"
+        />
+      </div>
+    </fieldset>
+  </div>
+  <button
+    id="btn-continue"
+    class="homey-button-primary-shadow-full is-disabled"
+    data-i18n="__continue"
+    disabled
+  ></button>
+</div>
+<script type="text/javascript">
+  (function () {
+    var $container = document.querySelector('#view-enter-wifi');
+    var $btnContinue = $container.querySelector('#btn-continue');
+    var $inputSsid = $container.querySelector('#wifi-ssid');
+    var $inputPassword = $container.querySelector('#wifi-password');
+
+    Homey.setTitle(Homey.__('pair.enter_wifi.title'));
+    Homey.setSubtitle(Homey.__('pair.enter_wifi.subtitle'));
+    $inputSsid.placeholder = Homey.__('pair.enter_wifi.ssid');
+    $inputPassword.placeholder = Homey.__('pair.enter_wifi.password_optional');
+    $inputSsid.focus();
+
+    function syncContinue() {
+      if ($inputSsid.value.length > 0) {
+        $btnContinue.classList.remove('is-disabled');
+        $btnContinue.disabled = false;
+      } else {
+        $btnContinue.classList.add('is-disabled');
+        $btnContinue.disabled = true;
+      }
+    }
+
+    $inputSsid.addEventListener('input', syncContinue);
+    $inputSsid.addEventListener('keyup', function (event) {
+      if (event.key === 'Enter' && $inputSsid.value.length > 0) {
+        $inputPassword.focus();
+      }
+    });
+    $inputPassword.addEventListener('keyup', function (event) {
+      if (event.key === 'Enter') {
+        $btnContinue.click();
+      }
+    });
+
+    $btnContinue.addEventListener('click', function () {
+      if ($btnContinue.disabled || $btnContinue.classList.contains('is-loading')) return;
+      $btnContinue.classList.add('is-loading');
+
+      Homey.emit('enter_wifi', {
+        ssid: $inputSsid.value,
+        password: $inputPassword.value,
+      })
+        .then(function () {
+          $btnContinue.classList.remove('is-loading');
+        })
+        .catch(function (err) {
+          $btnContinue.classList.remove('is-loading');
+          Homey.alert(err);
+          Homey.setSubtitle(Homey.__('pair.enter_wifi.subtitle'));
+        });
+    });
+  })();
+</script>

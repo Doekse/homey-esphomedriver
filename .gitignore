@@ -1,0 +1,44 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Packaging / build (setuptools)
+dist/
+build/
+wheels/
+*.egg-info/
+.eggs/
+*.egg
+
+# Test & quality tools
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+.tox/
+.nox/
+.cache/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+.pypirc
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp

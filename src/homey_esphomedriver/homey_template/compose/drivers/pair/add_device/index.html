@@ -1,0 +1,12 @@
+<script type="application/javascript">
+  Homey.setTitle(Homey.__("pair.add_device.title") || "Adding device");
+
+  Homey.showLoadingOverlay();
+  Homey.emit("get_device")
+    .then((device) => Homey.createDevice(device))
+    .then(() => Homey.done())
+    .catch((err) => {
+      Homey.hideLoadingOverlay();
+      Homey.alert(err).catch(console.error);
+    });
+</script>

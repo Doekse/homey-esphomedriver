@@ -1,0 +1,37 @@
+{
+  "id": "__APP_ID__",
+  "version": "0.0.1",
+  "compatibility": ">=13.0.0",
+  "brandColor": "#00ccff",
+  "sdk": 3,
+  "runtime": "python",
+  "pythonVersion": "3.14",
+  "platforms": [
+    "local"
+  ],
+  "name": {
+    "en": "__APP_NAME__"
+  },
+  "description": {
+    "en": "Connect __APP_NAME__ ESPHome devices to Homey"
+  },
+  "category": [
+    "appliances"
+  ],
+  "permissions": [
+    "homey:wireless:ble"
+  ],
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "name": "",
+    "email": ""
+  },
+  "pythonPackages": [
+    "aioesphomeapi",
+    "homey-esphomedriver"
+  ]
+}

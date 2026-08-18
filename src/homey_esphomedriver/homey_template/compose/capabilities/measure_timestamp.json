@@ -1,0 +1,22 @@
+{
+  "type": "string",
+  "title": {
+    "en": "Timestamp",
+    "ar": "طابع زمني",
+    "da": "Tidsstempel",
+    "de": "Zeitstempel",
+    "es": "Marca de tiempo",
+    "fr": "Horodatage",
+    "it": "Timestamp",
+    "ko": "타임스탬프",
+    "nl": "Tijdstempel",
+    "no": "Tidsstempel",
+    "pl": "Znacznik czasu",
+    "ru": "Метка времени",
+    "sv": "Tidsstämpel"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/measure_timestamp.svg"
+}

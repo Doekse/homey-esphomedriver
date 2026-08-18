@@ -1,0 +1,22 @@
+{
+  "type": "boolean",
+  "title": {
+    "en": "Restart",
+    "ar": "إعادة التشغيل",
+    "da": "Genstart",
+    "de": "Neustarten",
+    "es": "Reiniciar",
+    "fr": "Redémarrer",
+    "it": "Riavvia",
+    "ko": "재시작",
+    "nl": "Herstarten",
+    "no": "Omstart",
+    "pl": "Uruchom ponownie",
+    "ru": "Перезапустить",
+    "sv": "Starta om"
+  },
+  "getable": false,
+  "setable": true,
+  "uiComponent": "button",
+  "icon": "/assets/capabilities/restart.svg"
+}

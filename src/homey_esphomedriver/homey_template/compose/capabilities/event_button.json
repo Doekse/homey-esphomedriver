@@ -1,0 +1,42 @@
+{
+  "type": "enum",
+  "title": {
+    "en": "Button event",
+    "ar": "حدث الزر",
+    "da": "Knapbegivenhed",
+    "de": "Tastenereignis",
+    "es": "Evento de botón",
+    "fr": "Événement de bouton",
+    "it": "Evento pulsante",
+    "ko": "버튼 이벤트",
+    "nl": "Knopgebeurtenis",
+    "no": "Knapphendelse",
+    "pl": "Zdarzenie przycisku",
+    "ru": "Событие кнопки",
+    "sv": "Knapp­händelse"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/event_button.svg",
+  "values": [
+    {
+      "id": "idle",
+      "title": {
+        "en": "Idle",
+        "ar": "خامل",
+        "da": "Inaktiv",
+        "de": "Inaktiv",
+        "es": "Inactivo",
+        "fr": "Inactif",
+        "it": "Inattivo",
+        "ko": "대기",
+        "nl": "Inactief",
+        "no": "Inaktiv",
+        "pl": "Bezczynny",
+        "ru": "Простой",
+        "sv": "Inaktiv"
+      }
+    }
+  ]
+}

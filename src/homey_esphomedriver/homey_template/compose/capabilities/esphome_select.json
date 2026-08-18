@@ -1,0 +1,30 @@
+{
+  "type": "enum",
+  "title": {
+    "en": "Select"
+  },
+  "getable": true,
+  "setable": true,
+  "uiComponent": "picker",
+  "icon": "/assets/capabilities/esphome_select.svg",
+  "values": [
+    {
+      "id": "unknown",
+      "title": {
+        "en": "Unknown",
+        "ar": "غير معروف",
+        "da": "Ukendt",
+        "de": "Unbekannt",
+        "es": "Desconocido",
+        "fr": "Inconnu",
+        "it": "Sconosciuto",
+        "ko": "알 수 없음",
+        "nl": "Onbekend",
+        "no": "Ukjent",
+        "pl": "Nieznany",
+        "ru": "Неизвестно",
+        "sv": "Okänd"
+      }
+    }
+  ]
+}

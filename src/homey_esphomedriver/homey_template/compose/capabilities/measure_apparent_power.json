@@ -1,0 +1,27 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Apparent power",
+    "ar": "القدرة الظاهرية",
+    "da": "Tilsyneladende effekt",
+    "de": "Scheinleistung",
+    "es": "Potencia aparente",
+    "fr": "Puissance apparente",
+    "it": "Potenza apparente",
+    "ko": "피상 전력",
+    "nl": "Schijnbaar vermogen",
+    "no": "Tilsynelatende effekt",
+    "pl": "Moc pozorna",
+    "ru": "Полная мощность",
+    "sv": "Skenbar effekt"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/measure_apparent_power.svg",
+  "insights": true,
+  "decimals": 2,
+  "units": {
+    "en": "VA"
+  }
+}

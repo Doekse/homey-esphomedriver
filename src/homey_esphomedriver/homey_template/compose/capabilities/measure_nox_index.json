@@ -1,0 +1,24 @@
+{
+  "type": "number",
+  "title": {
+    "en": "NOx index",
+    "ar": "مؤشر NOx",
+    "da": "NOx-indeks",
+    "de": "NOx-Index",
+    "es": "Índice NOx",
+    "fr": "Indice NOx",
+    "it": "Indice NOx",
+    "ko": "NOx 지수",
+    "nl": "NOx-index",
+    "no": "NOx-indeks",
+    "pl": "Indeks NOx",
+    "ru": "Индекс NOx",
+    "sv": "NOx-index"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/measure_nox_index.svg",
+  "insights": true,
+  "decimals": 0
+}

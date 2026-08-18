@@ -1,0 +1,41 @@
+{
+  "type": "enum",
+  "title": {
+    "en": "Light effect",
+    "ar": "تأثير الإضاءة",
+    "da": "Lyseffekt",
+    "de": "Lichteffekt",
+    "es": "Efecto de luz",
+    "fr": "Effet lumineux",
+    "it": "Effetto luce",
+    "ko": "조명 효과",
+    "nl": "Lichteffect",
+    "no": "Lyseffekt",
+    "pl": "Efekt świetlny",
+    "ru": "Световой эффект",
+    "sv": "Ljuseffekt"
+  },
+  "uiComponent": "picker",
+  "getable": true,
+  "setable": true,
+  "values": [
+    {
+      "id": "None",
+      "title": {
+        "en": "None",
+        "ar": "لا شيء",
+        "da": "Ingen",
+        "de": "Keine",
+        "es": "Ninguno",
+        "fr": "Aucun",
+        "it": "Nessuno",
+        "ko": "없음",
+        "nl": "Geen",
+        "no": "Ingen",
+        "pl": "Brak",
+        "ru": "Нет",
+        "sv": "Ingen"
+      }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Absolute humidity",
+    "ar": "الرطوبة المطلقة",
+    "da": "Absolut luftfugtighed",
+    "de": "Absolute Luftfeuchtigkeit",
+    "es": "Humedad absoluta",
+    "fr": "Humidité absolue",
+    "it": "Umidità assoluta",
+    "ko": "절대 습도",
+    "nl": "Absolute luchtvochtigheid",
+    "no": "Absolutt luftfuktighet",
+    "pl": "Wilgotność bezwzględna",
+    "ru": "Абсолютная влажность",
+    "sv": "Absolut luftfuktighet"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/measure_absolute_humidity.svg",
+  "insights": true,
+  "decimals": 2,
+  "units": {
+    "en": "g/m³"
+  }
+}

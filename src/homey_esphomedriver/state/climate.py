@@ -1,0 +1,92 @@
+"""Push ESPHome ClimateState into Homey climate capabilities."""
+
+from __future__ import annotations
+
+from typing import cast
+
+from aioesphomeapi import (
+    ClimateFanMode,
+    ClimateMode,
+    ClimateState,
+    ClimateSwingMode,
+    EntityState,
+)
+
+from homey_esphomedriver.state.base import (
+    AbstractEntityStateUpdateHandler,
+)
+from homey_esphomedriver.units import convert_units
+
+_THERMOSTAT_MODE = {
+    ClimateMode.HEAT: "heat",
+    ClimateMode.COOL: "cool",
+    ClimateMode.HEAT_COOL: "auto",
+    ClimateMode.AUTO: "auto",
+    ClimateMode.OFF: "off",
+    ClimateMode.DRY: "off",
+    ClimateMode.FAN_ONLY: "off",
+}
+
+_HOMEY_FAN_MODE = {
+    ClimateFanMode.OFF: "off",
+    ClimateFanMode.AUTO: "auto",
+}
+
+
+class ClimateEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
+    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+        climate = cast(ClimateState, state)
+
+        onoff_id = self.find_capability(capabilities, "onoff")
+        if onoff_id is not None:
+            self.set_capability_value(onoff_id, climate.mode != ClimateMode.OFF)
+
+        mode_id = self.find_capability(capabilities, "thermostat_mode")
+        if mode_id is not None:
+            self.set_capability_value(
+                mode_id,
+                _THERMOSTAT_MODE.get(climate.mode, "off"),
+            )
+
+        for base, value in (
+            ("measure_temperature", climate.current_temperature),
+            ("target_temperature", climate.target_temperature),
+            ("target_temperature_min", climate.target_temperature_low),
+            ("target_temperature_max", climate.target_temperature_high),
+        ):
+            capability_id = self.find_capability(capabilities, base)
+            if capability_id is not None:
+                self.set_capability_value(
+                    capability_id,
+                    convert_units(self.device, capability_id, float(value)),
+                )
+
+        humidity_id = self.find_capability(capabilities, "measure_humidity")
+        if humidity_id is not None:
+            self.set_capability_value(humidity_id, float(climate.current_humidity))
+
+        target_humidity_id = self.find_capability(capabilities, "target_humidity")
+        if target_humidity_id is not None:
+            self.set_capability_value(
+                target_humidity_id,
+                float(climate.target_humidity),
+            )
+
+        fan_mode_id = self.find_capability(capabilities, "fan_mode")
+        if fan_mode_id is not None:
+            self.set_capability_value(
+                fan_mode_id,
+                _HOMEY_FAN_MODE.get(climate.fan_mode, "on"),
+            )
+
+        swing_id = self.find_capability(capabilities, "swing_mode")
+        if swing_id is not None:
+            match climate.swing_mode:
+                case ClimateSwingMode.BOTH:
+                    self.set_capability_value(swing_id, "both")
+                case ClimateSwingMode.HORIZONTAL:
+                    self.set_capability_value(swing_id, "horizontal")
+                case ClimateSwingMode.VERTICAL:
+                    self.set_capability_value(swing_id, "vertical")
+                case _:
+                    self.set_capability_value(swing_id, "off")

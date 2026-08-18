@@ -1,0 +1,27 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Duration",
+    "ar": "المدة",
+    "da": "Varighed",
+    "de": "Dauer",
+    "es": "Duración",
+    "fr": "Durée",
+    "it": "Durata",
+    "ko": "기간",
+    "nl": "Duur",
+    "no": "Varighet",
+    "pl": "Czas trwania",
+    "ru": "Длительность",
+    "sv": "Varaktighet"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/capabilities/esphome_number.svg",
+  "insights": true,
+  "decimals": 2,
+  "units": {
+    "en": "s"
+  }
+}
