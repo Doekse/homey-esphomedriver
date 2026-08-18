@@ -1,13 +1,13 @@
 # Homey ESPHomeDriver
 
-[PyPI version](https://pypi.org/project/homey-esphomedriver/)
-[PyPI downloads](https://pypi.org/project/homey-esphomedriver/)
-[Python 3.14](https://www.python.org/downloads/)
-[CI](https://github.com/Doekse/homey-esphomedriver/actions/workflows/ci.yml)
-[License: MIT](LICENSE)
-[Ruff](https://github.com/astral-sh/ruff)
-Status
-[Homey](https://apps.developer.homey.app/)
+[![PyPI version](https://img.shields.io/pypi/v/homey-esphomedriver)](https://pypi.org/project/homey-esphomedriver/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/homey-esphomedriver)](https://pypi.org/project/homey-esphomedriver/)
+[![Python](https://img.shields.io/badge/python-3.14-3776AB?logo=python&logoColor=white)](https://pypi.org/project/homey-esphomedriver/)
+[![CI](https://img.shields.io/github/actions/workflow/status/Doekse/homey-esphomedriver/ci.yml?branch=main)](https://github.com/Doekse/homey-esphomedriver/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+![Status](https://img.shields.io/badge/status-alpha-orange.svg)
+[![Homey](https://img.shields.io/badge/Homey-Python_SDK_v3-00C9FF.svg)](https://apps.developer.homey.app/)
 
 This module can be used to make the development of ESPHome apps for Homey easier.
 
