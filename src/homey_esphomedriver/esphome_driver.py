@@ -240,15 +240,15 @@ class EspHomeDriver(Driver):
 
             await session.show_view("add_device")
 
-        async def on_configure_manual(data: dict[str, Any]) -> None:
-            """Accept host/port from the custom IP form, then continue loading."""
+        async def on_configure_manual(data: dict[str, Any]) -> str:
+            """Store host/port and return the next pair view id."""
             nonlocal host, port, mapped_device
             host, port = self._parse_manual_connection(data)
             mapped_device = None
-            await session.show_view("loading")
+            return "loading"
 
-        async def on_enter_wifi(data: dict[str, Any]) -> None:
-            """Provision Wi-Fi over BLE Improv, then return to the mDNS list."""
+        async def on_enter_wifi(data: dict[str, Any]) -> str:
+            """Provision Wi-Fi over BLE Improv and return the mDNS list view id."""
             nonlocal selected, host, noise_psk, mapped_device, listing_ble
             nonlocal peripheral_uuid
             if not peripheral_uuid:
@@ -288,10 +288,10 @@ class EspHomeDriver(Driver):
             mapped_device = None
             listing_ble = False
             peripheral_uuid = None
-            await session.show_view("list_devices")
+            return "list_devices"
 
-        async def on_enter_key(data: dict[str, Any]) -> None:
-            """Accept Noise PSK from the encryption form, then retry loading."""
+        async def on_enter_key(data: dict[str, Any]) -> str:
+            """Store the Noise PSK and return the next pair view id."""
             nonlocal noise_psk, mapped_device
             raw_key = str(data.get("noise_psk") or "").strip()
             if not raw_key:
@@ -299,7 +299,7 @@ class EspHomeDriver(Driver):
 
             noise_psk = raw_key
             mapped_device = None
-            await session.show_view("loading")
+            return "loading"
 
         async def on_get_device(_data: Any = None) -> HomeyEspHomeDeviceOption:
             """Return the mapped device for the custom add_device view."""
@@ -370,30 +370,30 @@ class EspHomeDriver(Driver):
             await device.apply_connection(host=host, port=port, noise_psk=psk)
             await session.done()
 
-        async def try_connect(psk: str | None, *, prompt_key: bool) -> None:
+        async def try_connect(psk: str | None, *, prompt_key: bool) -> str | None:
             try:
                 await probe_and_finish(psk)
             except Exception as err:
                 self.error("ESPHome repair connect failed", err)
                 if prompt_key and needs_encryption_key(err):
-                    await session.show_view("enter_key")
-                    return
+                    return "enter_key"
                 if isinstance(err, ValueError):
                     raise
                 raise ValueError(self.homey.translate(error_key(err))) from err
+            return None
 
-        async def on_configure_manual(data: dict[str, Any]) -> None:
+        async def on_configure_manual(data: dict[str, Any]) -> str | None:
             nonlocal host, port
             host, port = self._parse_manual_connection(data)
-            await try_connect(noise_psk, prompt_key=True)
+            return await try_connect(noise_psk, prompt_key=True)
 
-        async def on_enter_key(data: dict[str, Any]) -> None:
+        async def on_enter_key(data: dict[str, Any]) -> str | None:
             nonlocal noise_psk
             raw_key = str(data.get("noise_psk") or "").strip()
             if not raw_key:
                 raise ValueError(self.homey.translate("errors.encryption_key_required"))
             noise_psk = raw_key
-            await try_connect(noise_psk, prompt_key=False)
+            return await try_connect(noise_psk, prompt_key=False)
 
         session.set_handler("get_connection", connection_values)
         session.set_handler("showView", on_show_view)

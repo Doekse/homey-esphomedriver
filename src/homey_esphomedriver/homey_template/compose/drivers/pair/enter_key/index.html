@@ -86,7 +86,11 @@
       Homey.emit('enter_key', {
         noise_psk: $inputKey.value,
       })
-        .then(function () {
+        .then(function (next) {
+          if (next) {
+            Homey.showView(next);
+            return;
+          }
           $btnContinue.classList.remove('is-loading');
         })
         .catch(function (err) {
