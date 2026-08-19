@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-19
+
 ### Added
 
 - Maintenance action **Refresh capabilities** remaps the live node: unchanged entities keep their Homey ids, new ones are added, gone or remapped ones are removed.
@@ -46,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Brand product filters via the driver compose `esphome` object.
 - `esphome-homey sync` to copy Homey Compose templates into the app.
 
-[unreleased]: https://github.com/Doekse/homey-esphomedriver/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/Doekse/homey-esphomedriver/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.1.0
