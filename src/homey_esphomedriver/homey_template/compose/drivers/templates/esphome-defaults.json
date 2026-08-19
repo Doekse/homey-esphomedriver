@@ -117,6 +117,7 @@
     "target_temperature_max",
     "target_temperature_min",
     "thermostat_mode",
+    "thermostat_preset",
     "valve_position",
     "volume_down",
     "volume_mute",

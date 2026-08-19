@@ -7,6 +7,7 @@ from typing import cast
 from aioesphomeapi import (
     ClimateFanMode,
     ClimateMode,
+    ClimatePreset,
     ClimateState,
     ClimateSwingMode,
     EntityState,
@@ -23,13 +24,32 @@ _THERMOSTAT_MODE = {
     ClimateMode.HEAT_COOL: "auto",
     ClimateMode.AUTO: "auto",
     ClimateMode.OFF: "off",
-    ClimateMode.DRY: "off",
-    ClimateMode.FAN_ONLY: "off",
+    ClimateMode.DRY: "dry",
+    ClimateMode.FAN_ONLY: "fan_only",
 }
 
-_HOMEY_FAN_MODE = {
+_FAN_MODE = {
+    ClimateFanMode.ON: "on",
     ClimateFanMode.OFF: "off",
     ClimateFanMode.AUTO: "auto",
+    ClimateFanMode.LOW: "low",
+    ClimateFanMode.MEDIUM: "medium",
+    ClimateFanMode.HIGH: "high",
+    ClimateFanMode.MIDDLE: "middle",
+    ClimateFanMode.FOCUS: "focus",
+    ClimateFanMode.DIFFUSE: "diffuse",
+    ClimateFanMode.QUIET: "quiet",
+}
+
+_PRESET = {
+    ClimatePreset.NONE: "none",
+    ClimatePreset.HOME: "home",
+    ClimatePreset.AWAY: "away",
+    ClimatePreset.BOOST: "boost",
+    ClimatePreset.COMFORT: "comfort",
+    ClimatePreset.ECO: "eco",
+    ClimatePreset.SLEEP: "sleep",
+    ClimatePreset.ACTIVITY: "activity",
 }
 
 
@@ -74,10 +94,13 @@ class ClimateEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
 
         fan_mode_id = self.find_capability(capabilities, "fan_mode")
         if fan_mode_id is not None:
-            self.set_capability_value(
-                fan_mode_id,
-                _HOMEY_FAN_MODE.get(climate.fan_mode, "on"),
-            )
+            if climate.custom_fan_mode:
+                self.set_capability_value(fan_mode_id, climate.custom_fan_mode)
+            elif climate.fan_mode is not None:
+                self.set_capability_value(
+                    fan_mode_id,
+                    _FAN_MODE.get(climate.fan_mode, "on"),
+                )
 
         swing_id = self.find_capability(capabilities, "swing_mode")
         if swing_id is not None:
@@ -90,3 +113,13 @@ class ClimateEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
                     self.set_capability_value(swing_id, "vertical")
                 case _:
                     self.set_capability_value(swing_id, "off")
+
+        preset_id = self.find_capability(capabilities, "thermostat_preset")
+        if preset_id is not None:
+            if climate.custom_preset:
+                self.set_capability_value(preset_id, climate.custom_preset)
+            elif climate.preset is not None:
+                self.set_capability_value(
+                    preset_id,
+                    _PRESET.get(climate.preset, "none"),
+                )

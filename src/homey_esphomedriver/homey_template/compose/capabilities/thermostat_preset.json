@@ -1,0 +1,41 @@
+{
+  "type": "enum",
+  "title": {
+    "en": "Preset",
+    "ar": "إعداد مسبق",
+    "da": "Forudindstilling",
+    "de": "Voreinstellung",
+    "es": "Preajuste",
+    "fr": "Préréglage",
+    "it": "Preimpostazione",
+    "ko": "프리셋",
+    "nl": "Voorinstelling",
+    "no": "Forhåndsinnstilling",
+    "pl": "Preset",
+    "ru": "Предустановка",
+    "sv": "Förinställning"
+  },
+  "uiComponent": "picker",
+  "getable": true,
+  "setable": true,
+  "values": [
+    {
+      "id": "none",
+      "title": {
+        "en": "None",
+        "ar": "لا شيء",
+        "da": "Ingen",
+        "de": "Keine",
+        "es": "Ninguno",
+        "fr": "Aucun",
+        "it": "Nessuno",
+        "ko": "없음",
+        "nl": "Geen",
+        "no": "Ingen",
+        "pl": "Brak",
+        "ru": "Нет",
+        "sv": "Ingen"
+      }
+    }
+  ]
+}

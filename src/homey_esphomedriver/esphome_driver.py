@@ -715,6 +715,18 @@ class EspHomeDriver(Driver):
             light_effect=self._light_effect_autocomplete,
         )
 
+        async def thermostat_preset_set(args: dict[str, Any], **_kwargs: Any) -> Any:
+            return await args["device"].trigger_capability_listener(
+                "thermostat_preset",
+                args["thermostat_preset"]["id"],
+            )
+
+        self._wire_card(
+            self.homey.flow.get_action_card("thermostat_preset_set"),
+            thermostat_preset_set,
+            thermostat_preset=self._thermostat_preset_autocomplete,
+        )
+
         async def esphome_number_set(args: dict[str, Any], **_kwargs: Any) -> Any:
             return await args["device"].trigger_capability_listener(
                 args["name"]["id"],
@@ -757,6 +769,17 @@ class EspHomeDriver(Driver):
             self.homey.flow.get_condition_card("light_effect_is"),
             light_effect_is,
             light_effect=self._light_effect_autocomplete,
+        )
+
+        async def thermostat_preset_is(args: dict[str, Any], **_kwargs: Any) -> Any:
+            return await args["device"].is_value_run_listener(
+                args["thermostat_preset"]["id"], "thermostat_preset"
+            )
+
+        self._wire_card(
+            self.homey.flow.get_condition_card("thermostat_preset_is"),
+            thermostat_preset_is,
+            thermostat_preset=self._thermostat_preset_autocomplete,
         )
 
         async def esphome_boolean_is(args: dict[str, Any], **_kwargs: Any) -> Any:
@@ -802,6 +825,19 @@ class EspHomeDriver(Driver):
             self.homey.flow.get_device_trigger_card("light_effect_changed"),
             light_effect_changed,
             light_effect=self._light_effect_autocomplete,
+        )
+
+        async def thermostat_preset_changed(
+            args: dict[str, Any], **_kwargs: Any
+        ) -> Any:
+            return await args["device"].is_value_run_listener(
+                args["thermostat_preset"]["id"], "thermostat_preset"
+            )
+
+        self._wire_card(
+            self.homey.flow.get_device_trigger_card("thermostat_preset_changed"),
+            thermostat_preset_changed,
+            thermostat_preset=self._thermostat_preset_autocomplete,
         )
 
     def _action_press(
@@ -856,6 +892,16 @@ class EspHomeDriver(Driver):
     ) -> list[dict[str, str]]:
         """Offer effect names from the paired light_effect capability options."""
         return self._enum_values_autocomplete(query, "light_effect", args["device"])
+
+    async def _thermostat_preset_autocomplete(
+        self,
+        query: str,
+        **args: Any,
+    ) -> list[dict[str, str]]:
+        """Offer presets from the paired thermostat_preset capability options."""
+        return self._enum_values_autocomplete(
+            query, "thermostat_preset", args["device"]
+        )
 
     async def _esphome_boolean_autocomplete(
         self,

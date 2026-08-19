@@ -17,6 +17,7 @@ from aioesphomeapi import (
     AlarmControlPanelCommand,
     ClimateFanMode,
     ClimateMode,
+    ClimatePreset,
     ClimateSwingMode,
     ColorMode,
     DeviceInfo,
@@ -166,6 +167,10 @@ class EspHomeDevice(Device[EspHomeDriver]):
         self._register_capability_listener_if_available(
             "thermostat_mode",
             self._on_capability_thermostat_mode,
+        )
+        self._register_capability_listener_if_available(
+            "thermostat_preset",
+            self._on_capability_thermostat_preset,
         )
         self._register_capability_listener_if_available(
             "target_temperature",
@@ -872,19 +877,41 @@ class EspHomeDevice(Device[EspHomeDriver]):
         capability_id: str = "thermostat_mode",
         **_kwargs: Any,
     ) -> None:
-        match str(value):
-            case "heat":
-                mode = ClimateMode.HEAT
-            case "cool":
-                mode = ClimateMode.COOL
-            case "auto":
-                mode = ClimateMode.HEAT_COOL
-            case _:
-                mode = ClimateMode.OFF
+        if str(value) == "auto":
+            mode = ClimateMode(
+                int(
+                    self.get_capability_options(capability_id).get(
+                        "climate_auto_mode",
+                        int(ClimateMode.HEAT_COOL),
+                    )
+                )
+            )
+        else:
+            mode = ClimateMode.__members__.get(str(value).upper(), ClimateMode.OFF)
         self._require_client().command(
             "climate_command",
             self._get_entity_key(capability_id),
             mode=mode,
+        )
+
+    async def _on_capability_thermostat_preset(
+        self,
+        value: Any,
+        capability_id: str = "thermostat_preset",
+        **_kwargs: Any,
+    ) -> None:
+        preset = ClimatePreset.__members__.get(str(value).upper())
+        if preset is not None and str(value) == preset.name.lower():
+            self._require_client().command(
+                "climate_command",
+                self._get_entity_key(capability_id),
+                preset=preset,
+            )
+            return
+        self._require_client().command(
+            "climate_command",
+            self._get_entity_key(capability_id),
+            custom_preset=str(value),
         )
 
     async def _on_capability_homealarm_state(
@@ -1044,14 +1071,11 @@ class EspHomeDevice(Device[EspHomeDriver]):
         entity_type = self._get_entity_type(capability_id)
         client = self._require_client()
         if entity_type == "climate":
-            match str(value):
-                case "off":
-                    fan_mode = ClimateFanMode.OFF
-                case "auto":
-                    fan_mode = ClimateFanMode.AUTO
-                case _:
-                    fan_mode = ClimateFanMode.ON
-            client.command("climate_command", key, fan_mode=fan_mode)
+            fan_mode = ClimateFanMode.__members__.get(str(value).upper())
+            if fan_mode is not None and str(value) == fan_mode.name.lower():
+                client.command("climate_command", key, fan_mode=fan_mode)
+            else:
+                client.command("climate_command", key, custom_fan_mode=str(value))
             return
         client.command("fan_command", key, preset_mode=_capitalize_preset(str(value)))
 

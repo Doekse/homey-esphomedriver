@@ -1,6 +1,6 @@
 """Map ESPHome ClimateInfo onto Homey climate capabilities.
 
-Picker values for thermostat, fan, and swing mode are slimmed to Homey ids.
+Homey's thermostat UI binds bare capability IDs, so one climate maps per device.
 """
 
 from __future__ import annotations
@@ -11,6 +11,7 @@ from aioesphomeapi import (
     ClimateFanMode,
     ClimateInfo,
     ClimateMode,
+    ClimatePreset,
     ClimateSwingMode,
     EntityInfo,
     TemperatureUnit,
@@ -64,12 +65,23 @@ class ClimateEntityMapper:
             ),
             next(mode for mode in modes if mode != ClimateMode.OFF),
         )
+        auto_mode = next(
+            (
+                candidate
+                for candidate in (ClimateMode.HEAT_COOL, ClimateMode.AUTO)
+                if candidate in modes
+            ),
+            None,
+        )
+        thermostat_options: dict[str, object] = {"values": _thermostat_values(modes)}
+        if auto_mode is not None:
+            thermostat_options["climate_auto_mode"] = int(auto_mode)
 
         DeviceEntityMapper.add_capability(
             homey_device,
             info.key,
             "thermostat_mode",
-            {"values": _thermostat_values(modes)},
+            thermostat_options,
         )
         DeviceEntityMapper.add_indexed(
             homey_device,
@@ -132,6 +144,18 @@ class ClimateEntityMapper:
                 {"values": swing_values},
             )
 
+        preset_values = _climate_preset_values(
+            info.supported_presets,
+            info.supported_custom_presets,
+        )
+        if preset_values:
+            DeviceEntityMapper.add_capability(
+                homey_device,
+                info.key,
+                "thermostat_preset",
+                {"values": preset_values},
+            )
+
         if info.supports_current_temperature:
             DeviceEntityMapper.add_capability(
                 homey_device,
@@ -154,6 +178,8 @@ def _thermostat_values(modes: list[ClimateMode]) -> list[dict[str, object]]:
         ClimateMode.AUTO: ("auto", "Automatic"),
         ClimateMode.HEAT: ("heat", "Heat"),
         ClimateMode.COOL: ("cool", "Cool"),
+        ClimateMode.DRY: ("dry", "Dry"),
+        ClimateMode.FAN_ONLY: ("fan_only", "Fan"),
         ClimateMode.OFF: ("off", "Off"),
     }
     by_id: dict[str, tuple[str, str]] = {}
@@ -163,7 +189,7 @@ def _thermostat_values(modes: list[ClimateMode]) -> list[dict[str, object]]:
             by_id[mapped[0]] = mapped
     return picker_values(
         by_id[mode_id]
-        for mode_id in ("auto", "heat", "cool", "off")
+        for mode_id in ("auto", "heat", "cool", "dry", "fan_only", "off")
         if mode_id in by_id
     )
 
@@ -195,13 +221,81 @@ def _climate_fan_values(
     modes: list[ClimateFanMode],
     custom_modes: list[str],
 ) -> list[dict[str, object]]:
-    entries: list[tuple[str, str]] = []
-    if ClimateFanMode.AUTO in modes:
-        entries.append(("auto", "Auto"))
-    if custom_modes or any(
-        mode not in (ClimateFanMode.OFF, ClimateFanMode.AUTO) for mode in modes
-    ):
-        entries.append(("on", "On"))
-    if ClimateFanMode.OFF in modes:
-        entries.append(("off", "Off"))
+    if (not modes or modes == [ClimateFanMode.OFF]) and not custom_modes:
+        return []
+    present = set(modes)
+    titles = {
+        ClimateFanMode.AUTO: "Auto",
+        ClimateFanMode.ON: "On",
+        ClimateFanMode.LOW: "Low",
+        ClimateFanMode.MEDIUM: "Medium",
+        ClimateFanMode.MIDDLE: "Middle",
+        ClimateFanMode.HIGH: "High",
+        ClimateFanMode.FOCUS: "Focus",
+        ClimateFanMode.DIFFUSE: "Diffuse",
+        ClimateFanMode.QUIET: "Quiet",
+        ClimateFanMode.OFF: "Off",
+    }
+    entries = [
+        (mode.name.lower(), titles[mode])
+        for mode in (
+            ClimateFanMode.AUTO,
+            ClimateFanMode.ON,
+            ClimateFanMode.LOW,
+            ClimateFanMode.MEDIUM,
+            ClimateFanMode.MIDDLE,
+            ClimateFanMode.HIGH,
+            ClimateFanMode.FOCUS,
+            ClimateFanMode.DIFFUSE,
+            ClimateFanMode.QUIET,
+            ClimateFanMode.OFF,
+        )
+        if mode in present
+    ]
+    used = {item_id for item_id, _title in entries}
+    entries.extend(
+        (mode, mode)
+        for mode in custom_modes
+        if mode and mode not in used and mode.lower() not in used
+    )
+    return picker_values(entries)
+
+
+def _climate_preset_values(
+    presets: list[ClimatePreset],
+    custom_presets: list[str],
+) -> list[dict[str, object]]:
+    if (not presets or presets == [ClimatePreset.NONE]) and not custom_presets:
+        return []
+    present = set(presets)
+    titles = {
+        ClimatePreset.NONE: "None",
+        ClimatePreset.HOME: "Home",
+        ClimatePreset.AWAY: "Away",
+        ClimatePreset.BOOST: "Boost",
+        ClimatePreset.COMFORT: "Comfort",
+        ClimatePreset.ECO: "Eco",
+        ClimatePreset.SLEEP: "Sleep",
+        ClimatePreset.ACTIVITY: "Activity",
+    }
+    entries = [
+        (preset.name.lower(), titles[preset])
+        for preset in (
+            ClimatePreset.NONE,
+            ClimatePreset.HOME,
+            ClimatePreset.AWAY,
+            ClimatePreset.BOOST,
+            ClimatePreset.COMFORT,
+            ClimatePreset.ECO,
+            ClimatePreset.SLEEP,
+            ClimatePreset.ACTIVITY,
+        )
+        if preset in present
+    ]
+    used = {item_id for item_id, _title in entries}
+    entries.extend(
+        (preset, preset)
+        for preset in custom_presets
+        if preset and preset not in used and preset.lower() not in used
+    )
     return picker_values(entries)
