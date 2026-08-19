@@ -1,22 +1,56 @@
-# Publishes the package to PyPI when a GitHub Release is published, when invoked
-# from release-on-version-bump (GITHUB_TOKEN-created releases do not fire `release`
-# workflows), or when run manually.
+# Publishes to PyPI from this workflow file only. PyPI Trusted Publishing and
+# PEP 740 attestations both key off the top-level workflow filename; calling
+# this file via workflow_call makes those identities disagree and the upload
+# is rejected.
+#
+# A GITHUB_TOKEN-created GitHub Release does not fire `release` workflows, so
+# a version bump on the default branch creates the tag/release and publishes
+# in the same run. workflow_dispatch and UI-created releases still publish here.
 # Configure a PyPI trusted publisher for this workflow (GitHub OIDC).
 name: Publish to PyPI
 
 on:
+  push:
+    branches: [main, master]
+    paths:
+      - "src/homey_esphomedriver/__init__.py"
   release:
     types: [published]
   workflow_dispatch:
-  workflow_call:
-
-permissions:
-  contents: read
-  id-token: write
 
 jobs:
-  publish:
+  release:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      created: ${{ steps.create_release.outputs.created }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Create tag and GitHub Release if version changed
+        id: create_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o pipefail
+          python3 .github/scripts/create_release_on_version_bump.py --repo-root "${GITHUB_WORKSPACE}" 2>&1 | tee /tmp/release.log
+          if grep -q '^Created release v' /tmp/release.log; then
+            echo "created=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "created=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+  publish:
+    needs: [release]
+    if: ${{ !cancelled() && (needs.release.result == 'skipped' || needs.release.outputs.created == 'true') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     environment:
       name: pypi
       url: https://pypi.org/project/homey-esphomedriver/
