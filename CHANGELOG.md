@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stop setting a pairing icon from Homey device class. Devices keep the driver icon; users can pick Homey's icon override.
 - Show "Repair the device" with a subtitle on the first repair view.
 - Expose climate fan speeds and custom fan modes on `fan_mode` instead of collapsing them to auto/on/off.
+- Use Homey's system `fan_mode` and `fan_speed` instead of custom capability copies.
 
 ### Fixed
 

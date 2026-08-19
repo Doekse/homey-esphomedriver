@@ -686,8 +686,6 @@ class EspHomeDriver(Driver):
 
         self._action_press("restart", "restart")
         self._action_press("identify", "identify")
-        self._action_set("fan_speed_set", "fan_speed", "fan_speed")
-        self._action_set("fan_mode_set", "fan_mode", "fan_mode")
         self._action_set("aircleaner_mode_set", "aircleaner_mode", "aircleaner_mode")
         self._action_press("fan_oscillate_on", "fan_oscillate", True)
         self._action_press("fan_oscillate_off", "fan_oscillate", False)
@@ -755,7 +753,6 @@ class EspHomeDriver(Driver):
         self._condition_on("alarm_plugged_in_is", "alarm_plugged_in")
         self._condition_on("alarm_triggered_is", "alarm_triggered")
         self._condition_on("fan_oscillate_is", "fan_oscillate")
-        self._condition_value("fan_mode_is", "fan_mode", "fan_mode")
         self._condition_value(
             "aircleaner_mode_is", "aircleaner_mode", "aircleaner_mode"
         )
