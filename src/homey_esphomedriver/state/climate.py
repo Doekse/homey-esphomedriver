@@ -94,13 +94,10 @@ class ClimateEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
 
         fan_mode_id = self.find_capability(capabilities, "fan_mode")
         if fan_mode_id is not None:
-            if climate.custom_fan_mode:
-                self.set_capability_value(fan_mode_id, climate.custom_fan_mode)
-            elif climate.fan_mode is not None:
-                self.set_capability_value(
-                    fan_mode_id,
-                    _FAN_MODE.get(climate.fan_mode, "on"),
-                )
+            value = climate.custom_fan_mode or _FAN_MODE.get(climate.fan_mode)
+            options = self.device.get_capability_options(fan_mode_id).get("values", [])
+            if value in {item["id"] for item in options}:
+                self.set_capability_value(fan_mode_id, value)
 
         swing_id = self.find_capability(capabilities, "swing_mode")
         if swing_id is not None:

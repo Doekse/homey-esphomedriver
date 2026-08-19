@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Keep Homey's system titles on bare climate capabilities instead of repeating the ESPHome entity name on every row.
+- Skip climate ``fan_mode`` updates that are not in the device's picker values.
 
 ## [0.2.0] - 2026-08-19
 
