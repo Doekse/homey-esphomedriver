@@ -285,7 +285,7 @@ class EspHomeClient:
             await cli.disconnect()
             return
 
-        if self._on_connected is not None:
+        if self._started and self._on_connected is not None:
             self._schedule(self._on_connected(device_info))
 
     async def _handle_disconnect(self, expected_disconnect: bool) -> None:
@@ -294,12 +294,17 @@ class EspHomeClient:
             f"Disconnected from {self._host}:{self._port} "
             f"expected={expected_disconnect}"
         )
+        # Stopping the session closes the socket; that is not a Homey unavailable.
+        if not self._started:
+            return
         if self._on_disconnected is not None:
             self._schedule(self._on_disconnected(expected_disconnect))
 
     async def _handle_connect_error(self, error: Exception) -> None:
         self._available = False
         self._debug(f"Connect error for {self._host}:{self._port}: {error}")
+        if not self._started:
+            return
         if self._on_connect_error is not None:
             self._schedule(self._on_connect_error(error))
         if self._reconnect is None:

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Keep Homey's system titles on bare climate capabilities instead of repeating the ESPHome entity name on every row.
 - Skip climate ``fan_mode`` updates that are not in the device's picker values.
+- Do not mark a Homey device unavailable when the Native API session is stopped on purpose (delete, unload, repair).
 
 ## [0.2.0] - 2026-08-19
 
