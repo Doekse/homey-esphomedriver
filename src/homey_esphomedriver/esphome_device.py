@@ -44,6 +44,11 @@ from homey_esphomedriver.mapping import (
     DeviceEntityMapper,
 )
 from homey_esphomedriver.profile import BrandProfile
+from homey_esphomedriver.refresh import (
+    REFRESH_CAPABILITY,
+    REFRESH_CAPABILITY_OPTIONS,
+    plan_capability_refresh,
+)
 from homey_esphomedriver.state import (
     DeviceEntityStateHandler,
 )
@@ -53,6 +58,41 @@ from homey_esphomedriver.units import (
 )
 
 CapabilityListener = Callable[..., Awaitable[None]]
+
+_BARE_SETTABLE_CAPABILITIES = frozenset(
+    {
+        "windowcoverings_state",
+        "windowcoverings_set",
+        "windowcoverings_tilt_set",
+        "windowcoverings_tilt_up",
+        "windowcoverings_tilt_down",
+        "garagedoor_closed",
+        "thermostat_mode",
+        "thermostat_preset",
+        "target_temperature",
+        "target_temperature_min",
+        "target_temperature_max",
+        "target_humidity",
+        "swing_mode",
+        "homealarm_state",
+        "heater_operation_mode",
+        "fan_speed",
+        "fan_oscillate",
+        "fan_mode",
+        "aircleaner_mode",
+        "speaker_playing",
+        "speaker_stop",
+        "volume_set",
+        "volume_mute",
+        "volume_up",
+        "volume_down",
+        "valve_position",
+        "dim",
+        "light_temperature",
+        "light_mode",
+        "light_effect",
+    }
+)
 
 
 class EspHomeDevice(Device[EspHomeDriver]):
@@ -101,171 +141,9 @@ class EspHomeDevice(Device[EspHomeDriver]):
         self._state_handler = DeviceEntityStateHandler(self)
         self._state_handler.init()
         await self._init_event_capability_defaults()
-
-        self._register_capability_listener_if_available(
-            "onoff",
-            self._on_capability_onoff,
-        )
-        for capability_id in self._get_on_off_capabilities():
-            self.register_capability_listener(
-                capability_id,
-                self._listener_with_capability_id(
-                    self._on_capability_onoff,
-                    capability_id,
-                ),
-            )
-        for capability_id in self._get_button_capabilities():
-            self.register_capability_listener(
-                capability_id,
-                self._listener_with_capability_id(
-                    self._on_capability_button,
-                    capability_id,
-                    pass_value=False,
-                ),
-            )
-        for capability_id in self._get_number_capabilities():
-            self.register_capability_listener(
-                capability_id,
-                self._listener_with_capability_id(
-                    self._on_capability_number,
-                    capability_id,
-                ),
-            )
-        for capability_id in self._get_select_capabilities():
-            self.register_capability_listener(
-                capability_id,
-                self._listener_with_capability_id(
-                    self._on_capability_select,
-                    capability_id,
-                ),
-            )
-
-        self._register_capability_listener_if_available(
-            "windowcoverings_state",
-            self._on_capability_windowcoverings_state,
-        )
-        self._register_capability_listener_if_available(
-            "windowcoverings_set",
-            self._on_capability_windowcoverings_set,
-        )
-        self._register_capability_listener_if_available(
-            "windowcoverings_tilt_set",
-            self._on_capability_windowcoverings_tilt_set,
-        )
-        self._register_capability_listener_if_available(
-            "windowcoverings_tilt_up",
-            self._on_capability_windowcoverings_tilt_up,
-        )
-        self._register_capability_listener_if_available(
-            "windowcoverings_tilt_down",
-            self._on_capability_windowcoverings_tilt_down,
-        )
-        self._register_capability_listener_if_available(
-            "garagedoor_closed",
-            self._on_capability_garagedoor_closed,
-        )
-        self._register_capability_listener_if_available(
-            "thermostat_mode",
-            self._on_capability_thermostat_mode,
-        )
-        self._register_capability_listener_if_available(
-            "thermostat_preset",
-            self._on_capability_thermostat_preset,
-        )
-        self._register_capability_listener_if_available(
-            "target_temperature",
-            self._on_capability_target_temperature,
-        )
-        self._register_capability_listener_if_available(
-            "target_temperature_min",
-            self._on_capability_target_temperature_min,
-        )
-        self._register_capability_listener_if_available(
-            "target_temperature_max",
-            self._on_capability_target_temperature_max,
-        )
-        self._register_capability_listener_if_available(
-            "target_humidity",
-            self._on_capability_target_humidity,
-        )
-        self._register_capability_listener_if_available(
-            "swing_mode",
-            self._on_capability_swing_mode,
-        )
-        self._register_capability_listener_if_available(
-            "homealarm_state",
-            self._on_capability_homealarm_state,
-        )
-        self._register_capability_listener_if_available(
-            "heater_operation_mode",
-            self._on_capability_heater_operation_mode,
-        )
-        self._register_capability_listener_if_available(
-            "fan_speed",
-            self._on_capability_fan_speed,
-        )
-        self._register_capability_listener_if_available(
-            "fan_oscillate",
-            self._on_capability_fan_oscillate,
-        )
-        self._register_capability_listener_if_available(
-            "fan_mode",
-            self._on_capability_fan_mode,
-        )
-        self._register_capability_listener_if_available(
-            "aircleaner_mode",
-            self._on_capability_aircleaner_mode,
-        )
-        self._register_capability_listener_if_available(
-            "speaker_playing",
-            self._on_capability_speaker_playing,
-        )
-        self._register_capability_listener_if_available(
-            "speaker_stop",
-            self._on_capability_speaker_stop,
-        )
-        self._register_capability_listener_if_available(
-            "volume_set",
-            self._on_capability_volume_set,
-        )
-        self._register_capability_listener_if_available(
-            "volume_mute",
-            self._on_capability_volume_mute,
-        )
-        self._register_capability_listener_if_available(
-            "volume_up",
-            self._on_capability_volume_up,
-        )
-        self._register_capability_listener_if_available(
-            "volume_down",
-            self._on_capability_volume_down,
-        )
-        # Binary-sensor ``locked`` is status-only; lock entities are settable.
-        if self.has_capability("locked") and self._get_entity_type("locked") == "lock":
-            self.register_capability_listener("locked", self._on_capability_locked)
-        self._register_capability_listener_if_available(
-            "valve_position",
-            self._on_capability_valve_position,
-        )
-
-        self._register_capability_listener_if_available("dim", self._on_capability_dim)
-        if self.has_capability("light_hue") and self.has_capability("light_saturation"):
-            self.register_multiple_capability_listener(
-                ["light_hue", "light_saturation"],
-                self._on_capability_light_hue_saturation,
-            )
-        self._register_capability_listener_if_available(
-            "light_temperature",
-            self._on_capability_light_temperature,
-        )
-        self._register_capability_listener_if_available(
-            "light_mode",
-            self._on_capability_light_mode,
-        )
-        self._register_capability_listener_if_available(
-            "light_effect",
-            self._on_capability_light_effect,
-        )
+        await self._ensure_refresh_capability()
+        for capability_id in self.get_capabilities():
+            self._register_listener_for_capability(capability_id)
 
         await self._ensure_client_started()
         await self.on_esphome_init(self._client)
@@ -393,23 +271,9 @@ class EspHomeDevice(Device[EspHomeDriver]):
     ) -> None:
         """Add or remove capabilities for one entity category from the live device."""
         if not enabled:
-            removed = list(self.get_store().get(store_key) or [])
-            if removed:
-                # Batch — per-cap removeCapability reinitializes and times out
-                # on entity-heavy nodes inside on_settings ACK.
-                await self._client_emit(
-                    "removeCapabilities",
-                    data={"capabilityIds": removed},
-                )
-                removed_set = set(removed)
-                self._capabilities = [
-                    capability_id
-                    for capability_id in self._capabilities
-                    if capability_id not in removed_set
-                ]
-                for capability_id in removed:
-                    self._capabilities_options.pop(capability_id, None)
-                    self._state.pop(capability_id, None)
+            # Batch — per-cap removeCapability reinitializes and times out
+            # on entity-heavy nodes inside on_settings ACK.
+            await self._remove_capabilities(list(self.get_store().get(store_key) or []))
             await self.set_store_value(store_key, [])
             self._state_handler.init()
             return
@@ -419,45 +283,158 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
         entities, _services = await self._client.list_entities_services()
         existing = list(self.get_capabilities())
-        scratch: HomeyEspHomeDeviceOption = {
-            "name": self.get_name(),
-            "data": dict(self.get_data()),
-            "store": {},
-            "settings": {},
-            "capabilities": list(existing),
-            "capabilitiesOptions": {},
-        }
-        before = set(existing)
+        scratch = self._mapping_device(existing)
         DeviceEntityMapper.map(
             entities, scratch, category_only=category, profile=self.brand_profile
         )
         added = [
             capability_id
             for capability_id in scratch["capabilities"]
-            if capability_id not in before
+            if capability_id not in existing
         ]
-
-        if added:
-            options = {
+        await self._add_capabilities(
+            added,
+            {
                 capability_id: scratch["capabilitiesOptions"][capability_id]
                 for capability_id in added
-            }
-            await self._client_emit(
-                "addCapabilities",
-                data={"capabilityIds": added, "capabilitiesOptions": options},
-            )
-            self._capabilities = [*self._capabilities, *added]
-            self._capabilities_options.update(options)
-            for capability_id in added:
-                self._register_listener_for_capability(capability_id)
+            },
+        )
 
         await self.set_store_value(store_key, added)
         self._state_handler.init()
         # These capabilities were not present for the connect-time state dump.
         self._client.request_states()
 
+    async def _ensure_refresh_capability(self) -> None:
+        """Add the maintenance button on devices paired before it existed."""
+        if not self.has_capability(REFRESH_CAPABILITY):
+            await self._add_capabilities(
+                [REFRESH_CAPABILITY],
+                {REFRESH_CAPABILITY: dict(REFRESH_CAPABILITY_OPTIONS)},
+            )
+
+    async def _refresh_capabilities(self, _value: Any = True, **_kwargs: Any) -> None:
+        """Add/remove capabilities from a live remap; keep unchanged Homey ids."""
+        if self._client is None or not self._client.available:
+            raise ValueError(self.homey.translate("errors.device_not_connected"))
+
+        entities, _services = await self._client.list_entities_services()
+        scratch = self._mapping_device([])
+        DeviceEntityMapper.map(entities, scratch, profile=self.brand_profile)
+        for enabled, category in (
+            (self.get_setting("show_diagnostics"), EntityCategory.DIAGNOSTIC),
+            (self.get_setting("show_configuration"), EntityCategory.CONFIG),
+        ):
+            if enabled:
+                DeviceEntityMapper.map(
+                    entities,
+                    scratch,
+                    category_only=category,
+                    profile=self.brand_profile,
+                )
+
+        to_remove, to_add, to_update = plan_capability_refresh(
+            self._capabilities_options, scratch["capabilitiesOptions"]
+        )
+        await self._remove_capabilities(to_remove)
+        await self._add_capabilities(
+            [capability_id for capability_id, _options in to_add],
+            dict(to_add),
+        )
+        for capability_id, options in to_update:
+            await self.set_capability_options(capability_id, options)
+
+        mapped_class = scratch.get("class")
+        if mapped_class and self.get_setting("device_class") == "auto":
+            await self.set_store_value("auto_class", mapped_class)
+            if self.get_class() != mapped_class:
+                await self.set_class(mapped_class)
+
+        await self.set_store_value(
+            "diagnostic_capabilities",
+            self._capabilities_for_entity_keys(
+                {
+                    entity.key
+                    for entity in entities
+                    if entity.entity_category == EntityCategory.DIAGNOSTIC
+                }
+            ),
+        )
+        await self.set_store_value(
+            "configuration_capabilities",
+            self._capabilities_for_entity_keys(
+                {
+                    entity.key
+                    for entity in entities
+                    if entity.entity_category == EntityCategory.CONFIG
+                }
+            ),
+        )
+
+        self._state_handler.init()
+        self._client.request_states()
+
+    def _mapping_device(self, capabilities: list[str]) -> HomeyEspHomeDeviceOption:
+        """Pair-time payload for a live remap."""
+        return {
+            "name": self.get_name(),
+            "data": dict(self.get_data()),
+            "store": {},
+            "settings": {},
+            "capabilities": list(capabilities),
+            "capabilitiesOptions": {},
+        }
+
+    async def _add_capabilities(
+        self,
+        capability_ids: list[str],
+        options: dict[str, dict[str, Any]],
+    ) -> None:
+        """Batch-add capabilities and register listeners for the new ids."""
+        if not capability_ids:
+            return
+        await self._client_emit(
+            "addCapabilities",
+            data={"capabilityIds": capability_ids, "capabilitiesOptions": options},
+        )
+        self._capabilities = [*self._capabilities, *capability_ids]
+        self._capabilities_options.update(options)
+        for capability_id in capability_ids:
+            self._register_listener_for_capability(capability_id)
+
+    async def _remove_capabilities(self, capability_ids: list[str]) -> None:
+        """Batch-remove capabilities and drop their local state."""
+        if not capability_ids:
+            return
+        await self._client_emit(
+            "removeCapabilities",
+            data={"capabilityIds": capability_ids},
+        )
+        removed = set(capability_ids)
+        self._capabilities = [
+            capability_id
+            for capability_id in self._capabilities
+            if capability_id not in removed
+        ]
+        for capability_id in capability_ids:
+            del self._capabilities_options[capability_id]
+            self._state.pop(capability_id, None)
+
+    def _capabilities_for_entity_keys(self, keys: set[int]) -> list[str]:
+        """Capability ids whose pair-time ``key`` is in ``keys``."""
+        return [
+            capability_id
+            for capability_id, options in self._capabilities_options.items()
+            if (key := options.get("key")) is not None and int(key) in keys
+        ]
+
     def _register_listener_for_capability(self, capability_id: str) -> None:
         """Register a settable-capability listener (pair-time and category toggles)."""
+        if capability_id == REFRESH_CAPABILITY:
+            self.register_capability_listener(
+                REFRESH_CAPABILITY, self._refresh_capabilities
+            )
+            return
         if capability_id == "onoff" or capability_id.startswith("onoff."):
             self.register_capability_listener(
                 capability_id,
@@ -493,20 +470,23 @@ class EspHomeDevice(Device[EspHomeDriver]):
                     capability_id,
                 ),
             )
-        elif capability_id == "swing_mode":
+        elif capability_id == "locked" and self._get_entity_type("locked") == "lock":
+            self.register_capability_listener("locked", self._on_capability_locked)
+        elif capability_id in _BARE_SETTABLE_CAPABILITIES:
             self.register_capability_listener(
                 capability_id,
-                self._on_capability_swing_mode,
+                getattr(self, f"_on_capability_{capability_id}"),
             )
 
-    def _register_capability_listener_if_available(
-        self,
-        capability_id: str,
-        listener: CapabilityListener,
-    ) -> None:
-        if not self.has_capability(capability_id):
-            return
-        self.register_capability_listener(capability_id, listener)
+        if (
+            capability_id in ("light_hue", "light_saturation")
+            and self.has_capability("light_hue")
+            and self.has_capability("light_saturation")
+        ):
+            self.register_multiple_capability_listener(
+                ["light_hue", "light_saturation"],
+                self._on_capability_light_hue_saturation,
+            )
 
     async def is_on_run_listener(self, capability_id: str) -> Any:
         """Return the current value of a boolean capability for Flow conditions."""
@@ -536,37 +516,6 @@ class EspHomeDevice(Device[EspHomeDriver]):
                 await self.set_capability_value(capability_id, False)
             elif capability_id.startswith(("event_button.", "event_generic.")):
                 await self.set_capability_value(capability_id, "idle")
-
-    def _get_on_off_capabilities(self) -> list[str]:
-        """Indexed onoff caps only — bare ``onoff`` is registered separately."""
-        return [
-            capability_id
-            for capability_id in self.get_capabilities()
-            if capability_id.startswith("onoff.")
-        ]
-
-    def _get_button_capabilities(self) -> list[str]:
-        return [
-            capability_id
-            for capability_id in self.get_capabilities()
-            if capability_id.startswith(("button.", "restart", "identify"))
-        ]
-
-    def _get_number_capabilities(self) -> list[str]:
-        """Settable Number entities only — sensors reuse esphome_number as read-only."""
-        return [
-            capability_id
-            for capability_id in self.get_capabilities()
-            if capability_id.startswith("esphome_number.")
-            and self.get_capability_options(capability_id).get("setable", False)
-        ]
-
-    def _get_select_capabilities(self) -> list[str]:
-        return [
-            capability_id
-            for capability_id in self.get_capabilities()
-            if capability_id.startswith("esphome_select.")
-        ]
 
     def _listener_with_capability_id(
         self,

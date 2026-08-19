@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Maintenance action **Refresh capabilities** remaps the live node: unchanged entities keep their Homey ids, new ones are added, gone or remapped ones are removed.
+
 ### Fixed
 
 - Keep Homey's system titles on bare climate capabilities instead of repeating the ESPHome entity name on every row.

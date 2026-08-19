@@ -30,6 +30,7 @@ from homey_esphomedriver.mapping import (
     DeviceEntityMapper,
 )
 from homey_esphomedriver.profile import BrandProfile
+from homey_esphomedriver.refresh import attach_refresh_capability
 
 _MDNS_WAIT_TIMEOUT_S = 12.0
 """Seconds to wait for mDNS after BLE Improv.
@@ -640,6 +641,8 @@ class EspHomeDriver(Driver):
         except Exception as err:
             self.error("Failed to map ESPHome entities", data_id, err)
             raise ValueError(self.homey.translate("errors.cannot_connect")) from err
+
+        attach_refresh_capability(homey_device)
 
         if not homey_device.get("class"):
             # Homey requires a class; mapping leaves it unset when no entity claims one.
