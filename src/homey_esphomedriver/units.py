@@ -281,7 +281,8 @@ def convert_speed_ms(unit: str, value: float) -> float:
         case "mm/s":
             return value / 1_000
         case "in/d":
-            return value / 3_392_640
+            # An inch per day is 24 inch-hours.
+            return value / (141_732 * 24)
         case "in/h":
             return value / 141_732
         case "in/s":
