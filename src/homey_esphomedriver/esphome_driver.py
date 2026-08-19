@@ -207,11 +207,11 @@ class EspHomeDriver(Driver):
             selected_id = selected.get("data", {}).get("id")
             if selected_id == "ble-setup":
                 listing_ble = True
-                await session.show_view("list_ble_devices")
+                self._show_view(session, "list_ble_devices")
                 return
 
             if selected_id == "manual" and not host:
-                await session.show_view("configure_manual")
+                self._show_view(session, "configure_manual")
                 return
 
             if not host:
@@ -227,7 +227,7 @@ class EspHomeDriver(Driver):
             except Exception as err:
                 mapped_device = None
                 if needs_encryption_key(err):
-                    await session.show_view("enter_key")
+                    self._show_view(session, "enter_key")
                     if noise_psk or invalid_encryption_key(err):
                         raise ValueError(self.homey.translate(error_key(err))) from err
                     return
@@ -237,14 +237,14 @@ class EspHomeDriver(Driver):
                     raise
                 raise ValueError(self.homey.translate(error_key(err))) from err
 
-            await session.show_view("add_device")
+            self._show_view(session, "add_device")
 
         async def on_configure_manual(data: dict[str, Any]) -> None:
             """Accept host/port from the custom IP form, then continue loading."""
             nonlocal host, port, mapped_device
             host, port = self._parse_manual_connection(data)
             mapped_device = None
-            await session.show_view("loading")
+            self._show_view(session, "loading")
 
         async def on_enter_wifi(data: dict[str, Any]) -> None:
             """Provision Wi-Fi over BLE Improv, then return to the mDNS list."""
@@ -287,7 +287,7 @@ class EspHomeDriver(Driver):
             mapped_device = None
             listing_ble = False
             peripheral_uuid = None
-            await session.show_view("list_devices")
+            self._show_view(session, "list_devices")
 
         async def on_enter_key(data: dict[str, Any]) -> None:
             """Accept Noise PSK from the encryption form, then retry loading."""
@@ -298,7 +298,7 @@ class EspHomeDriver(Driver):
 
             noise_psk = raw_key
             mapped_device = None
-            await session.show_view("loading")
+            self._show_view(session, "loading")
 
         async def on_get_device(_data: Any = None) -> HomeyEspHomeDeviceOption:
             """Return the mapped device for the custom add_device view."""
@@ -375,7 +375,7 @@ class EspHomeDriver(Driver):
             except Exception as err:
                 self.error("ESPHome repair connect failed", err)
                 if prompt_key and needs_encryption_key(err):
-                    await session.show_view("enter_key")
+                    self._show_view(session, "enter_key")
                     return
                 if isinstance(err, ValueError):
                     raise
@@ -569,6 +569,27 @@ class EspHomeDriver(Driver):
             raise ValueError(self.homey.translate("errors.port_range"))
 
         return raw_host, parsed_port
+
+    def _show_view(self, session: PairSession, view_id: str) -> None:
+        """Navigate a pair or repair session without awaiting the navigation.
+
+        The pairing client is still waiting for the handler's emit to resolve
+        while the handler runs. Awaiting a view change from inside a handler
+        therefore waits on the client, which is waiting on the handler: neither
+        side moves, and the form silently does nothing when the user presses
+        Continue — no error is raised and nothing reaches the app.
+
+        Args:
+            session: Pair or repair session.
+            view_id: View to show next.
+        """
+
+        def _done(task: asyncio.Future[Any]) -> None:
+            error = task.exception() if not task.cancelled() else None
+            if error is not None:
+                self.error(f"Could not show pair view {view_id!r}", error)
+
+        asyncio.ensure_future(session.show_view(view_id)).add_done_callback(_done)
 
     async def _connect_and_map(
         self,
