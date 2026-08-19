@@ -323,7 +323,11 @@ class DeviceEntityMapper:
             domain = _entity_domain(_current_entity)
             if domain is not None:
                 options["entity_type"] = domain
-        if "title" not in options and _current_entity is not None:
+        if (
+            "." in capability
+            and "title" not in options
+            and _current_entity is not None
+        ):
             title = _current_entity.name or _current_entity.object_id
             if title:
                 options["title"] = title
