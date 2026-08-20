@@ -156,7 +156,6 @@ class EspHomeDevice(Device[EspHomeDriver]):
         await super().on_init()
 
         self._client = None
-        self._expected_disconnect = False
 
         device_class = self.get_setting("device_class")
         if device_class != "auto":
@@ -624,9 +623,10 @@ class EspHomeDevice(Device[EspHomeDriver]):
         task.add_done_callback(self._on_state_task_done)
 
     async def _on_client_connected(self, device_info: DeviceInfo) -> None:
-        self._expected_disconnect = True
         await self._sync_device_information(device_info)
         await self.set_available()
+        if self._client is not None:
+            self._client.mark_ready()
 
         native_app_suggestion = self.brand_profile.native_app_suggestion(
             device_info.project_name
@@ -656,12 +656,16 @@ class EspHomeDevice(Device[EspHomeDriver]):
         )
 
     def _keep_available_while_offline(self) -> bool:
-        """Keep deep-sleep devices available after an expected disconnect."""
+        """Keep Homey available while the session is up or the node deep-sleeps."""
+        if self._client is not None and self._client.state in (
+            SessionState.CONNECTED,
+            SessionState.READY,
+        ):
+            return True
         info = self._client.device_info if self._client is not None else None
-        return info is not None and info.has_deep_sleep and self._expected_disconnect
+        return info is not None and info.has_deep_sleep
 
-    async def _on_client_disconnected(self, expected: bool) -> None:
-        self._expected_disconnect = expected
+    async def _on_client_disconnected(self, _expected: bool) -> None:
         if self._keep_available_while_offline():
             return
         await self.set_unavailable(self.homey.translate("errors.connection_lost"))
