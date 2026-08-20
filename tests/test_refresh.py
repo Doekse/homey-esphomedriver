@@ -92,3 +92,33 @@ def test_plan_removes_obsolete_flow_filter_marker() -> None:
     assert to_remove == ["esphome_boolean"]
     assert to_add == []
     assert to_update == []
+
+
+def test_plan_survives_capability_options_stored_as_null() -> None:
+    """A stored ``None`` is removed when the desired set does not name it."""
+    current: dict[str, Any] = {
+        "onoff": {"key": 1},
+        "esphome_string.old_slot": None,
+        "esphome_boolean": {"uiComponent": None},
+    }
+    desired: dict[str, Any] = {
+        "onoff": {"key": 1},
+        "esphome_boolean": {"uiComponent": None},
+    }
+
+    to_remove, to_add, to_update = plan_capability_refresh(current, desired)
+
+    assert to_remove == ["esphome_string.old_slot"]
+    assert to_add == []
+    assert to_update == []
+
+
+def test_plan_keeps_a_null_options_capability_the_node_still_has() -> None:
+    """A null entry the desired set still names is filled in, not removed."""
+    current: dict[str, Any] = {"esphome_boolean": None}
+    desired: dict[str, Any] = {"esphome_boolean": {"uiComponent": None}}
+
+    to_remove, to_add, to_update = plan_capability_refresh(current, desired)
+
+    assert to_remove == []
+    assert to_update == [("esphome_boolean", {"uiComponent": None})]
