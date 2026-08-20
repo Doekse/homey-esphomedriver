@@ -1060,7 +1060,6 @@
         "ru": "Числовое значение изменилось",
         "sv": "Ett nummervärde har ändrats"
       },
-      "$filter": "capabilities=esphome_number",
       "tokens": [
         {
           "name": "esphome_number",
@@ -1121,7 +1120,6 @@
         "ru": "Параметр Select изменился",
         "sv": "Ett Select-alternativ har ändrats"
       },
-      "$filter": "capabilities=esphome_select",
       "tokens": [
         {
           "name": "esphome_select",
@@ -1170,7 +1168,6 @@
         "ru": "Текстовое значение изменилось",
         "sv": "Ett textvärde har ändrats"
       },
-      "$filter": "capabilities=esphome_string",
       "tokens": [
         {
           "name": "esphome_string",
@@ -1231,7 +1228,6 @@
         "ru": "Boolean стал true",
         "sv": "En boolean blev sann"
       },
-      "$filter": "capabilities=esphome_boolean",
       "tokens": [
         {
           "name": "name",
@@ -1272,7 +1268,6 @@
         "ru": "Boolean стал false",
         "sv": "En boolean blev falsk"
       },
-      "$filter": "capabilities=esphome_boolean",
       "tokens": [
         {
           "name": "name",
@@ -1435,7 +1430,6 @@
         "ru": "Кто-то позвонил в дверь",
         "sv": "Någon ringde på dörren"
       },
-      "$filter": "capabilities=alarm_doorbell",
       "tokens": [
         {
           "name": "name",
@@ -1765,7 +1759,6 @@
         "ru": "[[name]] !{{истинно|ложно}}",
         "sv": "[[name]] är !{{sann|falsk}}"
       },
-      "$filter": "capabilities=esphome_boolean",
       "args": [
         {
           "name": "name",
@@ -1820,7 +1813,6 @@
         "ru": "[[name]] !{{является|не является}} [[esphome_select]]",
         "sv": "[[name]] !{{är|är inte}} [[esphome_select]]"
       },
-      "$filter": "capabilities=esphome_select",
       "args": [
         {
           "name": "name",
@@ -1882,7 +1874,6 @@
         "ru": "[[name]] !{{является|не является}} [[esphome_string]]",
         "sv": "[[name]] !{{är|är inte}} [[esphome_string]]"
       },
-      "$filter": "capabilities=esphome_string",
       "args": [
         {
           "name": "name",
@@ -2268,7 +2259,6 @@
         "ru": "Установить [[name]] на [[esphome_number]]",
         "sv": "Ställ in [[name]] till [[esphome_number]]"
       },
-      "$filter": "capabilities=esphome_number",
       "args": [
         {
           "name": "name",
@@ -2342,7 +2332,6 @@
         "ru": "Установить [[name]] на [[esphome_select]]",
         "sv": "Ställ in [[name]] till [[esphome_select]]"
       },
-      "$filter": "capabilities=esphome_select",
       "args": [
         {
           "name": "name",
