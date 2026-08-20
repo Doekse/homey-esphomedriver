@@ -300,7 +300,15 @@ class DeviceEntityMapper:
         base: str,
         capability_options: dict[str, Any] | None = None,
     ) -> None:
-        """Add ``base.<object_id>`` for custom caps that always need a unique id."""
+        """Add ``base.<object_id>`` and a hidden bare id for Flow ``$filter``.
+
+        ``button`` uses ``esphome_button`` so Homey does not emit a system Press
+        card for a dummy bare ``button``.
+        """
+        marker = "esphome_button" if base == "button" else base
+        if marker not in homey_device["capabilities"]:
+            homey_device["capabilities"].append(marker)
+            homey_device["capabilitiesOptions"][marker] = {"uiComponent": None}
         suffix = _current_entity.object_id if _current_entity is not None else base
         cls.add_capability(homey_device, key, f"{base}.{suffix}", capability_options)
 

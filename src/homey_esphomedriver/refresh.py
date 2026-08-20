@@ -50,7 +50,7 @@ def plan_capability_refresh(
 
     Returns ``(remove_ids, add_items, update_items)``. Unchanged mappings keep
     their current Homey ids so bare-id assignment cannot reshuffle Flows.
-    Caps without a ``key`` (the refresh button) are left alone.
+    Caps without a ``key`` are left alone.
     """
     desired = {
         (int(options["key"]), capability_base(capability_id)): (
@@ -58,6 +58,7 @@ def plan_capability_refresh(
             options,
         )
         for capability_id, options in desired_options.items()
+        if options.get("key") is not None
     }
 
     to_remove: list[str] = []

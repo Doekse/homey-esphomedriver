@@ -33,6 +33,7 @@
     "button.refresh",
     "dim",
     "esphome_boolean",
+    "esphome_button",
     "esphome_number",
     "esphome_select",
     "esphome_string",

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Map ESPHome lock ``supports_open`` to an ``open`` button that sends ``LockCommand.OPEN`` (door strike / unlatch).
+- Offer a generic Press Flow card for suffixed ``button.*`` capabilities.
 
 ### Changed
 
@@ -19,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Pair and repair custom views navigate after their emit resolves, instead of awaiting ``show_view`` from inside the handler (Homey pair-client deadlock on Continue).
 - Fill diagnostic and configuration capabilities from last known states when they are added.
+- Offer generic Flow cards for suffixed custom capabilities by adding a hidden bare id Homey's ``$filter`` can match.
 
 ## [0.3.0] - 2026-08-19
 

@@ -2390,6 +2390,61 @@
           "type": "autocomplete"
         }
       ]
+    },
+    {
+      "id": "esphome_button_press",
+      "title": {
+        "en": "Press a button",
+        "ar": "اضغط زرًا",
+        "da": "Tryk på en knap",
+        "de": "Eine Taste drücken",
+        "es": "Pulsar un botón",
+        "fr": "Appuyer sur un bouton",
+        "it": "Premi un pulsante",
+        "ko": "버튼 누르기",
+        "nl": "Druk op een knop",
+        "no": "Trykk på en knapp",
+        "pl": "Naciśnij przycisk",
+        "ru": "Нажать кнопку",
+        "sv": "Tryck på en knapp"
+      },
+      "titleFormatted": {
+        "en": "Press the [[name]] button",
+        "ar": "اضغط زر [[name]]",
+        "da": "Tryk på [[name]]-knappen",
+        "de": "Die Taste [[name]] drücken",
+        "es": "Pulsar el botón [[name]]",
+        "fr": "Appuyer sur le bouton [[name]]",
+        "it": "Premi il pulsante [[name]]",
+        "ko": "[[name]] 버튼 누르기",
+        "nl": "Druk op de [[name]]-knop",
+        "no": "Trykk på [[name]]-knappen",
+        "pl": "Naciśnij przycisk [[name]]",
+        "ru": "Нажать кнопку [[name]]",
+        "sv": "Tryck på knappen [[name]]"
+      },
+      "$filter": "capabilities=esphome_button",
+      "args": [
+        {
+          "name": "name",
+          "title": {
+            "en": "Name",
+            "ar": "الاسم",
+            "da": "Navn",
+            "de": "Name",
+            "es": "Nombre",
+            "fr": "Nom",
+            "it": "Nome",
+            "ko": "이름",
+            "nl": "Naam",
+            "no": "Navn",
+            "pl": "Nazwa",
+            "ru": "Имя",
+            "sv": "Namn"
+          },
+          "type": "autocomplete"
+        }
+      ]
     }
   ]
 }
