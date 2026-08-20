@@ -10,10 +10,18 @@ from __future__ import annotations
 from typing import cast
 
 import pytest
-from aioesphomeapi import BinarySensorInfo, ButtonInfo, EntityInfo, TemperatureUnit
+from aioesphomeapi import (
+    BinarySensorInfo,
+    ButtonInfo,
+    EntityCategory,
+    EntityInfo,
+    TemperatureUnit,
+)
 
 from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 from homey_esphomedriver.mapping import (
+    REFRESH_CAPABILITY,
+    REFRESH_CAPABILITY_OPTIONS,
     DeviceEntityMapper,
     ObjectIdAlias,
     celsius_step,
@@ -180,3 +188,31 @@ def test_button_entity_adds_custom_flow_filter_marker() -> None:
     ]
     marker = homey_device["capabilitiesOptions"]["esphome_button"]
     assert marker == {"uiComponent": None}
+
+
+def test_map_device_attaches_refresh() -> None:
+    homey_device = mapped_device()
+    DeviceEntityMapper.map_device([], homey_device)
+    assert homey_device["capabilities"] == [REFRESH_CAPABILITY]
+    assert (
+        homey_device["capabilitiesOptions"][REFRESH_CAPABILITY]
+        == REFRESH_CAPABILITY_OPTIONS
+    )
+
+
+def test_map_device_includes_diagnostic_entities() -> None:
+    entity = BinarySensorInfo(
+        object_id="status",
+        key=1,
+        name="Status",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    )
+    assert mapped_device(entity)["capabilities"] == []
+
+    homey_device = mapped_device()
+    DeviceEntityMapper.map_device([entity], homey_device, diagnostics=True)
+    assert homey_device["capabilities"] == [
+        "esphome_boolean",
+        "esphome_boolean.status",
+        REFRESH_CAPABILITY,
+    ]

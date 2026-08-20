@@ -2,69 +2,20 @@
 
 ``plan_capability_refresh`` diffs by ``(entity key, capability base)`` so
 remapping cannot reshuffle Flow cards bound to bare Homey ids. Caps without a
-``key`` (the refresh button, Flow-filter markers) are left alone.
+``key`` match on Homey id.
 """
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
-import pytest
-
-from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
-from homey_esphomedriver.refresh import (
-    REFRESH_CAPABILITY,
-    REFRESH_CAPABILITY_OPTIONS,
-    allocate_capability_id,
-    attach_refresh_capability,
-    capability_base,
-    plan_capability_refresh,
-)
+from homey_esphomedriver.refresh import capability_base, plan_capability_refresh
 
 
-def device() -> HomeyEspHomeDeviceOption:
-    return cast(
-        HomeyEspHomeDeviceOption,
-        {
-            "name": "node",
-            "data": {},
-            "store": {},
-            "settings": {},
-            "capabilities": [],
-            "capabilitiesOptions": {},
-        },
-    )
-
-
-@pytest.mark.parametrize(
-    ("capability_id", "expected"),
-    [
-        ("onoff", "onoff"),
-        ("measure_temperature.1", "measure_temperature"),
-        ("esphome_number.pump", "esphome_number"),
-    ],
-)
-def test_capability_base(capability_id: str, expected: str) -> None:
-    assert capability_base(capability_id) == expected
-
-
-def test_allocate_capability_id_keeps_scratch_when_free() -> None:
-    assert allocate_capability_id("onoff", 7, set()) == "onoff"
-
-
-def test_allocate_capability_id_indexes_on_collision() -> None:
-    assert allocate_capability_id("onoff", 7, {"onoff"}) == "onoff.7"
-
-
-def test_attach_refresh_capability_appends_once() -> None:
-    homey_device = device()
-    attach_refresh_capability(homey_device)
-    attach_refresh_capability(homey_device)
-    assert homey_device["capabilities"] == [REFRESH_CAPABILITY]
-    assert (
-        homey_device["capabilitiesOptions"][REFRESH_CAPABILITY]
-        == REFRESH_CAPABILITY_OPTIONS
-    )
+def test_capability_base() -> None:
+    assert capability_base("onoff") == "onoff"
+    assert capability_base("measure_temperature.1") == "measure_temperature"
+    assert capability_base("esphome_number.pump") == "esphome_number"
 
 
 def test_plan_keeps_current_id_when_identity_matches() -> None:
@@ -99,8 +50,8 @@ def test_plan_indexes_scratch_when_bare_id_already_taken() -> None:
     """A new entity whose scratch id is already taken gets ``base.key``."""
     current = {"onoff": {"key": 1}}
     desired: dict[str, dict[str, Any]] = {
-        "onoff.relay": {"key": 1},
         "onoff": {"key": 2},
+        "onoff.relay": {"key": 1},
     }
     to_remove, to_add, to_update = plan_capability_refresh(current, desired)
     assert to_remove == []
@@ -108,18 +59,33 @@ def test_plan_indexes_scratch_when_bare_id_already_taken() -> None:
     assert to_add == [("onoff.2", {"key": 2})]
 
 
-def test_plan_leaves_keyless_capabilities_alone() -> None:
-    """Refresh button and Flow-filter markers have no entity key."""
+def test_plan_adds_missing_flow_filter_marker() -> None:
     current = {
-        REFRESH_CAPABILITY: {"title": "Refresh"},
+        "button.refresh": {},
+        "button.play": {"key": 1},
+    }
+    desired = {
+        "button.refresh": {},
+        "esphome_button": {"uiComponent": None},
+        "button.play": {"key": 1},
+    }
+    to_remove, to_add, to_update = plan_capability_refresh(current, desired)
+    assert to_remove == []
+    assert to_update == []
+    assert to_add == [("esphome_button", {"uiComponent": None})]
+
+
+def test_plan_removes_obsolete_flow_filter_marker() -> None:
+    current = {
+        "button.refresh": {},
         "esphome_boolean": {"uiComponent": None},
         "onoff": {"key": 1},
     }
     desired = {
-        "esphome_boolean": {"uiComponent": None},
+        "button.refresh": {},
         "onoff": {"key": 1},
     }
     to_remove, to_add, to_update = plan_capability_refresh(current, desired)
-    assert to_remove == []
+    assert to_remove == ["esphome_boolean"]
     assert to_add == []
     assert to_update == []

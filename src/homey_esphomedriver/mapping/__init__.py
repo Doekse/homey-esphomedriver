@@ -7,8 +7,10 @@ entity per Homey device. Custom ``esphome_*`` capabilities are always suffixed.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from importlib.resources import files
 from typing import Any, Protocol
 
 from aioesphomeapi import (
@@ -37,6 +39,14 @@ from aioesphomeapi import (
 
 from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 from homey_esphomedriver.profile import DEFAULT_BRAND_PROFILE, BrandProfile
+
+REFRESH_CAPABILITY = "button.refresh"
+
+REFRESH_CAPABILITY_OPTIONS: dict[str, Any] = json.loads(
+    files("homey_esphomedriver")
+    .joinpath("homey_template/compose/drivers/templates/esphome-defaults.json")
+    .read_text(encoding="utf-8")
+)["capabilitiesOptions"][REFRESH_CAPABILITY]
 
 _active_profile: BrandProfile = DEFAULT_BRAND_PROFILE
 _current_entity: EntityInfo | None = None
@@ -196,7 +206,7 @@ _MAPPERS: dict[type[EntityInfo], _EntityMapper] | None = None
 
 
 class DeviceEntityMapper:
-    """Walks entity infos and fills Homey capabilities at pair time."""
+    """Maps ESPHome entities onto a Homey pair-time payload."""
 
     @classmethod
     def map(
@@ -243,6 +253,37 @@ class DeviceEntityMapper:
             _active_profile.after_map(entities, homey_device)
         finally:
             _active_profile = previous_profile
+
+    @classmethod
+    def map_device(
+        cls,
+        entities: list[EntityInfo],
+        homey_device: HomeyEspHomeDeviceOption,
+        *,
+        diagnostics: bool = False,
+        configuration: bool = False,
+        profile: BrandProfile | None = None,
+    ) -> None:
+        """Fill a pair-time payload, including ``button.refresh``."""
+        cls.map(entities, homey_device, profile=profile)
+        if diagnostics:
+            cls.map(
+                entities,
+                homey_device,
+                category_only=EntityCategory.DIAGNOSTIC,
+                profile=profile,
+            )
+        if configuration:
+            cls.map(
+                entities,
+                homey_device,
+                category_only=EntityCategory.CONFIG,
+                profile=profile,
+            )
+        homey_device["capabilities"].append(REFRESH_CAPABILITY)
+        homey_device["capabilitiesOptions"][REFRESH_CAPABILITY] = dict(
+            REFRESH_CAPABILITY_OPTIONS
+        )
 
     @staticmethod
     def _should_skip(

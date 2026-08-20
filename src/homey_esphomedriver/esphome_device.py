@@ -41,14 +41,12 @@ from homey_esphomedriver.esphome_util import (
     normalize_mac,
 )
 from homey_esphomedriver.mapping import (
+    REFRESH_CAPABILITY,
+    REFRESH_CAPABILITY_OPTIONS,
     DeviceEntityMapper,
 )
 from homey_esphomedriver.profile import BrandProfile
-from homey_esphomedriver.refresh import (
-    REFRESH_CAPABILITY,
-    REFRESH_CAPABILITY_OPTIONS,
-    plan_capability_refresh,
-)
+from homey_esphomedriver.refresh import plan_capability_refresh
 from homey_esphomedriver.state import (
     DeviceEntityStateHandler,
 )
@@ -141,7 +139,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
         self._state_handler = DeviceEntityStateHandler(self)
         await self._state_handler.init()
         await self._init_event_capability_defaults()
-        await self._ensure_refresh_capability()
+        await self._ensure_capabilities()
         for capability_id in self.get_capabilities():
             self._register_listener_for_capability(capability_id)
 
@@ -303,13 +301,16 @@ class EspHomeDevice(Device[EspHomeDriver]):
         await self.set_store_value(store_key, added)
         await self._state_handler.init()
 
-    async def _ensure_refresh_capability(self) -> None:
-        """Add the maintenance button on devices paired before it existed."""
-        if not self.has_capability(REFRESH_CAPABILITY):
-            await self._add_capabilities(
-                [REFRESH_CAPABILITY],
-                {REFRESH_CAPABILITY: dict(REFRESH_CAPABILITY_OPTIONS)},
+    async def _ensure_capabilities(self) -> None:
+        """Add device-owned caps missing on devices paired before they existed."""
+        missing = {
+            capability_id: dict(capability_options)
+            for capability_id, capability_options in (
+                (REFRESH_CAPABILITY, REFRESH_CAPABILITY_OPTIONS),
             )
+            if not self.has_capability(capability_id)
+        }
+        await self._add_capabilities(list(missing), missing)
 
     async def _refresh_capabilities(self, _value: Any = True, **_kwargs: Any) -> None:
         """Add/remove capabilities from a live remap; keep unchanged Homey ids."""
@@ -318,18 +319,13 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
         entities, _services = await self._client.list_entities_services()
         scratch = self._mapping_device([])
-        DeviceEntityMapper.map(entities, scratch, profile=self.brand_profile)
-        for enabled, category in (
-            (self.get_setting("show_diagnostics"), EntityCategory.DIAGNOSTIC),
-            (self.get_setting("show_configuration"), EntityCategory.CONFIG),
-        ):
-            if enabled:
-                DeviceEntityMapper.map(
-                    entities,
-                    scratch,
-                    category_only=category,
-                    profile=self.brand_profile,
-                )
+        DeviceEntityMapper.map_device(
+            entities,
+            scratch,
+            profile=self.brand_profile,
+            diagnostics=self.get_setting("show_diagnostics"),
+            configuration=self.get_setting("show_configuration"),
+        )
 
         to_remove, to_add, to_update = plan_capability_refresh(
             self._capabilities_options, scratch["capabilitiesOptions"]

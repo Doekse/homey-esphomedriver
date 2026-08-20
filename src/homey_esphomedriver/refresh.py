@@ -1,41 +1,13 @@
-"""Sticky Homey maintenance action that remaps live ESPHome entities."""
+"""Sticky Homey ids when remapping a live device onto a new pair-time payload."""
 
 from __future__ import annotations
 
-import json
-from importlib.resources import files
 from typing import Any
-
-from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
-
-REFRESH_CAPABILITY = "button.refresh"
-
-REFRESH_CAPABILITY_OPTIONS: dict[str, Any] = json.loads(
-    files("homey_esphomedriver")
-    .joinpath("homey_template/compose/drivers/templates/esphome-defaults.json")
-    .read_text(encoding="utf-8")
-)["capabilitiesOptions"][REFRESH_CAPABILITY]
-
-
-def attach_refresh_capability(homey_device: HomeyEspHomeDeviceOption) -> None:
-    """Keep ``button.refresh`` on the pair-time payload after entity mapping."""
-    if REFRESH_CAPABILITY not in homey_device["capabilities"]:
-        homey_device["capabilities"].append(REFRESH_CAPABILITY)
-    homey_device["capabilitiesOptions"][REFRESH_CAPABILITY] = dict(
-        REFRESH_CAPABILITY_OPTIONS
-    )
 
 
 def capability_base(capability_id: str) -> str:
     """Homey type of a capability, ignoring any object-id suffix."""
     return capability_id.split(".", 1)[0]
-
-
-def allocate_capability_id(scratch_id: str, key: int, taken: set[str]) -> str:
-    """Pick a Homey id for a new mapping that does not collide with ``taken``."""
-    if scratch_id not in taken:
-        return scratch_id
-    return f"{capability_base(scratch_id)}.{key}"
 
 
 def plan_capability_refresh(
@@ -46,13 +18,12 @@ def plan_capability_refresh(
     list[tuple[str, dict[str, Any]]],
     list[tuple[str, dict[str, Any]]],
 ]:
-    """Diff current vs remapped caps by ``(entity key, capability base)``.
+    """Diff current vs the pair-time payload, keeping sticky Homey ids.
 
-    Returns ``(remove_ids, add_items, update_items)``. Unchanged mappings keep
-    their current Homey ids so bare-id assignment cannot reshuffle Flows.
-    Caps without a ``key`` are left alone.
+    Entity-backed caps keep the current Homey id when ``(key, capability
+    base)`` matches. Caps without a ``key`` match on Homey id.
     """
-    desired = {
+    desired_keyed = {
         (int(options["key"]), capability_base(capability_id)): (
             capability_id,
             options,
@@ -62,6 +33,7 @@ def plan_capability_refresh(
     }
 
     to_remove: list[str] = []
+    to_add: list[tuple[str, dict[str, Any]]] = []
     to_update: list[tuple[str, dict[str, Any]]] = []
     matched: set[tuple[int, str]] = set()
     taken: set[str] = set()
@@ -69,10 +41,18 @@ def plan_capability_refresh(
     for capability_id, options in current_options.items():
         key = options.get("key")
         if key is None:
+            desired = desired_options.get(capability_id)
+            if desired is None:
+                to_remove.append(capability_id)
+                continue
             taken.add(capability_id)
+            merged = {**options, **desired}
+            if merged != options:
+                to_update.append((capability_id, merged))
             continue
+
         identity = (int(key), capability_base(capability_id))
-        match = desired.get(identity)
+        match = desired_keyed.get(identity)
         if match is None:
             to_remove.append(capability_id)
             continue
@@ -82,11 +62,21 @@ def plan_capability_refresh(
         if merged != options:
             to_update.append((capability_id, merged))
 
-    to_add: list[tuple[str, dict[str, Any]]] = []
-    for identity, (scratch_id, options) in desired.items():
+    for capability_id, options in desired_options.items():
+        key = options.get("key")
+        if key is None:
+            if capability_id not in current_options:
+                to_add.append((capability_id, options))
+                taken.add(capability_id)
+            continue
+        identity = (int(key), capability_base(capability_id))
         if identity in matched:
             continue
-        new_id = allocate_capability_id(scratch_id, identity[0], taken)
+        new_id = (
+            capability_id
+            if capability_id not in taken
+            else f"{capability_base(capability_id)}.{int(key)}"
+        )
         taken.add(new_id)
         to_add.append((new_id, options))
 
