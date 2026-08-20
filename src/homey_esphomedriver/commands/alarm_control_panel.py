@@ -9,7 +9,7 @@ from aioesphomeapi import AlarmControlPanelCommand
 from homey_esphomedriver.commands.base import AbstractEntityCommandHandler
 
 
-class AlarmControlPanelCommandHandler(AbstractEntityCommandHandler):
+class AlarmControlPanelEntityCommandHandler(AbstractEntityCommandHandler):
     CAPABILITIES = ("homealarm_state",)
     ENTITY_TYPE = "alarm_control_panel"
 

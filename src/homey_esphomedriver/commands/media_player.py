@@ -9,7 +9,7 @@ from aioesphomeapi import MediaPlayerCommand
 from homey_esphomedriver.commands.base import AbstractEntityCommandHandler
 
 
-class MediaPlayerCommandHandler(AbstractEntityCommandHandler):
+class MediaPlayerEntityCommandHandler(AbstractEntityCommandHandler):
     CAPABILITIES = (
         "speaker_playing",
         "speaker_stop",

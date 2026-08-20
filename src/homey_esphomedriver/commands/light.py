@@ -12,9 +12,9 @@ from homey_esphomedriver.commands.base import AbstractEntityCommandHandler
 from homey_esphomedriver.units import kelvin_to_mireds
 
 
-class LightCommandHandler(AbstractEntityCommandHandler):
+class LightEntityCommandHandler(AbstractEntityCommandHandler):
     CAPABILITIES = ("dim", "light_mode", "light_temperature", "light_effect")
-    MULTI_CAPABILITIES = (("light_hue", "light_saturation"),)
+    MULTI_CAPABILITIES = ((("light_hue", "light_saturation"), "light_hue_saturation"),)
     ENTITY_TYPE = "light"
 
     async def dim(

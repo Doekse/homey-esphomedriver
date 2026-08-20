@@ -9,7 +9,7 @@ from aioesphomeapi import WaterHeaterMode
 from homey_esphomedriver.commands.base import AbstractEntityCommandHandler
 
 
-class WaterHeaterCommandHandler(AbstractEntityCommandHandler):
+class WaterHeaterEntityCommandHandler(AbstractEntityCommandHandler):
     CAPABILITIES = ("heater_operation_mode",)
     ENTITY_TYPE = "water_heater"
 

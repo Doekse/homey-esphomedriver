@@ -7,7 +7,7 @@ from typing import Any
 from homey_esphomedriver.commands.base import AbstractEntityCommandHandler
 
 
-class CoverCommandHandler(AbstractEntityCommandHandler):
+class CoverEntityCommandHandler(AbstractEntityCommandHandler):
     CAPABILITIES = (
         "windowcoverings_state",
         "windowcoverings_set",

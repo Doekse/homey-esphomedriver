@@ -14,7 +14,7 @@ def _capitalize_preset(value: str) -> str:
     return value[:1].upper() + value[1:]
 
 
-class FanCommandHandler(AbstractEntityCommandHandler):
+class FanEntityCommandHandler(AbstractEntityCommandHandler):
     CAPABILITIES = ("fan_speed", "fan_oscillate", "fan_mode", "aircleaner_mode")
     ENTITY_TYPE = "fan"
 

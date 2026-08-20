@@ -9,8 +9,9 @@ from aioesphomeapi import ClimateMode
 from homey_esphomedriver.commands.base import AbstractEntityCommandHandler
 
 
-class GenericCommandHandler(AbstractEntityCommandHandler):
+class GenericEntityCommandHandler(AbstractEntityCommandHandler):
     CAPABILITIES = ("onoff", "button", "number", "select")
+    VALUELESS_CAPABILITIES = ("button",)
 
     async def onoff(
         self,

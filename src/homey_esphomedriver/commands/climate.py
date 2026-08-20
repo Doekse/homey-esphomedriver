@@ -10,7 +10,7 @@ from homey_esphomedriver.commands.base import AbstractEntityCommandHandler
 from homey_esphomedriver.units import convert_temperature_from_celsius
 
 
-class ClimateCommandHandler(AbstractEntityCommandHandler):
+class ClimateEntityCommandHandler(AbstractEntityCommandHandler):
     CAPABILITIES = (
         "thermostat_mode",
         "thermostat_preset",

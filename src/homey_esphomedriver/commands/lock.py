@@ -9,9 +9,11 @@ from aioesphomeapi import LockCommand
 from homey_esphomedriver.commands.base import AbstractEntityCommandHandler
 
 
-class LockCommandHandler(AbstractEntityCommandHandler):
+class LockEntityCommandHandler(AbstractEntityCommandHandler):
     CAPABILITIES = ("locked", "open")
+    VALUELESS_CAPABILITIES = ("open",)
     ENTITY_TYPE = "lock"
+    REQUIRE_ENTITY_TYPE = True
 
     async def locked(
         self,

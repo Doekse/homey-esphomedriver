@@ -7,7 +7,7 @@ from typing import Any
 from homey_esphomedriver.commands.base import AbstractEntityCommandHandler
 
 
-class ValveCommandHandler(AbstractEntityCommandHandler):
+class ValveEntityCommandHandler(AbstractEntityCommandHandler):
     CAPABILITIES = ("valve_position",)
     ENTITY_TYPE = "valve"
 
