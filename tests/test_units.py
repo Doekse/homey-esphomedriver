@@ -325,19 +325,19 @@ def test_convert_units_accepts_ints_as_numeric() -> None:
 class TestImportableOffDevice:
     """The `homey` package only exists on a Homey.
 
-    `units`, `state` and `state.base` annotate with `homey.device.Device` but
-    must not import it at runtime, or none of them can be imported off-device —
-    including by these tests. Nothing else here imports `state`, so without this
-    a re-added module-level import would keep the suite green while breaking
-    every consumer outside the Homey runtime.
+    `units`, `entities.state` and `entities.state.base` annotate with
+    `homey.device.Device` but must not import it at runtime, or none of them
+    can be imported off-device — including by these tests. Nothing else here
+    imports `state`, so without this a re-added module-level import would keep
+    the suite green while breaking every consumer outside the Homey runtime.
     """
 
     @pytest.mark.parametrize(
         "module",
         [
             "homey_esphomedriver.units",
-            "homey_esphomedriver.state",
-            "homey_esphomedriver.state.base",
+            "homey_esphomedriver.entities.state",
+            "homey_esphomedriver.entities.state.base",
         ],
     )
     def test_module_imports_without_the_homey_runtime(self, module: str) -> None:

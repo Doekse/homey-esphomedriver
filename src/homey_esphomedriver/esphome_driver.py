@@ -11,6 +11,7 @@ from homey.discovery_strategy import DiscoveryStrategy
 from homey.driver import Driver, ListDeviceProperties
 from homey.pair_session import PairSession
 
+from homey_esphomedriver.entities.mapping import DeviceEntityMapper
 from homey_esphomedriver.esphome_client import (
     DEFAULT_API_PORT,
     probe_esphome_device,
@@ -26,7 +27,6 @@ from homey_esphomedriver.esphome_util import (
     normalize_mac,
 )
 from homey_esphomedriver.improv_ble import ImprovBleClient, ImprovError
-from homey_esphomedriver.mapping import DeviceEntityMapper
 from homey_esphomedriver.profile import BrandProfile
 
 _MDNS_WAIT_TIMEOUT_S = 12.0

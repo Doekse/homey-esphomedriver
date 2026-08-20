@@ -13,12 +13,12 @@ from typing import TYPE_CHECKING, Any
 from aioesphomeapi import EntityCategory, EntityInfo
 
 from homey_esphomedriver.capabilities.refresh import plan_capability_refresh
-from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
-from homey_esphomedriver.mapping import (
+from homey_esphomedriver.entities.mapping import (
     REFRESH_CAPABILITY,
     REFRESH_CAPABILITY_OPTIONS,
     DeviceEntityMapper,
 )
+from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 
 if TYPE_CHECKING:
     from homey_esphomedriver.esphome_device import EspHomeDevice

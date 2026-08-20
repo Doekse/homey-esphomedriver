@@ -21,7 +21,11 @@ from homey.discovery_result import DiscoveryResult
 from homey.discovery_result_mdns_sd import DiscoveryResultMDNSSD
 
 from homey_esphomedriver.capabilities import DeviceCapabilityHandler
-from homey_esphomedriver.commands import DeviceEntityCommandHandler
+from homey_esphomedriver.entities.commands import DeviceEntityCommandHandler
+from homey_esphomedriver.entities.mapping import REFRESH_CAPABILITY
+from homey_esphomedriver.entities.state import (
+    DeviceEntityStateHandler,
+)
 from homey_esphomedriver.esphome_client import (
     DEFAULT_API_PORT,
     EspHomeClient,
@@ -34,11 +38,7 @@ from homey_esphomedriver.esphome_util import (
     error_key,
     normalize_mac,
 )
-from homey_esphomedriver.mapping import REFRESH_CAPABILITY
 from homey_esphomedriver.profile import BrandProfile
-from homey_esphomedriver.state import (
-    DeviceEntityStateHandler,
-)
 
 
 class _EspHomeDeviceClient(EspHomeClient):
