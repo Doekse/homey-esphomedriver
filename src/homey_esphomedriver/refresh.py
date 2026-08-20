@@ -22,6 +22,11 @@ def plan_capability_refresh(
 
     Entity-backed caps keep the current Homey id when ``(key, capability
     base)`` matches. Caps without a ``key`` match on Homey id.
+
+    Homey stores ``None`` against a capability whose options it has dropped, and
+    keeps that entry after the capability itself is gone. Such an entry has no
+    ``key``, so it is treated as keyless and removed unless the desired set
+    still wants it.
     """
     desired_keyed = {
         (int(options["key"]), capability_base(capability_id)): (
@@ -29,7 +34,7 @@ def plan_capability_refresh(
             options,
         )
         for capability_id, options in desired_options.items()
-        if options.get("key") is not None
+        if options and options.get("key") is not None
     }
 
     to_remove: list[str] = []
@@ -38,7 +43,8 @@ def plan_capability_refresh(
     matched: set[tuple[int, str]] = set()
     taken: set[str] = set()
 
-    for capability_id, options in current_options.items():
+    for capability_id, stored in current_options.items():
+        options = stored or {}
         key = options.get("key")
         if key is None:
             desired = desired_options.get(capability_id)

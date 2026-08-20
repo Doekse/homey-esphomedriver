@@ -89,3 +89,41 @@ def test_plan_removes_obsolete_flow_filter_marker() -> None:
     assert to_remove == ["esphome_boolean"]
     assert to_add == []
     assert to_update == []
+
+
+def test_plan_survives_capability_options_stored_as_null() -> None:
+    """Homey stores ``None`` for a capability whose options it has dropped.
+
+    The entry outlives the capability itself, so a device that has been through
+    a remap carries them: one paired device had six, left over from slots that
+    were later mapped onto different capability ids. Reading ``key`` off one
+    raised ``AttributeError: 'NoneType' object has no attribute 'get'`` out of
+    the Refresh capabilities maintenance action, which the UI shows only as a
+    failed button.
+    """
+    current: dict[str, Any] = {
+        "onoff": {"key": 1},
+        "esphome_string.old_slot": None,
+        "esphome_boolean": {"uiComponent": None},
+    }
+    desired: dict[str, Any] = {
+        "onoff": {"key": 1},
+        "esphome_boolean": {"uiComponent": None},
+    }
+
+    to_remove, to_add, to_update = plan_capability_refresh(current, desired)
+
+    assert to_remove == ["esphome_string.old_slot"]
+    assert to_add == []
+    assert to_update == []
+
+
+def test_plan_keeps_a_null_options_capability_the_node_still_has() -> None:
+    """A null entry the desired set still names is filled in, not removed."""
+    current: dict[str, Any] = {"esphome_boolean": None}
+    desired: dict[str, Any] = {"esphome_boolean": {"uiComponent": None}}
+
+    to_remove, to_add, to_update = plan_capability_refresh(current, desired)
+
+    assert to_remove == []
+    assert to_update == [("esphome_boolean", {"uiComponent": None})]
