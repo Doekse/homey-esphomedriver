@@ -38,6 +38,10 @@ class _EntityCommander(Protocol):
         """Run the registered listener for ``capability_id`` and update its value."""
         ...
 
+    def error(self, *args: Any) -> None:
+        """Log an error."""
+        ...
+
 
 class AbstractEntityCommandHandler:
     """Base with entity-key helpers used by concrete command handlers.
