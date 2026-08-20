@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Map ESPHome lock ``supports_open`` to an ``open`` button that sends ``LockCommand.OPEN`` (door strike / unlatch).
+- Offer a generic Press Flow card for suffixed ``button.*`` capabilities.
 
 ### Changed
 

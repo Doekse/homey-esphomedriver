@@ -167,6 +167,16 @@ def test_suffixed_custom_cap_adds_hidden_flow_filter_marker() -> None:
     assert marker == {"uiComponent": None}
 
 
-def test_button_entity_does_not_add_bare_button_marker() -> None:
-    homey_device = mapped_device(ButtonInfo(object_id="press_me", key=1, name="Press"))
-    assert homey_device["capabilities"] == ["button.press_me"]
+def test_button_entity_adds_custom_flow_filter_marker() -> None:
+    """Bare ``esphome_button`` exists only so Homey ``$filter`` can match ``button.*``."""
+    homey_device = mapped_device(
+        ButtonInfo(object_id="press_me", key=1, name="Press"),
+        ButtonInfo(object_id="reset", key=2, name="Reset"),
+    )
+    assert homey_device["capabilities"] == [
+        "esphome_button",
+        "button.press_me",
+        "button.reset",
+    ]
+    marker = homey_device["capabilitiesOptions"]["esphome_button"]
+    assert marker == {"uiComponent": None}

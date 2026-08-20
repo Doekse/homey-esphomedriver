@@ -754,6 +754,18 @@ class EspHomeDriver(Driver):
             esphome_select=self._esphome_select_value_autocomplete,
         )
 
+        async def esphome_button_press(args: dict[str, Any], **_kwargs: Any) -> Any:
+            return await args["device"].trigger_capability_listener(
+                args["name"]["id"],
+                True,
+            )
+
+        self._wire_card(
+            self.homey.flow.get_action_card("esphome_button_press"),
+            esphome_button_press,
+            name=self._esphome_button_autocomplete,
+        )
+
         self._condition_on("alarm_plugged_in_is", "alarm_plugged_in")
         self._condition_on("alarm_triggered_is", "alarm_triggered")
         self._condition_on("fan_oscillate_is", "fan_oscillate")
@@ -939,6 +951,13 @@ class EspHomeDriver(Driver):
             setable_only=True,
         )
 
+    async def _esphome_button_autocomplete(
+        self,
+        query: str,
+        **args: Any,
+    ) -> list[dict[str, str]]:
+        return self._subcapability_autocomplete(args["device"], "button", query)
+
     async def _esphome_select_value_autocomplete(
         self,
         query: str,
@@ -987,6 +1006,9 @@ class EspHomeDriver(Driver):
             if not capability_id.startswith(f"{base}."):
                 continue
             options = device.get_capability_options(capability_id)
+            # button.refresh has no entity key and must not be a press target.
+            if options.get("key") is None:
+                continue
             if setable_only and not options.get("setable", False):
                 continue
             name = self._option_title(options.get("title"), capability_id)
