@@ -1,14 +1,18 @@
 """Per-device Native API session used by pairing and runtime.
 
-Homey keeps one ESPHome node per device. Pairing uses a one-shot probe;
-runtime devices keep :class:`~aioesphomeapi.ReconnectLogic` so drops recover
-and state subscriptions re-arm on each connect.
+Homey keeps one ESPHome node per device. Pairing uses the free function
+:func:`probe_esphome_device`; runtime devices keep
+:class:`~aioesphomeapi.ReconnectLogic` so drops recover and state
+subscriptions re-arm on each connect.
+
+Commands are gated on :attr:`SessionState.READY` so Homey defaults cannot
+reach the node before the initial state dump has been applied.
 """
 
 from __future__ import annotations
 
-import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
+from enum import Enum, auto
 from typing import Any
 
 from aioesphomeapi import (
@@ -32,19 +36,24 @@ DEFAULT_API_PORT = 6053
 """ESPHome native API port used when discovery omits it."""
 
 StateCallback = Callable[[EntityState], None]
-ConnectedCallback = Callable[[DeviceInfo], Awaitable[None]]
-DisconnectedCallback = Callable[[bool], Awaitable[None]]
-ConnectErrorCallback = Callable[[Exception], Awaitable[None]]
 DebugCallback = Callable[..., None]
 
 
-class EspHomeClient:
-    """
-    Native API session for one ESPHome node.
+class SessionState(Enum):
+    """Lifecycle of a runtime Native API session."""
 
-    Pairing uses :meth:`probe` without reconnect. Runtime devices call
-    :meth:`start` so drops recover via ReconnectLogic and state subscriptions
-    re-arm on each connect.
+    DISCONNECTED = auto()
+    CONNECTED = auto()
+    READY = auto()
+
+
+class EspHomeClient:
+    """Native API session for one ESPHome node.
+
+    Runtime devices call :meth:`start` so drops recover via ReconnectLogic.
+    Override :meth:`on_connected`, :meth:`on_disconnected`, and
+    :meth:`on_connect_error` to receive lifecycle events. After
+    :meth:`on_connected` returns the session becomes :attr:`SessionState.READY`.
     """
 
     def __init__(
@@ -55,12 +64,6 @@ class EspHomeClient:
         name: str | None = None,
         noise_psk: str | None = None,
         expected_mac: str | None = None,
-        on_state: StateCallback | None = None,
-        on_connected: ConnectedCallback | None = None,
-        on_disconnected: DisconnectedCallback | None = None,
-        on_connect_error: ConnectErrorCallback | None = None,
-        debug: DebugCallback | None = None,
-        error: DebugCallback | None = None,
         client_info: str = DEFAULT_CLIENT_INFO,
         deep_sleep: bool = False,
     ) -> None:
@@ -72,12 +75,6 @@ class EspHomeClient:
             name: Hostname used by ReconnectLogic logs and zeroconf.
             noise_psk: Noise encryption key, or ``None`` for plaintext.
             expected_mac: Paired MAC; a mismatch stops reconnect at that address.
-            on_state: Sync callback for subscribed entity states.
-            on_connected: Called after login and state subscription.
-            on_disconnected: Called with whether the drop was expected.
-            on_connect_error: Called when a connect attempt fails.
-            debug: Optional debug logger.
-            error: Optional error logger for callback failures.
             client_info: Name shown on the node for this Homey client.
             deep_sleep: Treat disconnects as expected while the node is sleeping.
         """
@@ -92,18 +89,11 @@ class EspHomeClient:
         self._client_info = client_info
         self._deep_sleep = deep_sleep
 
-        self._on_state = on_state
-        self._on_connected = on_connected
-        self._on_disconnected = on_disconnected
-        self._on_connect_error = on_connect_error
-        self._debug_log = debug
-        self._error_log = error
-
+        self._on_state: StateCallback | None = None
         self._cli: APIClient | None = None
         self._reconnect: ReconnectLogic | None = None
         self._device_info: DeviceInfo | None = None
-        self._started = False
-        self._available = False
+        self._state = SessionState.DISCONNECTED
 
     @property
     def host(self) -> str:
@@ -114,9 +104,14 @@ class EspHomeClient:
         return self._port
 
     @property
+    def state(self) -> SessionState:
+        """Current session gate: disconnected, connected, or ready for commands."""
+        return self._state
+
+    @property
     def available(self) -> bool:
-        """Whether the session is currently ready for commands."""
-        return self._available
+        """Whether the session is ready for commands."""
+        return self._state is SessionState.READY
 
     @property
     def device_info(self) -> DeviceInfo | None:
@@ -133,43 +128,31 @@ class EspHomeClient:
             raise APIConnectionError("ESPHome client has not been created yet")
         return self._cli
 
-    async def probe(
-        self,
-    ) -> tuple[DeviceInfo, list[EntityInfo], list[UserService]]:
-        """Connect once, list entities, then disconnect.
+    async def on_connected(self, device_info: DeviceInfo) -> None:
+        """Called after login and state subscription; override in subclasses."""
 
-        Used by the pair loading view. Leaves the client disconnected so the
-        runtime path can :meth:`start` with ReconnectLogic afterward.
+    async def on_disconnected(self, expected_disconnect: bool) -> None:
+        """Called when the session drops while running; override in subclasses."""
+
+    async def on_connect_error(self, error: Exception) -> None:
+        """Called when a connect attempt fails; override in subclasses."""
+
+    def mark_ready(self) -> None:
+        """Allow commands after :meth:`on_connected` has applied initial state."""
+        if self._state is SessionState.CONNECTED:
+            self._state = SessionState.READY
+
+    async def start(self, on_state: StateCallback) -> None:
+        """Start ReconnectLogic and keep the node connected at runtime.
+
+        Args:
+            on_state: Sync callback for subscribed entity states.
         """
-        await self._ensure_stopped()
-        self._debug(
-            f"Connecting once to {self._host}:{self._port} "
-            f"encrypted={self._noise_psk is not None}"
-        )
-        cli = self._create_client()
-        self._cli = cli
-        try:
-            await cli.connect(login=True)
-            device_info, entities, services = await cli.device_info_and_list_entities()
-            self._device_info = device_info
-            self._debug(
-                f"Listed {len(entities)} entities / {len(services)} services "
-                f"from {device_info.name}"
-            )
-            return device_info, entities, services
-        finally:
-            await self.disconnect()
-
-    async def start(self) -> None:
-        """Start ReconnectLogic and keep the node connected at runtime."""
-        if self._started:
+        if self._reconnect is not None:
             return
 
         await self._ensure_stopped()
-        self._debug(
-            f"Starting reconnect session {self._host}:{self._port} "
-            f"encrypted={self._noise_psk is not None}"
-        )
+        self._on_state = on_state
         self._cli = self._create_client()
         self._reconnect = ReconnectLogic(
             client=self._cli,
@@ -179,35 +162,22 @@ class EspHomeClient:
             on_connect_error=self._handle_connect_error,
         )
         self._reconnect.deep_sleep = self._deep_sleep
-        self._started = True
         await self._reconnect.start()
 
     async def stop(self) -> None:
         """Stop reconnect attempts and close the API session."""
-        self._debug(f"Stopping session {self._host}:{self._port}")
+        self._on_state = None
         await self._ensure_stopped()
-        self._available = False
         self._device_info = None
-
-    async def disconnect(self) -> None:
-        """Close a one-shot session without touching ReconnectLogic state."""
-        self._available = False
-        if self._cli is not None:
-            await self._cli.disconnect(force=True)
-        self._cli = None
 
     async def update_endpoint(self, *, host: str, port: int) -> None:
         """Apply a discovery address change and restart ReconnectLogic if running."""
-        was_started = self._started
+        on_state = self._on_state
         self._host = host
         self._port = port
-        self._debug(
-            f"Updating endpoint {self._host}:{self._port} "
-            f"encrypted={self._noise_psk is not None} restart={was_started}"
-        )
         await self._ensure_stopped()
-        if was_started:
-            await self.start()
+        if on_state is not None:
+            await self.start(on_state)
 
     async def request_connect(self) -> None:
         """Retry now if ReconnectLogic is waiting (Homey saw the node on mDNS)."""
@@ -220,8 +190,12 @@ class EspHomeClient:
 
         Args:
             name: ``APIClient`` method such as ``light_command``.
+
+        Raises:
+            APIConnectionError: If the session is not :attr:`SessionState.READY`.
         """
-        self._debug(name, args, kwargs)
+        if self._state is not SessionState.READY:
+            raise APIConnectionError("ESPHome session is not ready for commands")
         getattr(self.api, name)(*args, **kwargs)
 
     async def list_entities_services(
@@ -244,8 +218,7 @@ class EspHomeClient:
         """Tear down ReconnectLogic and any open socket."""
         reconnect = self._reconnect
         self._reconnect = None
-        self._started = False
-        self._available = False
+        self._state = SessionState.DISCONNECTED
 
         if reconnect is not None:
             await reconnect.stop()
@@ -262,67 +235,44 @@ class EspHomeClient:
             self._device_info = device_info
             self._name = device_info.name
             self._deep_sleep = device_info.has_deep_sleep
-            if self._reconnect is not None:
-                self._reconnect.name = device_info.name
-            if self._on_state is None:
-                raise ValueError("State callback is required to subscribe")
-            cli.subscribe_states(self._on_state)
-            self._available = True
-            self._debug(f"Connected to {device_info.name} ({self._host}:{self._port})")
-        except APIConnectionError as err:
-            self._available = False
-            self._debug(f"ESPHome setup failed for {self._host}:{self._port}: {err}")
+            on_state = self._on_state
+            reconnect = self._reconnect
+            if on_state is None or reconnect is None:
+                return
+            reconnect.name = device_info.name
+            cli.subscribe_states(on_state)
+            self._state = SessionState.CONNECTED
+        except APIConnectionError:
+            self._state = SessionState.DISCONNECTED
             # ReconnectLogic only schedules another attempt after on_stop.
             await cli.disconnect()
             return
 
-        if self._started and self._on_connected is not None:
-            self._schedule(self._on_connected(device_info))
+        await self.on_connected(device_info)
+        self.mark_ready()
 
     async def _handle_disconnect(self, expected_disconnect: bool) -> None:
-        self._available = False
-        self._debug(
-            f"Disconnected from {self._host}:{self._port} "
-            f"expected={expected_disconnect}"
-        )
+        self._state = SessionState.DISCONNECTED
         # Stopping the session closes the socket; that is not a Homey unavailable.
-        if not self._started:
+        if self._on_state is None:
             return
-        if self._on_disconnected is not None:
-            self._schedule(self._on_disconnected(expected_disconnect))
+        await self.on_disconnected(expected_disconnect)
 
     async def _handle_connect_error(self, error: Exception) -> None:
-        self._available = False
-        self._debug(f"Connect error for {self._host}:{self._port}: {error}")
-        if not self._started:
+        self._state = SessionState.DISCONNECTED
+        if self._on_state is None:
             return
-        if self._on_connect_error is not None:
-            self._schedule(self._on_connect_error(error))
+        await self.on_connect_error(error)
         if self._reconnect is None:
             return
         if should_stop_reconnect(error):
+            self._on_state = None
             await self._reconnect.stop()
             self._reconnect = None
-            self._started = False
         elif is_device_mismatch(error):
-            # Keep _started so a later discovery address change can restart.
+            # Keep _on_state so a later discovery address change can restart.
             await self._reconnect.stop()
             self._reconnect = None
-
-    def _schedule(self, coro: Awaitable[None]) -> None:
-        task = asyncio.ensure_future(coro)
-        task.add_done_callback(self._on_callback_done)
-
-    def _on_callback_done(self, task: asyncio.Future[Any]) -> None:
-        if task.cancelled():
-            return
-        error = task.exception()
-        if error is not None and self._error_log is not None:
-            self._error_log(error)
-
-    def _debug(self, *args: object) -> None:
-        if self._debug_log is not None:
-            self._debug_log(*args)
 
 
 async def probe_esphome_device(
@@ -334,11 +284,30 @@ async def probe_esphome_device(
     debug: DebugCallback | None = None,
 ) -> tuple[DeviceInfo, list[EntityInfo], list[UserService]]:
     """One-shot probe for the pairing loading view."""
-    client = EspHomeClient(
+    if not host:
+        raise ValueError("ESPHome host is required")
+
+    resolved_port = int(port) if port else DEFAULT_API_PORT
+    if debug is not None:
+        debug(
+            f"Connecting once to {host}:{resolved_port} "
+            f"encrypted={noise_psk is not None}"
+        )
+
+    cli = APIClient(
         host,
-        port,
-        noise_psk=noise_psk,
+        resolved_port,
         client_info=client_info,
-        debug=debug,
+        noise_psk=noise_psk or None,
     )
-    return await client.probe()
+    try:
+        await cli.connect(login=True)
+        device_info, entities, services = await cli.device_info_and_list_entities()
+        if debug is not None:
+            debug(
+                f"Listed {len(entities)} entities / {len(services)} services "
+                f"from {device_info.name}"
+            )
+        return device_info, entities, services
+    finally:
+        await cli.disconnect(force=True)

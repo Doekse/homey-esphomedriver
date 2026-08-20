@@ -31,7 +31,11 @@ from homey.device import Device
 from homey.discovery_result import DiscoveryResult
 from homey.discovery_result_mdns_sd import DiscoveryResultMDNSSD
 
-from homey_esphomedriver.esphome_client import DEFAULT_API_PORT, EspHomeClient
+from homey_esphomedriver.esphome_client import (
+    DEFAULT_API_PORT,
+    EspHomeClient,
+    SessionState,
+)
 from homey_esphomedriver.esphome_driver import EspHomeDriver
 from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 from homey_esphomedriver.esphome_util import (
@@ -56,6 +60,28 @@ from homey_esphomedriver.units import (
 )
 
 CapabilityListener = Callable[..., Awaitable[None]]
+
+
+class _EspHomeDeviceClient(EspHomeClient):
+    """Runtime session that forwards lifecycle hooks to :class:`EspHomeDevice`."""
+
+    def __init__(self, device: EspHomeDevice, *args: Any, **kwargs: Any) -> None:
+        self._device = device
+        super().__init__(*args, **kwargs)
+
+    async def on_connected(self, device_info: DeviceInfo) -> None:
+        await self._device._on_client_connected(device_info)
+
+    async def on_disconnected(self, expected_disconnect: bool) -> None:
+        task = asyncio.ensure_future(
+            self._device._on_client_disconnected(expected_disconnect)
+        )
+        task.add_done_callback(self._device._on_state_task_done)
+
+    async def on_connect_error(self, error: Exception) -> None:
+        task = asyncio.ensure_future(self._device._on_client_connect_error(error))
+        task.add_done_callback(self._device._on_state_task_done)
+
 
 _BARE_SETTABLE_CAPABILITIES = frozenset(
     {
@@ -314,10 +340,8 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
     async def _refresh_capabilities(self, _value: Any = True, **_kwargs: Any) -> None:
         """Add/remove capabilities from a live remap; keep unchanged Homey ids."""
-        if self._client is None or not self._client.available:
-            raise ValueError(self.homey.translate("errors.device_not_connected"))
-
-        entities, _services = await self._client.list_entities_services()
+        client = self._require_client()
+        entities, _services = await client.list_entities_services()
         scratch = self._mapping_device([])
         DeviceEntityMapper.map_device(
             entities,
@@ -559,22 +583,17 @@ class EspHomeDevice(Device[EspHomeDriver]):
         expected_mac = str(self.get_data()["id"])
 
         name = str(self.get_setting("hostname") or "").strip() or None
-        self._client = EspHomeClient(
+        self._client = _EspHomeDeviceClient(
+            self,
             host,
             port,
             name=name,
             noise_psk=noise_psk,
             expected_mac=expected_mac,
             client_info=self.brand_profile.client_info,
-            on_state=self._on_entity_state,
-            on_connected=self._on_client_connected,
-            on_disconnected=self._on_client_disconnected,
-            on_connect_error=self._on_client_connect_error,
-            debug=self.debug,
-            error=self.error,
             deep_sleep=self.get_setting("deep_sleep") == "Yes",
         )
-        await self._client.start()
+        await self._client.start(self._on_entity_state)
 
     async def _request_connect(self) -> None:
         """Ask ReconnectLogic to try immediately when Homey discovery sees the node."""
@@ -661,8 +680,8 @@ class EspHomeDevice(Device[EspHomeDriver]):
             self.error(error)
 
     def _require_client(self) -> EspHomeClient:
-        """Return the live session, or raise if the node is not connected."""
-        if self._client is None or not self._client.available:
+        """Return the live session, or raise if the node is not ready."""
+        if self._client is None or self._client.state is not SessionState.READY:
             raise RuntimeError(self.homey.translate("errors.device_not_connected"))
         return self._client
 
