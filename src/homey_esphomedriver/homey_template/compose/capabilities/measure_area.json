@@ -18,7 +18,7 @@
   "getable": true,
   "setable": false,
   "uiComponent": "sensor",
-  "icon": "/assets/capabilities/esphome_number.svg",
+  "icon": "/assets/capabilities/measure_area.svg",
   "insights": true,
   "decimals": 2,
   "units": {

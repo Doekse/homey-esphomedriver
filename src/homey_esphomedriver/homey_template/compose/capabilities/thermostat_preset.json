@@ -18,6 +18,7 @@
   "uiComponent": "picker",
   "getable": true,
   "setable": true,
+  "icon": "/assets/capabilities/thermostat_preset.svg",
   "values": [
     {
       "id": "none",
