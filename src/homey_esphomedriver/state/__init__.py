@@ -89,6 +89,7 @@ class DeviceEntityStateHandler:
     def __init__(self, device: Device) -> None:
         self._device = device
         self._key_to_capabilities: dict[int, list[str]] = {}
+        self._last_states: dict[int, EntityState] = {}
         self._handlers_by_type: dict[
             type[EntityState], AbstractEntityStateUpdateHandler
         ] = {
@@ -113,8 +114,8 @@ class DeviceEntityStateHandler:
             WaterHeaterState: WaterHeaterEntityStateUpdateHandler(device),
         }
 
-    def init(self) -> None:
-        """Build the entity-key index from capability options set at pair time."""
+    async def init(self) -> None:
+        """Build the entity-key index and apply cached states for newly mapped keys."""
         self._key_to_capabilities.clear()
 
         for capability in self._device.get_capabilities():
@@ -123,16 +124,26 @@ class DeviceEntityStateHandler:
                 continue
             self._key_to_capabilities.setdefault(int(key), []).append(capability)
 
+        for state in list(self._last_states.values()):
+            await self._apply_state(state)
+
     def uninit(self) -> None:
         """Release per-handler timers and other resources."""
+        self._last_states.clear()
         for handler in self._handlers_by_type.values():
             handler.uninit()
 
     async def handle_state(self, state: EntityState) -> None:
         """Route one ESPHome state update to the matching Homey capabilities."""
+        await self._apply_state(state)
+
+    async def _apply_state(self, state: EntityState) -> None:
         capabilities = self._key_to_capabilities.get(state.key, [])
         if not capabilities:
+            if type(state) in self._handlers_by_type:
+                self._last_states[state.key] = state
             return
+        self._last_states.pop(state.key, None)
         self._debug(
             f"Handling entity state key={state.key} caps={capabilities}: {state}"
         )

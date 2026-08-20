@@ -139,7 +139,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
             await self._apply_device_class_setting(str(device_class))
 
         self._state_handler = DeviceEntityStateHandler(self)
-        self._state_handler.init()
+        await self._state_handler.init()
         await self._init_event_capability_defaults()
         await self._ensure_refresh_capability()
         for capability_id in self.get_capabilities():
@@ -275,7 +275,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
             # on entity-heavy nodes inside on_settings ACK.
             await self._remove_capabilities(list(self.get_store().get(store_key) or []))
             await self.set_store_value(store_key, [])
-            self._state_handler.init()
+            await self._state_handler.init()
             return
 
         if self._client is None:
@@ -301,9 +301,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
         )
 
         await self.set_store_value(store_key, added)
-        self._state_handler.init()
-        # These capabilities were not present for the connect-time state dump.
-        self._client.request_states()
+        await self._state_handler.init()
 
     async def _ensure_refresh_capability(self) -> None:
         """Add the maintenance button on devices paired before it existed."""
@@ -371,8 +369,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
             ),
         )
 
-        self._state_handler.init()
-        self._client.request_states()
+        await self._state_handler.init()
 
     def _mapping_device(self, capabilities: list[str]) -> HomeyEspHomeDeviceOption:
         """Pair-time payload for a live remap."""

@@ -20,7 +20,6 @@ from aioesphomeapi import (
     ReconnectLogic,
     UserService,
 )
-from aioesphomeapi.api_pb2 import SubscribeStatesRequest
 
 from homey_esphomedriver.esphome_util import (
     is_device_mismatch,
@@ -224,14 +223,6 @@ class EspHomeClient:
         """
         self._debug(name, args, kwargs)
         getattr(self.api, name)(*args, **kwargs)
-
-    def request_states(self) -> None:
-        """Re-request a state dump without registering another listener.
-
-        Used after diagnostic/config capabilities are added at runtime so they
-        receive current values without stacking subscribe callbacks.
-        """
-        self.api._get_connection().send_message(SubscribeStatesRequest())
 
     async def list_entities_services(
         self,
