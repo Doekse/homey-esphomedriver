@@ -300,7 +300,10 @@ class DeviceEntityMapper:
         base: str,
         capability_options: dict[str, Any] | None = None,
     ) -> None:
-        """Add ``base.<object_id>`` for custom caps that always need a unique id."""
+        """Add ``base.<object_id>`` and a hidden bare ``base`` for Flow ``$filter``."""
+        if base != "button" and base not in homey_device["capabilities"]:
+            homey_device["capabilities"].append(base)
+            homey_device["capabilitiesOptions"][base] = {"uiComponent": None}
         suffix = _current_entity.object_id if _current_entity is not None else base
         cls.add_capability(homey_device, key, f"{base}.{suffix}", capability_options)
 

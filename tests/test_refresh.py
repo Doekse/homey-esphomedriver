@@ -2,7 +2,7 @@
 
 ``plan_capability_refresh`` diffs by ``(entity key, capability base)`` so
 remapping cannot reshuffle Flow cards bound to bare Homey ids. Caps without a
-``key`` (the refresh button) are left alone.
+``key`` (the refresh button, Flow-filter markers) are left alone.
 """
 
 from __future__ import annotations
@@ -109,12 +109,16 @@ def test_plan_indexes_scratch_when_bare_id_already_taken() -> None:
 
 
 def test_plan_leaves_keyless_capabilities_alone() -> None:
-    """The refresh button has no entity key and must not be removed or remapped."""
+    """Refresh button and Flow-filter markers have no entity key."""
     current = {
         REFRESH_CAPABILITY: {"title": "Refresh"},
+        "esphome_boolean": {"uiComponent": None},
         "onoff": {"key": 1},
     }
-    desired = {"onoff": {"key": 1}}
+    desired = {
+        "esphome_boolean": {"uiComponent": None},
+        "onoff": {"key": 1},
+    }
     to_remove, to_add, to_update = plan_capability_refresh(current, desired)
     assert to_remove == []
     assert to_add == []

@@ -984,7 +984,7 @@ class EspHomeDriver(Driver):
         query_lower = query.lower()
         results: list[dict[str, str]] = []
         for capability_id in device.get_capabilities():
-            if capability_id != base and not capability_id.startswith(f"{base}."):
+            if not capability_id.startswith(f"{base}."):
                 continue
             options = device.get_capability_options(capability_id)
             if setable_only and not options.get("setable", False):

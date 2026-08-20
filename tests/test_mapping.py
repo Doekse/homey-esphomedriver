@@ -1,16 +1,20 @@
 """Pair-time mapping helper tests.
 
 Pins object-id alias matching (exact / suffix / unit / ``unless_device_class``),
-device-class lookup, picker option shape, and ESPHome temperature-unit
-conversion used when writing capability options.
+device-class lookup, picker option shape, ESPHome temperature-unit conversion,
+and the hidden bare ids ``add_suffixed`` adds so Homey Flow ``$filter`` can match.
 """
 
 from __future__ import annotations
 
-import pytest
-from aioesphomeapi import TemperatureUnit
+from typing import cast
 
+import pytest
+from aioesphomeapi import BinarySensorInfo, ButtonInfo, EntityInfo, TemperatureUnit
+
+from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 from homey_esphomedriver.mapping import (
+    DeviceEntityMapper,
     ObjectIdAlias,
     celsius_step,
     lookup_device_class,
@@ -35,6 +39,22 @@ def aliases() -> tuple[ObjectIdAlias, ...]:
             unless_device_class=("precipitation",),
         ),
     )
+
+
+def mapped_device(*entities: EntityInfo) -> HomeyEspHomeDeviceOption:
+    homey_device = cast(
+        HomeyEspHomeDeviceOption,
+        {
+            "name": "node",
+            "data": {},
+            "store": {},
+            "settings": {},
+            "capabilities": [],
+            "capabilitiesOptions": {},
+        },
+    )
+    DeviceEntityMapper.map(list(entities), homey_device)
+    return homey_device
 
 
 def test_match_object_id_alias_exact_is_case_insensitive() -> None:
@@ -130,3 +150,23 @@ def test_celsius_step_scales_fahrenheit_only() -> None:
     assert celsius_step(TemperatureUnit.FAHRENHEIT, 1.8) == pytest.approx(1.0)
     assert celsius_step(TemperatureUnit.KELVIN, 0.5) == 0.5
     assert celsius_step(None, 0.5) == 0.5
+
+
+def test_suffixed_custom_cap_adds_hidden_flow_filter_marker() -> None:
+    """Bare ``esphome_boolean`` exists only so Homey ``$filter`` can match."""
+    homey_device = mapped_device(
+        BinarySensorInfo(object_id="screen_button", key=1, name="Screen"),
+        BinarySensorInfo(object_id="flag", key=2, name="Flag"),
+    )
+    assert homey_device["capabilities"] == [
+        "esphome_boolean",
+        "esphome_boolean.screen_button",
+        "esphome_boolean.flag",
+    ]
+    marker = homey_device["capabilitiesOptions"]["esphome_boolean"]
+    assert marker == {"uiComponent": None}
+
+
+def test_button_entity_does_not_add_bare_button_marker() -> None:
+    homey_device = mapped_device(ButtonInfo(object_id="press_me", key=1, name="Press"))
+    assert homey_device["capabilities"] == ["button.press_me"]
