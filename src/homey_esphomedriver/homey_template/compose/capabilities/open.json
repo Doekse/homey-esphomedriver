@@ -1,0 +1,22 @@
+{
+  "type": "boolean",
+  "title": {
+    "en": "Open",
+    "ar": "فتح",
+    "da": "Åbn",
+    "de": "Öffnen",
+    "es": "Abrir",
+    "fr": "Ouvrir",
+    "it": "Apri",
+    "ko": "열기",
+    "nl": "Openen",
+    "no": "Åpne",
+    "pl": "Otwórz",
+    "ru": "Открыть",
+    "sv": "Öppna"
+  },
+  "getable": false,
+  "setable": true,
+  "uiComponent": "button",
+  "icon": "/assets/capabilities/open.svg"
+}

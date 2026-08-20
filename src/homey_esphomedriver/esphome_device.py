@@ -469,6 +469,15 @@ class EspHomeDevice(Device[EspHomeDriver]):
             )
         elif capability_id == "locked" and self._get_entity_type("locked") == "lock":
             self.register_capability_listener("locked", self._on_capability_locked)
+        elif capability_id == "open" and self._get_entity_type("open") == "lock":
+            self.register_capability_listener(
+                "open",
+                self._listener_with_capability_id(
+                    self._on_capability_open,
+                    capability_id,
+                    pass_value=False,
+                ),
+            )
         elif capability_id in _BARE_SETTABLE_CAPABILITIES:
             self.register_capability_listener(
                 capability_id,
@@ -1127,6 +1136,18 @@ class EspHomeDevice(Device[EspHomeDriver]):
             "lock_command",
             self._get_entity_key(capability_id),
             LockCommand.LOCK if value else LockCommand.UNLOCK,
+        )
+
+    async def _on_capability_open(
+        self,
+        *,
+        capability_id: str,
+        **_kwargs: Any,
+    ) -> None:
+        self._require_client().command(
+            "lock_command",
+            self._get_entity_key(capability_id),
+            LockCommand.OPEN,
         )
 
     async def _on_capability_valve_position(

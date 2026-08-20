@@ -689,6 +689,7 @@ class EspHomeDriver(Driver):
 
         self._action_press("restart", "restart")
         self._action_press("identify", "identify")
+        self._action_press("open", "open")
         self._action_set("aircleaner_mode_set", "aircleaner_mode", "aircleaner_mode")
         self._action_press("fan_oscillate_on", "fan_oscillate", True)
         self._action_press("fan_oscillate_off", "fan_oscillate", False)

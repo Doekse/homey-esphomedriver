@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Map ESPHome lock ``supports_open`` to an ``open`` button that sends ``LockCommand.OPEN`` (door strike / unlatch).
+
+### Changed
+
+- Map lock ``JAMMED`` to Homey ``alarm_door_fault`` instead of ``alarm_stuck``.
+
 ### Fixed
 
 - Pair and repair custom views navigate after their emit resolves, instead of awaiting ``show_view`` from inside the handler (Homey pair-client deadlock on Continue).

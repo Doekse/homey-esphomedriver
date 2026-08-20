@@ -24,4 +24,6 @@ class LockEntityMapper:
         info = cast(LockInfo, entity)
         DeviceEntityMapper.set_device_class(homey_device, "lock")
         DeviceEntityMapper.add_capability(homey_device, info.key, "locked")
-        DeviceEntityMapper.add_capability(homey_device, info.key, "alarm_stuck")
+        DeviceEntityMapper.add_capability(homey_device, info.key, "alarm_door_fault")
+        if info.supports_open:
+            DeviceEntityMapper.add_capability(homey_device, info.key, "open")

@@ -1965,6 +1965,25 @@
       "$filter": "capabilities=identify"
     },
     {
+      "id": "open",
+      "title": {
+        "en": "Open",
+        "ar": "فتح",
+        "da": "Åbn",
+        "de": "Öffnen",
+        "es": "Abrir",
+        "fr": "Ouvrir",
+        "it": "Apri",
+        "ko": "열기",
+        "nl": "Openen",
+        "no": "Åpne",
+        "pl": "Otwórz",
+        "ru": "Открыть",
+        "sv": "Öppna"
+      },
+      "$filter": "capabilities=open"
+    },
+    {
       "id": "fan_oscillate_on",
       "title": {
         "en": "Turn oscillation on",

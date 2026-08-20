@@ -19,6 +19,6 @@ class LockEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
         if locked_id is not None:
             self.set_capability_value(locked_id, lock.state == LockState.LOCKED)
 
-        stuck_id = self.find_capability(capabilities, "alarm_stuck")
-        if stuck_id is not None:
-            self.set_capability_value(stuck_id, lock.state == LockState.JAMMED)
+        fault_id = self.find_capability(capabilities, "alarm_door_fault")
+        if fault_id is not None:
+            self.set_capability_value(fault_id, lock.state == LockState.JAMMED)
