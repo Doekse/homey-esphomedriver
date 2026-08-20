@@ -20,6 +20,7 @@ from homey.device import Device
 from homey.discovery_result import DiscoveryResult
 from homey.discovery_result_mdns_sd import DiscoveryResultMDNSSD
 
+from homey_esphomedriver.capabilities import DeviceCapabilityHandler
 from homey_esphomedriver.commands import DeviceEntityCommandHandler
 from homey_esphomedriver.esphome_client import (
     DEFAULT_API_PORT,
@@ -27,20 +28,14 @@ from homey_esphomedriver.esphome_client import (
     SessionState,
 )
 from homey_esphomedriver.esphome_driver import EspHomeDriver
-from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 from homey_esphomedriver.esphome_util import (
     debug_log,
     device_info_settings,
     error_key,
     normalize_mac,
 )
-from homey_esphomedriver.mapping import (
-    REFRESH_CAPABILITY,
-    REFRESH_CAPABILITY_OPTIONS,
-    DeviceEntityMapper,
-)
+from homey_esphomedriver.mapping import REFRESH_CAPABILITY
 from homey_esphomedriver.profile import BrandProfile
-from homey_esphomedriver.refresh import plan_capability_refresh
 from homey_esphomedriver.state import (
     DeviceEntityStateHandler,
 )
@@ -84,6 +79,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
     """
 
     _client: EspHomeClient | None
+    _capability_handler: DeviceCapabilityHandler
     _commands: DeviceEntityCommandHandler
     _state_handler: DeviceEntityStateHandler
 
@@ -112,11 +108,14 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
         self._state_handler = DeviceEntityStateHandler(self)
         self._commands = DeviceEntityCommandHandler(self)
+        self._capability_handler = DeviceCapabilityHandler(self)
         await self._state_handler.init()
         await self._init_event_capability_defaults()
-        await self._ensure_capabilities()
-        for capability_id in self.get_capabilities():
-            self._register_listener_for_capability(capability_id)
+        await self._capability_handler.ensure()
+        self.register_capability_listener(
+            REFRESH_CAPABILITY, self._capability_handler.refresh
+        )
+        self._commands.register_listeners()
 
         await self._ensure_client_started()
         await self.on_esphome_init(self._client)
@@ -201,13 +200,13 @@ class EspHomeDevice(Device[EspHomeDriver]):
         if "device_class" in changed_keys:
             await self._apply_device_class_setting(str(new_settings["device_class"]))
         if "show_diagnostics" in changed_keys:
-            await self._apply_category_capabilities(
+            await self._capability_handler.apply_category(
                 bool(new_settings.get("show_diagnostics")),
                 EntityCategory.DIAGNOSTIC,
                 "diagnostic_capabilities",
             )
         if "show_configuration" in changed_keys:
-            await self._apply_category_capabilities(
+            await self._capability_handler.apply_category(
                 bool(new_settings.get("show_configuration")),
                 EntityCategory.CONFIG,
                 "configuration_capabilities",
@@ -236,169 +235,11 @@ class EspHomeDevice(Device[EspHomeDriver]):
         target = self.get_store()["auto_class"] if value == "auto" else value
         await self.set_class(target)
 
-    async def _apply_category_capabilities(
-        self,
-        enabled: bool,
-        category: EntityCategory,
-        store_key: str,
-    ) -> None:
-        """Add or remove capabilities for one entity category from the live device."""
-        if not enabled:
-            # Batch — per-cap removeCapability reinitializes and times out
-            # on entity-heavy nodes inside on_settings ACK.
-            await self._remove_capabilities(list(self.get_store().get(store_key) or []))
-            await self.set_store_value(store_key, [])
-            await self._state_handler.init()
-            return
-
-        if self._client is None:
-            raise ValueError(self.homey.translate("errors.device_not_connected"))
-
-        entities, _services = await self._client.list_entities_services()
-        existing = list(self.get_capabilities())
-        scratch = self._mapping_device(existing)
-        DeviceEntityMapper.map(
-            entities, scratch, category_only=category, profile=self.brand_profile
-        )
-        added = [
-            capability_id
-            for capability_id in scratch["capabilities"]
-            if capability_id not in existing
-        ]
-        await self._add_capabilities(
-            added,
-            {
-                capability_id: scratch["capabilitiesOptions"][capability_id]
-                for capability_id in added
-            },
-        )
-
-        await self.set_store_value(store_key, added)
-        await self._state_handler.init()
-
-    async def _ensure_capabilities(self) -> None:
-        """Add device-owned caps missing on devices paired before they existed."""
-        missing = {
-            capability_id: dict(capability_options)
-            for capability_id, capability_options in (
-                (REFRESH_CAPABILITY, REFRESH_CAPABILITY_OPTIONS),
-            )
-            if not self.has_capability(capability_id)
-        }
-        await self._add_capabilities(list(missing), missing)
-
-    async def _refresh_capabilities(self, _value: Any = True, **_kwargs: Any) -> None:
-        """Add/remove capabilities from a live remap; keep unchanged Homey ids."""
-        client = self._require_client()
-        entities, _services = await client.list_entities_services()
-        scratch = self._mapping_device([])
-        DeviceEntityMapper.map_device(
-            entities,
-            scratch,
-            profile=self.brand_profile,
-            diagnostics=self.get_setting("show_diagnostics"),
-            configuration=self.get_setting("show_configuration"),
-        )
-
-        to_remove, to_add, to_update = plan_capability_refresh(
-            self._capabilities_options, scratch["capabilitiesOptions"]
-        )
-        await self._remove_capabilities(to_remove)
-        await self._add_capabilities(
-            [capability_id for capability_id, _options in to_add],
-            dict(to_add),
-        )
-        for capability_id, options in to_update:
-            await self.set_capability_options(capability_id, options)
-
-        mapped_class = scratch.get("class")
-        if mapped_class and self.get_setting("device_class") == "auto":
-            await self.set_store_value("auto_class", mapped_class)
-            if self.get_class() != mapped_class:
-                await self.set_class(mapped_class)
-
-        await self.set_store_value(
-            "diagnostic_capabilities",
-            self._capabilities_for_entity_keys(
-                {
-                    entity.key
-                    for entity in entities
-                    if entity.entity_category == EntityCategory.DIAGNOSTIC
-                }
-            ),
-        )
-        await self.set_store_value(
-            "configuration_capabilities",
-            self._capabilities_for_entity_keys(
-                {
-                    entity.key
-                    for entity in entities
-                    if entity.entity_category == EntityCategory.CONFIG
-                }
-            ),
-        )
-
-        await self._state_handler.init()
-
-    def _mapping_device(self, capabilities: list[str]) -> HomeyEspHomeDeviceOption:
-        """Pair-time payload for a live remap."""
-        return {
-            "name": self.get_name(),
-            "data": dict(self.get_data()),
-            "store": {},
-            "settings": {},
-            "capabilities": list(capabilities),
-            "capabilitiesOptions": {},
-        }
-
-    async def _add_capabilities(
-        self,
-        capability_ids: list[str],
-        options: dict[str, dict[str, Any]],
-    ) -> None:
-        """Batch-add capabilities and register listeners for the new ids."""
-        if not capability_ids:
-            return
-        await self._client_emit(
-            "addCapabilities",
-            data={"capabilityIds": capability_ids, "capabilitiesOptions": options},
-        )
-        self._capabilities = [*self._capabilities, *capability_ids]
-        self._capabilities_options.update(options)
-        for capability_id in capability_ids:
-            self._register_listener_for_capability(capability_id)
-
-    async def _remove_capabilities(self, capability_ids: list[str]) -> None:
-        """Batch-remove capabilities and drop their local state."""
-        if not capability_ids:
-            return
-        await self._client_emit(
-            "removeCapabilities",
-            data={"capabilityIds": capability_ids},
-        )
-        removed = set(capability_ids)
-        self._capabilities = [
-            capability_id
-            for capability_id in self._capabilities
-            if capability_id not in removed
-        ]
-        for capability_id in capability_ids:
-            del self._capabilities_options[capability_id]
-            self._state.pop(capability_id, None)
-
-    def _capabilities_for_entity_keys(self, keys: set[int]) -> list[str]:
-        """Capability ids whose pair-time ``key`` is in ``keys``."""
-        return [
-            capability_id
-            for capability_id, options in self._capabilities_options.items()
-            if (key := options.get("key")) is not None and int(key) in keys
-        ]
-
     def _register_listener_for_capability(self, capability_id: str) -> None:
         """Register a settable-capability listener (pair-time and category toggles)."""
         if capability_id == REFRESH_CAPABILITY:
             self.register_capability_listener(
-                REFRESH_CAPABILITY, self._refresh_capabilities
+                REFRESH_CAPABILITY, self._capability_handler.refresh
             )
             return
         self._commands.register_listener_for_capability(capability_id)

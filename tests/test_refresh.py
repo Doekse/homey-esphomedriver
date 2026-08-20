@@ -9,7 +9,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from homey_esphomedriver.refresh import capability_base, plan_capability_refresh
+from homey_esphomedriver.capabilities.refresh import (
+    capability_base,
+    plan_capability_refresh,
+)
 
 
 def test_capability_base() -> None:
