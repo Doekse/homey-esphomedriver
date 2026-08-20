@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add a ``settingEntities`` compose key mapping a settings-page field onto an ESPHome entity, written when the setting changes and reconciled when the node disagrees.
 - Map ESPHome lock ``supports_open`` to an ``open`` button that sends ``LockCommand.OPEN`` (door strike / unlatch).
 - Offer a generic Press Flow card for suffixed ``button.*`` capabilities.
 - Add missing custom capability icons.

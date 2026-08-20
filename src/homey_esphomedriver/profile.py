@@ -61,6 +61,18 @@ class BrandProfile:
     capability_overrides: Mapping[tuple[str, str], str] = field(default_factory=dict)
     """``(object_id, default_capability_id)`` to capability id. Python-only."""
 
+    setting_entities: Mapping[str, str] = field(default_factory=dict)
+    """Homey settings key to ESPHome entity object id.
+
+    Homey device settings are declared statically in ``driver.compose.json``;
+    there is no API to add a field per device at pair time. A driver that ships
+    for a known product can therefore declare a settings field and name the
+    entity it writes to, and core keeps the two in step: writing the entity when
+    the setting changes, and refreshing the setting when the node reports a new
+    value. Suits configuration entities — a calibration offset belongs beside
+    Host and Port rather than on the tile.
+    """
+
     @classmethod
     def from_manifest(cls, manifest: Mapping[str, Any] | None) -> BrandProfile:
         """Build a profile from a Homey driver manifest's ``esphome`` object.
@@ -126,6 +138,9 @@ class BrandProfile:
             native_apps=_string_map(_pick(data, "nativeApps", "native_apps") or {}),
             capability_overrides=_capability_overrides(
                 _pick(data, "capabilityOverrides", "capability_overrides")
+            ),
+            setting_entities=_string_map(
+                _pick(data, "settingEntities", "setting_entities") or {}
             ),
         )
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import colorsys
 from collections.abc import Awaitable, Callable, Mapping
+from math import isnan
 from typing import Any, cast
 
 from aioesphomeapi import (
@@ -51,6 +52,10 @@ from homey_esphomedriver.mapping import (
 )
 from homey_esphomedriver.profile import BrandProfile
 from homey_esphomedriver.refresh import plan_capability_refresh
+from homey_esphomedriver.settings import (
+    SETTING_COMMANDS,
+    setting_matches,
+)
 from homey_esphomedriver.state import (
     DeviceEntityStateHandler,
 )
@@ -136,6 +141,9 @@ class EspHomeDevice(Device[EspHomeDriver]):
     """
 
     _client: EspHomeClient | None
+    _setting_keys: dict[int, str]
+    _setting_pending: dict[int, Any]
+    _setting_armed: bool
     _state_handler: DeviceEntityStateHandler
 
     @property
@@ -156,6 +164,9 @@ class EspHomeDevice(Device[EspHomeDriver]):
         await super().on_init()
 
         self._client = None
+        self._setting_keys = {}
+        self._setting_pending = {}
+        self._setting_armed = False
 
         device_class = self.get_setting("device_class")
         if device_class != "auto":
@@ -262,7 +273,155 @@ class EspHomeDevice(Device[EspHomeDriver]):
                 EntityCategory.CONFIG,
                 "configuration_capabilities",
             )
+
+        await self._apply_setting_entities(new_settings, changed_keys)
         return None
+
+    def _arm_setting_reconcile(self) -> None:
+        """Watch mapped entities so a drifting value can be corrected once.
+
+        Armed from the first state callback rather than only from the connect
+        handler: `subscribe_states` runs before that handler is scheduled, and
+        a `number` reports only on change, so the node's one-shot dump is the
+        single chance to see a drifted value.
+        """
+        mapping = self.brand_profile.setting_entities
+        client = self._client
+        self._setting_armed = True
+        self._setting_keys = {}
+        if not mapping or client is None:
+            return
+        for setting_id, object_id in mapping.items():
+            key = client.entity_key(object_id)
+            if key is not None:
+                self._setting_keys[key] = setting_id
+
+    async def _reconcile_setting_entity(self, key: int, reported: Any) -> None:
+        """Write a mapped setting only when the node reports a different value.
+
+        The node is authoritative for what it currently holds, and Homey is
+        authoritative for what it should hold, so a write happens only on a real
+        mismatch. Reconciling once per connection keeps a sleepy device from
+        taking a write every time it wakes.
+
+        Args:
+            key: Native API key of the entity that reported.
+            reported: Value the node reported.
+        """
+        if key not in self._setting_keys:
+            return
+        client = self._client
+        if client is None or not client.available:
+            # States are subscribed while the session is still CONNECTED, so the
+            # node's one-shot dump can arrive before `mark_ready`. Writing now
+            # would be dropped, and popping the key would spend the single
+            # reconcile a `number` ever offers. Hold the reading instead and
+            # replay it once commands are allowed.
+            self._setting_pending[key] = reported
+            return
+        self._setting_pending.pop(key, None)
+        setting_id = self._setting_keys.pop(key)
+        wanted = self.get_settings().get(setting_id)
+        if wanted is None:
+            return
+        if setting_matches(wanted, reported):
+            self.debug(f"{setting_id} already {reported} on the node")
+            return
+        self.debug(f"{setting_id}: node has {reported}, writing {wanted}")
+        try:
+            await self._write_setting_entities({setting_id: wanted}, (setting_id,))
+        except Exception as err:  # noqa: BLE001 - reported, never fatal
+            self.error(f"Could not apply {setting_id} to the node", err)
+
+    def _reset_setting_reconcile(self) -> None:
+        """Drop per-connection reconcile state so the next connect re-arms.
+
+        Entity keys are per-connection and each mapped setting reconciles once,
+        so everything here has to be rebuilt against whatever node answers next.
+        """
+        self._setting_armed = False
+        self._setting_keys = {}
+        self._setting_pending = {}
+
+    async def _replay_pending_reconciles(self) -> None:
+        """Reconcile readings that arrived before commands were allowed."""
+        pending = self._setting_pending
+        self._setting_pending = {}
+        for key, reported in pending.items():
+            await self._reconcile_setting_entity(key, reported)
+
+    async def _apply_setting_entities(
+        self,
+        new_settings: dict[str, bool | float | str | None],
+        changed_keys: tuple[str, ...],
+    ) -> None:
+        """Write settings the driver profile maps onto ESPHome entities.
+
+        Homey settings are declared statically per driver, so a driver for a
+        known product can name the entity a field configures and have core keep
+        them in step. Configuration entities are the motivating case: a
+        calibration trim belongs on the settings page, not the device tile.
+
+        Args:
+            new_settings: Settings as saved.
+            changed_keys: Keys the user actually changed.
+        """
+        mapping = self.brand_profile.setting_entities
+        targets = [key for key in changed_keys if key in mapping]
+        if not targets:
+            return
+
+        await self._write_setting_entities(new_settings, tuple(targets))
+
+    async def _write_setting_entities(
+        self,
+        values: dict[str, bool | float | str | None],
+        targets: tuple[str, ...],
+    ) -> None:
+        """Send the given settings to their mapped entities.
+
+        Args:
+            values: Setting values keyed by settings id.
+            targets: Which of them to write.
+        """
+        mapping = self.brand_profile.setting_entities
+        client = self._client
+        if client is None or not client.available:
+            # Homey keeps the saved value and the node is corrected on connect,
+            # which is the whole point of reconciling — so refusing the save
+            # here would only lose an edit made while the node sleeps.
+            self.debug("node offline; mapped settings will reconcile on connect")
+            return
+
+        for key in targets:
+            object_id = mapping[key]
+            entity = client.entity_info(object_id)
+            if entity is None:
+                self.error(f"Setting {key!r} maps to unknown entity {object_id!r}")
+                continue
+            value = values.get(key)
+            if value is None:
+                continue
+            command = SETTING_COMMANDS.get(type(entity))
+            if command is None:
+                self.error(
+                    f"Setting {key!r} maps to {object_id!r}, which is a "
+                    f"{type(entity).__name__} and cannot be written"
+                )
+                continue
+            name, coerce = command
+            try:
+                state = coerce(value)
+            except TypeError, ValueError:
+                self.error(f"Setting {key!r} value {value!r} is not valid for {name}")
+                continue
+            self.debug(f"setting {key} -> {object_id} = {state}")
+            try:
+                client.command(name, entity.key, state=state)
+            except Exception as err:  # noqa: BLE001 - the save must still succeed
+                # A dropped session here would fail the user's settings save
+                # for a write the node picks up on the next reconcile anyway.
+                self.error(f"Could not write {key!r} to the node", err)
 
     async def apply_connection(
         self,
@@ -619,6 +778,21 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
     def _on_entity_state(self, state: EntityState) -> None:
         """Bridge sync aioesphomeapi callbacks onto the Homey event loop."""
+        if not self._setting_armed:
+            self._arm_setting_reconcile()
+        if self._setting_keys and state.key in self._setting_keys:
+            reported = getattr(state, "state", None)
+            # A number that has never been set reports NaN, which is not a
+            # value to reconcile against. Text and bool states pass through:
+            # a mapped dropdown or switch reports those, not a float.
+            numeric = isinstance(reported, (int, float)) and not isinstance(
+                reported, bool
+            )
+            if reported is not None and not (numeric and isnan(float(reported))):
+                task = asyncio.ensure_future(
+                    self._reconcile_setting_entity(state.key, reported)
+                )
+                task.add_done_callback(self._on_state_task_done)
         task = asyncio.ensure_future(self._state_handler.handle_state(state))
         task.add_done_callback(self._on_state_task_done)
 
@@ -627,6 +801,13 @@ class EspHomeDevice(Device[EspHomeDriver]):
         await self.set_available()
         if self._client is not None:
             self._client.mark_ready()
+        await self._replay_pending_reconciles()
+        # Settings live on the node but are stored by Homey, so they drift
+        # when the node is reflashed or reset. Rather than writing them on
+        # every connect — wasteful for a battery device that wakes often —
+        # the mapped entities are watched and written only on a mismatch.
+        if not self._setting_armed:
+            self._arm_setting_reconcile()
 
         native_app_suggestion = self.brand_profile.native_app_suggestion(
             device_info.project_name
@@ -666,6 +847,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
         return info is not None and info.has_deep_sleep
 
     async def _on_client_disconnected(self, _expected: bool) -> None:
+        self._reset_setting_reconcile()
         if self._keep_available_while_offline():
             return
         await self.set_unavailable(self.homey.translate("errors.connection_lost"))

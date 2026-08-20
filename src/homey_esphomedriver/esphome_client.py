@@ -94,6 +94,7 @@ class EspHomeClient:
         self._reconnect: ReconnectLogic | None = None
         self._device_info: DeviceInfo | None = None
         self._state = SessionState.DISCONNECTED
+        self._entities_by_object_id: dict[str, EntityInfo] = {}
 
     @property
     def host(self) -> str:
@@ -198,6 +199,16 @@ class EspHomeClient:
             raise APIConnectionError("ESPHome session is not ready for commands")
         getattr(self.api, name)(*args, **kwargs)
 
+    def entity_info(self, object_id: str) -> EntityInfo | None:
+        """Return the entity info for an object id, or ``None`` if absent.
+
+        Commands address entities by key, but a driver profile names them by
+        object id, which is the stable identifier a YAML author controls. The
+        info rather than the key alone, because the command to send depends on
+        the entity type.
+        """
+        return self._entities_by_object_id.get(object_id)
+
     async def list_entities_services(
         self,
     ) -> tuple[list[EntityInfo], list[UserService]]:
@@ -219,6 +230,7 @@ class EspHomeClient:
         reconnect = self._reconnect
         self._reconnect = None
         self._state = SessionState.DISCONNECTED
+        self._entities_by_object_id = {}
 
         if reconnect is not None:
             await reconnect.stop()
@@ -231,8 +243,15 @@ class EspHomeClient:
         """Re-subscribe and refresh device info whenever ReconnectLogic logs in."""
         cli = self.api
         try:
-            device_info, _, _ = await cli.device_info_and_list_entities()
+            device_info, entities, _ = await cli.device_info_and_list_entities()
             self._device_info = device_info
+            # Entity keys are per-connection: the node may be reflashed with
+            # a different set while paired, so rebuild rather than merge.
+            self._entities_by_object_id = {
+                object_id: entity
+                for entity in entities
+                if (object_id := getattr(entity, "object_id", ""))
+            }
             self._name = device_info.name
             self._deep_sleep = device_info.has_deep_sleep
             on_state = self._on_state
@@ -253,6 +272,7 @@ class EspHomeClient:
 
     async def _handle_disconnect(self, expected_disconnect: bool) -> None:
         self._state = SessionState.DISCONNECTED
+        self._entities_by_object_id = {}
         # Stopping the session closes the socket; that is not a Homey unavailable.
         if self._on_state is None:
             return
