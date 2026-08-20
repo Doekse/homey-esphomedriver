@@ -12,12 +12,29 @@ from typing import Any
 import pytest
 
 from homey_esphomedriver.units import (
+    convert_absolute_humidity,
+    convert_apparent_power,
+    convert_area,
+    convert_blood_glucose,
+    convert_co,
+    convert_conductivity,
+    convert_current,
     convert_data_rate,
     convert_data_size,
+    convert_distance,
     convert_duration,
     convert_energy,
+    convert_energy_distance,
+    convert_frequency,
+    convert_irradiance,
+    convert_o3,
     convert_power,
     convert_pressure,
+    convert_rain,
+    convert_rain_intensity,
+    convert_reactive_energy,
+    convert_reactive_power,
+    convert_so2,
     convert_speed_kmh,
     convert_speed_ms,
     convert_temperature,
@@ -25,6 +42,9 @@ from homey_esphomedriver.units import (
     convert_units,
     convert_voltage,
     convert_volume_l,
+    convert_volume_m3,
+    convert_water_flow,
+    convert_weight,
     kelvin_to_mireds,
     mireds_to_kelvin,
 )
@@ -140,6 +160,131 @@ def test_convert_duration_and_data() -> None:
     assert convert_duration("ms", 1500.0) == pytest.approx(1.5)
     assert convert_data_rate("kB/s", 1.0) == pytest.approx(8000.0)
     assert convert_data_size("KiB", 1.0) == pytest.approx(1024.0)
+
+
+@pytest.mark.parametrize(
+    ("unit", "value", "expected"),
+    [("A", 2.0, 2.0), ("mA", 1500.0, 1.5)],
+)
+def test_convert_current(unit: str, value: float, expected: float) -> None:
+    assert convert_current(unit, value) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("unit", "value", "expected"),
+    [("Hz", 50.0, 50.0), ("kHz", 1.0, 1_000.0), ("MHz", 1.0, 1_000_000.0)],
+)
+def test_convert_frequency(unit: str, value: float, expected: float) -> None:
+    assert convert_frequency(unit, value) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("unit", "value", "expected"),
+    [("m", 3.0, 3.0), ("km", 1.0, 1_000.0), ("in", 1.0, 0.0254)],
+)
+def test_convert_distance(unit: str, value: float, expected: float) -> None:
+    assert convert_distance(unit, value) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("unit", "value", "expected"),
+    [("g", 12.0, 12.0), ("kg", 1.0, 1_000.0), ("lb", 1.0, 453.592)],
+)
+def test_convert_weight(unit: str, value: float, expected: float) -> None:
+    assert convert_weight(unit, value) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("unit", "value", "expected"),
+    [("mm", 12.0, 12.0), ("cm", 1.0, 10.0), ("in", 1.0, 25.4)],
+)
+def test_convert_rain(unit: str, value: float, expected: float) -> None:
+    assert convert_rain(unit, value) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("unit", "value", "expected"),
+    [("mm/h", 3.0, 3.0), ("mm/d", 24.0, 1.0), ("in/h", 1.0, 25.4)],
+)
+def test_convert_rain_intensity(unit: str, value: float, expected: float) -> None:
+    assert convert_rain_intensity(unit, value) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("unit", "value", "expected"),
+    [("m³", 1.0, 1.0), ("L", 1_000.0, 1.0), ("gal", 1.0, 0.00378541)],
+)
+def test_convert_volume_m3(unit: str, value: float, expected: float) -> None:
+    assert convert_volume_m3(unit, value) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("unit", "value", "expected"),
+    [("L/min", 2.0, 2.0), ("L/s", 1.0, 60.0), ("gal/min", 1.0, 3.785411784)],
+)
+def test_convert_water_flow(unit: str, value: float, expected: float) -> None:
+    assert convert_water_flow(unit, value) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("unit", "value", "expected"),
+    [("ppm", 9.0, 9.0), ("ppb", 1_000.0, 1.0)],
+)
+def test_convert_co(unit: str, value: float, expected: float) -> None:
+    assert convert_co(unit, value) == pytest.approx(expected)
+
+
+def test_convert_o3_and_so2_use_gas_specific_ppb_factors() -> None:
+    """ppb → μg/m³ uses 1.96 for O₃ and 2.62 for SO₂."""
+    assert convert_o3("ppb", 1.0) == pytest.approx(1.96)
+    assert convert_so2("ppm", 1.0) == pytest.approx(2620.0)
+
+
+@pytest.mark.parametrize(
+    ("unit", "value", "expected"),
+    [("g/m³", 8.0, 8.0), ("mg/m³", 1500.0, 1.5)],
+)
+def test_convert_absolute_humidity(unit: str, value: float, expected: float) -> None:
+    assert convert_absolute_humidity(unit, value) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("unit", "value", "expected"),
+    [("VA", 12.0, 12.0), ("kVA", 1.5, 1500.0)],
+)
+def test_convert_apparent_power(unit: str, value: float, expected: float) -> None:
+    assert convert_apparent_power(unit, value) == pytest.approx(expected)
+
+
+def test_convert_area() -> None:
+    assert convert_area("m²", 4.0) == 4.0
+    assert convert_area("km²", 1.0) == pytest.approx(1_000_000.0)
+
+
+def test_convert_blood_glucose() -> None:
+    assert convert_blood_glucose("mg/dL", 90.0) == 90.0
+    assert convert_blood_glucose("mmol/L", 1.0) == pytest.approx(18.0182)
+
+
+def test_convert_conductivity() -> None:
+    assert convert_conductivity("µS/cm", 400.0) == 400.0
+    assert convert_conductivity("mS/cm", 1.0) == pytest.approx(1_000.0)
+
+
+def test_convert_energy_distance() -> None:
+    assert convert_energy_distance("kWh/100km", 15.0) == 15.0
+    assert convert_energy_distance("Wh/km", 10.0) == pytest.approx(1.0)
+
+
+def test_convert_irradiance() -> None:
+    assert convert_irradiance("W/m²", 800.0) == 800.0
+    assert convert_irradiance("BTU/(h⋅ft²)", 1.0) == pytest.approx(3.154591)
+
+
+def test_convert_reactive_power_and_energy() -> None:
+    assert convert_reactive_power("var", 12.0) == 12.0
+    assert convert_reactive_power("kvar", 2.0) == pytest.approx(2_000.0)
+    assert convert_reactive_energy("kvarh", 2.0) == pytest.approx(2_000.0)
 
 
 def test_convert_units_applies_stored_unit() -> None:
