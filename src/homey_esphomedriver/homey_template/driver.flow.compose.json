@@ -1967,19 +1967,19 @@
     {
       "id": "open",
       "title": {
-        "en": "Open",
-        "ar": "فتح",
-        "da": "Åbn",
-        "de": "Öffnen",
-        "es": "Abrir",
-        "fr": "Ouvrir",
-        "it": "Apri",
-        "ko": "열기",
-        "nl": "Openen",
-        "no": "Åpne",
-        "pl": "Otwórz",
-        "ru": "Открыть",
-        "sv": "Öppna"
+        "en": "Open Door",
+        "ar": "فتح الباب",
+        "da": "Åbn dør",
+        "de": "Tür öffnen",
+        "es": "Abrir puerta",
+        "fr": "Ouvrir la porte",
+        "it": "Apri porta",
+        "ko": "문 열기",
+        "nl": "Deur openen",
+        "no": "Åpne dør",
+        "pl": "Otwórz drzwi",
+        "ru": "Открыть дверь",
+        "sv": "Öppna dörr"
       },
       "$filter": "capabilities=open"
     },
