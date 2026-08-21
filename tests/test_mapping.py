@@ -18,8 +18,7 @@ from aioesphomeapi import (
     TemperatureUnit,
 )
 
-from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
-from homey_esphomedriver.mapping import (
+from homey_esphomedriver.entities.mapping import (
     REFRESH_CAPABILITY,
     REFRESH_CAPABILITY_OPTIONS,
     DeviceEntityMapper,
@@ -31,6 +30,7 @@ from homey_esphomedriver.mapping import (
     temperature_unit_label,
     to_celsius,
 )
+from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 
 
 def aliases() -> tuple[ObjectIdAlias, ...]:

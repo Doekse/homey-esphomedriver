@@ -117,13 +117,14 @@ homey_export = EspHomeDevice
 Core owns `on_init` and `on_uninit` on `EspHomeDriver` and `EspHomeDevice`. Subclass the hooks below instead — same pattern as `homey-oauth2app`'s `onOAuth2Init`. Brand `app.py` exports Homey's `App`.
 
 
-| Class           | Override                                        | When                                                             |
-| --------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
-| `EspHomeDriver` | `on_esphome_init` / `on_esphome_uninit`         | After Flow listeners / before teardown                           |
-| `EspHomeDevice` | `on_esphome_init(client)` / `on_esphome_uninit` | After capability wiring; `client` is `None` when host is unknown |
+| Class           | Override                                                          | When                                                                 |
+| --------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `EspHomeDriver` | `on_esphome_init` / `on_esphome_uninit`                           | After Flow listeners / before teardown                               |
+| `EspHomeDevice` | `on_esphome_init(client)` / `on_esphome_uninit`                   | After capability wiring; `client` is `None` when host is unknown     |
+| `EspHomeDevice` | `on_esphome_connected(client)`                                    | After each login + `set_available`; session not READY yet — no cmds |
 
 
-On a paired device, use `self.client` for the live `EspHomeClient` (may exist before the API handshake). Capability commands still require a connected session via `_require_client()` / `available`.
+On a paired device, use `self.client` for the live `EspHomeClient` (may exist before the API handshake). Capability commands still require a READY session via `_require_client()` / `available` — including from `on_esphome_connected`.
 
 Debug logging uses `env.json` `DEBUG`; there is no separate class flag.
 
@@ -137,6 +138,10 @@ class EspHomeDevice(BaseDevice):
         await super().on_esphome_init(client)
         if client is not None:
             self.log(f"API session started for {client.host}")
+
+    async def on_esphome_connected(self, client: EspHomeClient) -> None:
+        await super().on_esphome_connected(client)
+        self.log(f"Logged in to {client.host}")
 
 
 homey_export = EspHomeDevice
