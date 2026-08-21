@@ -7,10 +7,6 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, cast
 
 from aioesphomeapi import DeviceInfo, EncryptionPlaintextAPIError, EntityInfo
-from homey.discovery_result_mdns_sd import DiscoveryResultMDNSSD
-from homey.discovery_strategy import DiscoveryStrategy
-from homey.driver import ListDeviceProperties
-from homey.pair_session import PairSession
 
 from homey_esphomedriver.entities.mapping import DeviceEntityMapper
 from homey_esphomedriver.esphome_client import (
@@ -23,9 +19,15 @@ from homey_esphomedriver.esphome_util import (
     needs_encryption_key,
     normalize_mac,
 )
-from homey_esphomedriver.improv_ble import ImprovBleClient, ImprovError
+from homey_esphomedriver.pairing.ble_client import ImprovBleClient
+from homey_esphomedriver.pairing.ble_protocol import ImprovError
 
 if TYPE_CHECKING:
+    from homey.discovery_result_mdns_sd import DiscoveryResultMDNSSD
+    from homey.discovery_strategy import DiscoveryStrategy
+    from homey.driver import ListDeviceProperties
+    from homey.pair_session import PairSession
+
     from homey_esphomedriver.esphome_device import EspHomeDevice
     from homey_esphomedriver.esphome_driver import EspHomeDriver
 

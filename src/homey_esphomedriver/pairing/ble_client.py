@@ -6,7 +6,7 @@ import asyncio
 from collections.abc import Callable
 from typing import Any
 
-from homey_esphomedriver.improv_ble.protocol import (
+from homey_esphomedriver.pairing.ble_protocol import (
     CHAR_ERROR,
     CHAR_RPC_COMMAND,
     CHAR_STATE,
