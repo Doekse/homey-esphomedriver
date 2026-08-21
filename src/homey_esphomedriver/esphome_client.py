@@ -11,7 +11,9 @@ reach the node before the initial state dump has been applied.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import asyncio
+import logging
+from collections.abc import Awaitable, Callable
 from enum import Enum, auto
 from typing import Any
 
@@ -32,10 +34,12 @@ from homey_esphomedriver.esphome_util import (
 )
 from homey_esphomedriver.profile import DEFAULT_CLIENT_INFO
 
+_LOGGER = logging.getLogger(__name__)
+
 DEFAULT_API_PORT = 6053
 """ESPHome native API port used when discovery omits it."""
 
-StateCallback = Callable[[EntityState], None]
+StateCallback = Callable[[EntityState], Awaitable[None]]
 DebugCallback = Callable[..., None]
 
 
@@ -51,9 +55,8 @@ class EspHomeClient:
     """Native API session for one ESPHome node.
 
     Runtime devices call :meth:`start` so drops recover via ReconnectLogic.
-    Override :meth:`on_connected`, :meth:`on_disconnected`, and
-    :meth:`on_connect_error` to receive lifecycle events. After
-    :meth:`on_connected` returns the session becomes :attr:`SessionState.READY`.
+    Commands stay gated until ``on_connected`` returns so Homey
+    ``set_settings`` / ``set_available`` cannot race native API writes.
     """
 
     def __init__(
@@ -66,6 +69,9 @@ class EspHomeClient:
         expected_mac: str | None = None,
         client_info: str = DEFAULT_CLIENT_INFO,
         deep_sleep: bool = False,
+        on_connected: Callable[[DeviceInfo], Awaitable[None]] | None = None,
+        on_disconnected: Callable[[bool], Awaitable[None]] | None = None,
+        on_connect_error: Callable[[Exception], Awaitable[None]] | None = None,
     ) -> None:
         """Create a session for one ESPHome node.
 
@@ -88,6 +94,9 @@ class EspHomeClient:
         self._expected_mac = normalize_mac(expected_mac) if expected_mac else None
         self._client_info = client_info
         self._deep_sleep = deep_sleep
+        self._on_connected = on_connected
+        self._on_disconnected = on_disconnected
+        self._on_connect_error = on_connect_error
 
         self._on_state: StateCallback | None = None
         self._cli: APIClient | None = None
@@ -128,25 +137,11 @@ class EspHomeClient:
             raise APIConnectionError("ESPHome client has not been created yet")
         return self._cli
 
-    async def on_connected(self, device_info: DeviceInfo) -> None:
-        """Called after login and state subscription; override in subclasses."""
-
-    async def on_disconnected(self, expected_disconnect: bool) -> None:
-        """Called when the session drops while running; override in subclasses."""
-
-    async def on_connect_error(self, error: Exception) -> None:
-        """Called when a connect attempt fails; override in subclasses."""
-
-    def mark_ready(self) -> None:
-        """Allow commands after :meth:`on_connected` has applied initial state."""
-        if self._state is SessionState.CONNECTED:
-            self._state = SessionState.READY
-
     async def start(self, on_state: StateCallback) -> None:
         """Start ReconnectLogic and keep the node connected at runtime.
 
         Args:
-            on_state: Sync callback for subscribed entity states.
+            on_state: Async callback for subscribed entity states.
         """
         if self._reconnect is not None:
             return
@@ -214,6 +209,25 @@ class EspHomeClient:
             expected_mac=self._expected_mac,
         )
 
+    def _mark_ready(self) -> None:
+        """Leave commands blocked if the session dropped during ``on_connected``."""
+        if self._state is SessionState.CONNECTED:
+            self._state = SessionState.READY
+
+    def _dispatch_state(self, state: EntityState) -> None:
+        """``subscribe_states`` is sync; hop so Homey capability writes can await."""
+        on_state = self._on_state
+        if on_state is None:
+            return
+        asyncio.ensure_future(self._emit_state(on_state, state))
+
+    async def _emit_state(self, on_state: StateCallback, state: EntityState) -> None:
+        """Log ``on_state`` failures so they are not unretrieved task exceptions."""
+        try:
+            await on_state(state)
+        except Exception:
+            _LOGGER.exception("Error handling ESPHome entity state")
+
     async def _ensure_stopped(self) -> None:
         """Tear down ReconnectLogic and any open socket."""
         reconnect = self._reconnect
@@ -235,12 +249,12 @@ class EspHomeClient:
             self._device_info = device_info
             self._name = device_info.name
             self._deep_sleep = device_info.has_deep_sleep
-            on_state = self._on_state
             reconnect = self._reconnect
-            if on_state is None or reconnect is None:
+            if self._on_state is None or reconnect is None:
                 return
-            reconnect.name = device_info.name
-            cli.subscribe_states(on_state)
+            reconnect.name = self._name
+            reconnect.deep_sleep = self._deep_sleep
+            cli.subscribe_states(self._dispatch_state)
             self._state = SessionState.CONNECTED
         except APIConnectionError:
             self._state = SessionState.DISCONNECTED
@@ -248,21 +262,24 @@ class EspHomeClient:
             await cli.disconnect()
             return
 
-        await self.on_connected(device_info)
-        self.mark_ready()
+        if self._on_connected is not None:
+            await self._on_connected(device_info)
+        self._mark_ready()
 
     async def _handle_disconnect(self, expected_disconnect: bool) -> None:
         self._state = SessionState.DISCONNECTED
         # Stopping the session closes the socket; that is not a Homey unavailable.
         if self._on_state is None:
             return
-        await self.on_disconnected(expected_disconnect)
+        if self._on_disconnected is not None:
+            await self._on_disconnected(expected_disconnect)
 
     async def _handle_connect_error(self, error: Exception) -> None:
         self._state = SessionState.DISCONNECTED
         if self._on_state is None:
             return
-        await self.on_connect_error(error)
+        if self._on_connect_error is not None:
+            await self._on_connect_error(error)
         if self._reconnect is None:
             return
         if should_stop_reconnect(error):

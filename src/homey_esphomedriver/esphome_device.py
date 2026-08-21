@@ -14,7 +14,6 @@ from typing import Any, cast
 from aioesphomeapi import (
     DeviceInfo,
     EntityCategory,
-    EntityState,
 )
 from homey.device import Device
 from homey.discovery_result import DiscoveryResult
@@ -39,27 +38,6 @@ from homey_esphomedriver.esphome_util import (
     normalize_mac,
 )
 from homey_esphomedriver.profile import BrandProfile
-
-
-class _EspHomeDeviceClient(EspHomeClient):
-    """Runtime session that forwards lifecycle hooks to :class:`EspHomeDevice`."""
-
-    def __init__(self, device: EspHomeDevice, *args: Any, **kwargs: Any) -> None:
-        self._device = device
-        super().__init__(*args, **kwargs)
-
-    async def on_connected(self, device_info: DeviceInfo) -> None:
-        await self._device._on_client_connected(device_info)
-
-    async def on_disconnected(self, expected_disconnect: bool) -> None:
-        task = asyncio.ensure_future(
-            self._device._on_client_disconnected(expected_disconnect)
-        )
-        task.add_done_callback(self._device._on_state_task_done)
-
-    async def on_connect_error(self, error: Exception) -> None:
-        task = asyncio.ensure_future(self._device._on_client_connect_error(error))
-        task.add_done_callback(self._device._on_state_task_done)
 
 
 class EspHomeDevice(Device[EspHomeDriver]):
@@ -283,8 +261,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
         expected_mac = str(self.get_data()["id"])
 
         name = str(self.get_setting("hostname") or "").strip() or None
-        self._client = _EspHomeDeviceClient(
-            self,
+        self._client = EspHomeClient(
             host,
             port,
             name=name,
@@ -292,8 +269,11 @@ class EspHomeDevice(Device[EspHomeDriver]):
             expected_mac=expected_mac,
             client_info=self.brand_profile.client_info,
             deep_sleep=self.get_setting("deep_sleep") == "Yes",
+            on_connected=self._on_client_connected,
+            on_disconnected=self._on_client_disconnected,
+            on_connect_error=self._on_client_connect_error,
         )
-        await self._client.start(self._on_entity_state)
+        await self._client.start(self._state_handler.handle_state)
 
     async def _request_connect(self) -> None:
         """Ask ReconnectLogic to try immediately when Homey discovery sees the node."""
@@ -318,16 +298,9 @@ class EspHomeDevice(Device[EspHomeDriver]):
             if result.address != self._client.host or port != self._client.port:
                 await self._client.update_endpoint(host=result.address, port=port)
 
-    def _on_entity_state(self, state: EntityState) -> None:
-        """Bridge sync aioesphomeapi callbacks onto the Homey event loop."""
-        task = asyncio.ensure_future(self._state_handler.handle_state(state))
-        task.add_done_callback(self._on_state_task_done)
-
     async def _on_client_connected(self, device_info: DeviceInfo) -> None:
         await self._sync_device_information(device_info)
         await self.set_available()
-        if self._client is not None:
-            self._client.mark_ready()
 
         native_app_suggestion = self.brand_profile.native_app_suggestion(
             device_info.project_name

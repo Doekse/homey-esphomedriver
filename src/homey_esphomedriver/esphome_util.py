@@ -21,7 +21,7 @@ from aioesphomeapi import (
 from aioesphomeapi.core import TimeoutAPIError
 
 _DEBUG_TRUE = frozenset({"true", "1"})
-_LIBRARY_LOGGERS = ("aioesphomeapi",)
+_LIBRARY_LOGGERS = ("aioesphomeapi", "homey_esphomedriver")
 _library_logs_attached = False
 
 
@@ -45,7 +45,7 @@ class _HomeyLogHandler(logging.Handler):
 
 
 def attach_library_logs(log: Callable[..., None], error: Callable[..., None]) -> None:
-    """Forward aioesphomeapi logs into Homey.
+    """Forward library logs into Homey.
 
     Idempotent across drivers so a second driver does not attach another handler.
 
