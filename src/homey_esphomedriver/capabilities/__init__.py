@@ -31,13 +31,13 @@ class DeviceCapabilityHandler:
         self._device = device
 
     async def ensure(self) -> None:
-        """Add device-owned caps missing on devices paired before they existed."""
-        if self._device.has_capability(REFRESH_CAPABILITY):
-            return
-        await self._add_capabilities(
-            [REFRESH_CAPABILITY],
-            {REFRESH_CAPABILITY: dict(REFRESH_CAPABILITY_OPTIONS)},
-        )
+        """Register the refresh listener, adding the cap on older pairings."""
+        if not self._device.has_capability(REFRESH_CAPABILITY):
+            await self._add_capabilities(
+                [REFRESH_CAPABILITY],
+                {REFRESH_CAPABILITY: dict(REFRESH_CAPABILITY_OPTIONS)},
+            )
+        self._device.register_capability_listener(REFRESH_CAPABILITY, self.refresh)
 
     async def refresh(self, _value: Any = True, **_kwargs: Any) -> None:
         """Add/remove capabilities from a live remap; keep unchanged Homey ids."""
@@ -144,7 +144,7 @@ class DeviceCapabilityHandler:
         device._capabilities.extend(capability_ids)
         device._capabilities_options.update(options)
         for capability_id in capability_ids:
-            device._register_listener_for_capability(capability_id)
+            device._commands.register_listener_for_capability(capability_id)
 
     async def _remove_capabilities(self, capability_ids: Sequence[str]) -> None:
         """Batch-remove capabilities and drop their local state."""

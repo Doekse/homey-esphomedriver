@@ -123,6 +123,17 @@ class DeviceEntityStateHandler:
         self._key_to_capabilities.clear()
 
         for capability in self._device.get_capabilities():
+            if (
+                capability.startswith(
+                    ("alarm_doorbell.", "event_button.", "event_generic.")
+                )
+                and self._device.get_capability_value(capability) is None
+            ):
+                # Homey shows these as null until a value is written.
+                await self._device.set_capability_value(
+                    capability,
+                    False if capability.startswith("alarm_doorbell.") else "idle",
+                )
             key = self._device.get_capability_options(capability).get("key")
             if key is None:
                 continue

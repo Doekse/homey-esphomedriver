@@ -21,10 +21,7 @@ from homey.discovery_result_mdns_sd import DiscoveryResultMDNSSD
 
 from homey_esphomedriver.capabilities import DeviceCapabilityHandler
 from homey_esphomedriver.entities.commands import DeviceEntityCommandHandler
-from homey_esphomedriver.entities.mapping import REFRESH_CAPABILITY
-from homey_esphomedriver.entities.state import (
-    DeviceEntityStateHandler,
-)
+from homey_esphomedriver.entities.state import DeviceEntityStateHandler
 from homey_esphomedriver.esphome_client import (
     DEFAULT_API_PORT,
     EspHomeClient,
@@ -86,11 +83,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
         self._commands = DeviceEntityCommandHandler(self)
         self._capability_handler = DeviceCapabilityHandler(self)
         await self._state_handler.init()
-        await self._init_event_capability_defaults()
         await self._capability_handler.ensure()
-        self.register_capability_listener(
-            REFRESH_CAPABILITY, self._capability_handler.refresh
-        )
         self._commands.register_listeners()
 
         await self._ensure_client_started()
@@ -205,15 +198,6 @@ class EspHomeDevice(Device[EspHomeDriver]):
         target = self.get_store()["auto_class"] if value == "auto" else value
         await self.set_class(target)
 
-    def _register_listener_for_capability(self, capability_id: str) -> None:
-        """Register a settable-capability listener (pair-time and category toggles)."""
-        if capability_id == REFRESH_CAPABILITY:
-            self.register_capability_listener(
-                REFRESH_CAPABILITY, self._capability_handler.refresh
-            )
-            return
-        self._commands.register_listener_for_capability(capability_id)
-
     async def is_on_run_listener(self, capability_id: str) -> Any:
         """Return the current value of a boolean capability for Flow conditions."""
         return self.get_capability_value(capability_id)
@@ -223,16 +207,6 @@ class EspHomeDevice(Device[EspHomeDriver]):
         if not value:
             return False
         return value == self.get_capability_value(capability_id)
-
-    async def _init_event_capability_defaults(self) -> None:
-        """Seed event caps with Idle / not-ringing so they are not null at start."""
-        for capability_id in self.get_capabilities():
-            if self.get_capability_value(capability_id) is not None:
-                continue
-            if capability_id.startswith("alarm_doorbell."):
-                await self.set_capability_value(capability_id, False)
-            elif capability_id.startswith(("event_button.", "event_generic.")):
-                await self.set_capability_value(capability_id, "idle")
 
     async def _ensure_client_started(self) -> None:
         """Create and start the long-lived API session from device settings."""
