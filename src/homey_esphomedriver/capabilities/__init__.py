@@ -31,13 +31,14 @@ class DeviceCapabilityHandler:
         self._device = device
 
     async def ensure(self) -> None:
-        """Register the refresh listener, adding the cap on older pairings."""
+        """Register refresh and command listeners; add refresh on older pairings."""
         if not self._device.has_capability(REFRESH_CAPABILITY):
             await self._add_capabilities(
                 [REFRESH_CAPABILITY],
                 {REFRESH_CAPABILITY: dict(REFRESH_CAPABILITY_OPTIONS)},
             )
         self._device.register_capability_listener(REFRESH_CAPABILITY, self.refresh)
+        self._device._commands.register_listeners()
 
     async def refresh(self, _value: Any = True, **_kwargs: Any) -> None:
         """Add/remove capabilities from a live remap; keep unchanged Homey ids."""

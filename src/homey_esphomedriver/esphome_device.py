@@ -83,7 +83,6 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
         await self._state_handler.init()
         await self._capability_handler.ensure()
-        self._commands.register_listeners()
 
         await self._ensure_client_started()
         await self.on_esphome_init(self._client)
