@@ -39,8 +39,8 @@ class EspHomeDevice(Device[EspHomeDriver]):
     Homey device backed by one ESPHome node.
 
     Extend this class and export it from ``device.py`` as ``homey_export``.
-    Override :meth:`on_esphome_init` / :meth:`on_esphome_uninit` instead of
-    :meth:`on_init` / :meth:`on_uninit`.
+    Override :meth:`on_esphome_init` / :meth:`on_esphome_connected` /
+    :meth:`on_esphome_uninit` instead of :meth:`on_init` / :meth:`on_uninit`.
 
     Example:
         ```python
@@ -95,6 +95,14 @@ class EspHomeDevice(Device[EspHomeDriver]):
         Args:
             client: Live Native API session, or ``None`` when the node has no
                 host yet (waiting on mDNS).
+        """
+
+    async def on_esphome_connected(self, client: EspHomeClient) -> None:
+        """Brand hook after each Native API login, including reconnects.
+
+        Homey already shows the device as available here, but the session
+        is not READY until this hook returns. Do not issue commands until
+        ``client.available`` or :meth:`_require_client`.
         """
 
     async def on_esphome_uninit(self) -> None:
@@ -287,6 +295,8 @@ class EspHomeDevice(Device[EspHomeDriver]):
                 lambda: asyncio.ensure_future(show_warning()),
                 1000,
             )
+
+        await self.on_esphome_connected(client)
 
     async def _on_disconnected(self, expected: bool) -> None:
         if expected:
