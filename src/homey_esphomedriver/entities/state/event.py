@@ -35,18 +35,14 @@ class EventEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
 
         if capability.startswith("alarm_doorbell."):
             self._set_capability_value_only(capability, True)
-            await self._fire_doorbell(capability)
+            await self._flow.trigger_event(self.device, capability)
             self._schedule_idle(capability, False, _DOORBELL_IDLE_DELAY_MS)
             return
 
-        if capability.startswith("event_button."):
-            self._set_capability_value_only(capability, event_type)
-            await self._fire_button(capability, event_type)
-            self._schedule_idle(capability, _IDLE, _BUTTON_IDLE_DELAY_MS)
-            return
-
         self._set_capability_value_only(capability, event_type)
-        await self._fire_generic(capability, event_type)
+        await self._flow.trigger_event(
+            self.device, capability, format_event_type(event_type)
+        )
         self._schedule_idle(capability, _IDLE, _BUTTON_IDLE_DELAY_MS)
 
     def _set_capability_value_only(self, capability_id: str, value: Any) -> None:
@@ -55,26 +51,6 @@ class EventEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
             self.device.set_capability_value(capability_id, value)
         )
         task.add_done_callback(self._on_set_capability_done)
-
-    async def _fire_button(self, capability_id: str, event_type: str) -> None:
-        await self._esphome_driver().trigger_event_button_received(
-            self.device,
-            format_event_type(event_type),
-            self._capability_title(capability_id),
-        )
-
-    async def _fire_doorbell(self, capability_id: str) -> None:
-        await self._esphome_driver().trigger_alarm_doorbell_received(
-            self.device,
-            self._capability_title(capability_id),
-        )
-
-    async def _fire_generic(self, capability_id: str, event_type: str) -> None:
-        await self._esphome_driver().trigger_event_generic_received(
-            self.device,
-            format_event_type(event_type),
-            self._capability_title(capability_id),
-        )
 
     def _schedule_idle(
         self,
