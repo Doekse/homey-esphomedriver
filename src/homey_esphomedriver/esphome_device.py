@@ -28,11 +28,9 @@ from homey_esphomedriver.entities.state import (
 from homey_esphomedriver.esphome_client import (
     DEFAULT_API_PORT,
     EspHomeClient,
-    SessionState,
 )
 from homey_esphomedriver.esphome_driver import EspHomeDriver
 from homey_esphomedriver.esphome_util import (
-    debug_log,
     device_info_settings,
     error_key,
     normalize_mac,
@@ -114,10 +112,6 @@ class EspHomeDevice(Device[EspHomeDriver]):
         Do not override :meth:`on_uninit`.
         """
 
-    def debug(self, *args: object) -> None:
-        """Write a debug log line when ``DEBUG`` is enabled in ``env.json``."""
-        debug_log(self.log, *args)
-
     async def on_uninit(self) -> None:
         """Stop the API session and release state handlers.
 
@@ -145,7 +139,8 @@ class EspHomeDevice(Device[EspHomeDriver]):
         )
         await self._apply_discovery_endpoint(result)
         await self._ensure_client_started()
-        await self._request_connect()
+        if self._client is not None:
+            await self._client.request_connect()
 
     async def on_discovery_address_changed(
         self, discovery_result: DiscoveryResult
@@ -164,7 +159,8 @@ class EspHomeDevice(Device[EspHomeDriver]):
         """Connect immediately when Homey rediscovers the node, skipping backoff."""
         result = cast(DiscoveryResultMDNSSD, discovery_result)
         self.log(f"ESPHome device last seen updated ({result.address})")
-        await self._request_connect()
+        if self._client is not None:
+            await self._client.request_connect()
 
     async def on_settings(
         self,
@@ -275,11 +271,6 @@ class EspHomeDevice(Device[EspHomeDriver]):
         )
         await self._client.start(self._state_handler.handle_state)
 
-    async def _request_connect(self) -> None:
-        """Ask ReconnectLogic to try immediately when Homey discovery sees the node."""
-        if self._client is not None:
-            await self._client.request_connect()
-
     async def _apply_discovery_endpoint(self, result: DiscoveryResultMDNSSD) -> None:
         """Persist discovery address into store/settings and live client config."""
         await self.set_store_value("address", result.address)
@@ -310,10 +301,15 @@ class EspHomeDevice(Device[EspHomeDriver]):
                 "nativeAppSuggestion",
                 appName=native_app_suggestion,
             )
+
+            async def show_warning() -> None:
+                try:
+                    await self.set_warning(message)
+                except Exception as error:
+                    self.error(error)
+
             self.homey.set_timeout(
-                lambda: asyncio.ensure_future(
-                    self.set_warning(message)
-                ).add_done_callback(self._on_state_task_done),
+                lambda: asyncio.ensure_future(show_warning()),
                 1000,
             )
 
@@ -329,36 +325,21 @@ class EspHomeDevice(Device[EspHomeDriver]):
             )
         )
 
-    def _keep_available_while_offline(self) -> bool:
-        """Keep Homey available while the session is up or the node deep-sleeps."""
-        if self._client is not None and self._client.state in (
-            SessionState.CONNECTED,
-            SessionState.READY,
-        ):
-            return True
+    async def _on_client_disconnected(self, expected: bool) -> None:
         info = self._client.device_info if self._client is not None else None
-        return info is not None and info.has_deep_sleep
-
-    async def _on_client_disconnected(self, _expected: bool) -> None:
-        if self._keep_available_while_offline():
+        if expected or (info is not None and info.has_deep_sleep):
             return
         await self.set_unavailable(self.homey.translate("errors.connection_lost"))
 
     async def _on_client_connect_error(self, error: Exception) -> None:
         self.error("ESPHome connect error", error)
-        if self._keep_available_while_offline():
+        info = self._client.device_info if self._client is not None else None
+        if info is not None and info.has_deep_sleep:
             return
         await self.set_unavailable(self.homey.translate(error_key(error)))
 
-    def _on_state_task_done(self, task: asyncio.Future[Any]) -> None:
-        if task.cancelled():
-            return
-        error = task.exception()
-        if error is not None:
-            self.error(error)
-
     def _require_client(self) -> EspHomeClient:
         """Return the live session, or raise if the node is not ready."""
-        if self._client is None or self._client.state is not SessionState.READY:
+        if self._client is None or not self._client.available:
             raise RuntimeError(self.homey.translate("errors.device_not_connected"))
         return self._client
