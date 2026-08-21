@@ -47,6 +47,7 @@
     "handshake": "Impossibile stabilire la connessione crittografata. Controlla la chiave di crittografia e che il firmware del dispositivo sia aggiornato.",
     "device_mismatch": "Il dispositivo a questo indirizzo non è quello associato a Homey. Controlla l’indirizzo IP o la prenotazione DHCP.",
     "mac_missing": "Il dispositivo ESPHome non ha inviato un indirizzo MAC.",
+    "project_not_supported": "Questo progetto ESPHome non è supportato da questa app Homey.",
     "no_supported_entities": "Questo dispositivo ESPHome non ha elementi supportati da Homey.",
     "device_not_connected": "Il dispositivo ESPHome non è connesso",
     "device_not_prepared": "Il dispositivo non è pronto. Torna indietro e riconnettiti.",

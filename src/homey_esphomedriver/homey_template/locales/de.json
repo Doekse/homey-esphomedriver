@@ -47,6 +47,7 @@
     "handshake": "Die verschlüsselte Verbindung konnte nicht hergestellt werden. Prüfe den Verschlüsselungsschlüssel und ob die Firmware des Geräts aktuell ist.",
     "device_mismatch": "Das Gerät unter dieser Adresse ist nicht das, das Homey gekoppelt hat. Prüfe die IP-Adresse oder die DHCP-Reservierung.",
     "mac_missing": "Das ESPHome-Gerät hat keine MAC-Adresse übermittelt.",
+    "project_not_supported": "Dieses ESPHome-Projekt wird von dieser Homey-App nicht unterstützt.",
     "no_supported_entities": "Dieses ESPHome-Gerät hat keine Komponenten, die Homey unterstützt.",
     "device_not_connected": "ESPHome-Gerät ist nicht verbunden",
     "device_not_prepared": "Das Gerät ist nicht vorbereitet. Geh zurück und stelle die Verbindung erneut her.",

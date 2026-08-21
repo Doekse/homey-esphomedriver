@@ -47,6 +47,7 @@
     "handshake": "De versleutelde verbinding kon niet tot stand komen. Controleer de encryptiesleutel en of de firmware van het apparaat up-to-date is.",
     "device_mismatch": "Het apparaat op dit adres is niet het apparaat dat Homey heeft gekoppeld. Controleer het IP-adres of de DHCP-reservering.",
     "mac_missing": "Het ESPHome-apparaat heeft geen MAC-adres doorgegeven.",
+    "project_not_supported": "Dit ESPHome-project wordt niet ondersteund door deze Homey-app.",
     "no_supported_entities": "Dit ESPHome-apparaat heeft geen capabilities die Homey ondersteunt.",
     "device_not_connected": "ESPHome-apparaat is niet verbonden",
     "device_not_prepared": "Het apparaat is niet voorbereid. Ga terug en maak opnieuw verbinding.",

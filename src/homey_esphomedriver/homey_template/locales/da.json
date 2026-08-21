@@ -47,6 +47,7 @@
     "handshake": "Den krypterede forbindelse kunne ikke oprettes. Tjek krypteringsnøglen, og at enhedens firmware er opdateret.",
     "device_mismatch": "Enheden på denne adresse er ikke den, Homey parrede. Tjek IP-adressen eller DHCP-reservationen.",
     "mac_missing": "ESPHome-enheden har ikke sendt en MAC-adresse.",
+    "project_not_supported": "Dette ESPHome-projekt understøttes ikke af denne Homey-app.",
     "no_supported_entities": "Denne ESPHome-enhed har ingen dele, som Homey understøtter.",
     "device_not_connected": "ESPHome-enheden er ikke forbundet",
     "device_not_prepared": "Enheden er ikke klar. Gå tilbage, og opret forbindelsen igen.",
