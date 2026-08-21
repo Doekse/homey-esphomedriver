@@ -80,6 +80,8 @@
     }
 
     $inputSsid.addEventListener('input', syncContinue);
+    $inputSsid.addEventListener('change', syncContinue);
+    syncContinue();
     $inputSsid.addEventListener('keyup', function (event) {
       if (event.key === 'Enter' && $inputSsid.value.length > 0) {
         $inputPassword.focus();
