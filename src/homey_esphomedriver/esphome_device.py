@@ -157,8 +157,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
         self, discovery_result: DiscoveryResult
     ) -> None:
         """Connect immediately when Homey rediscovers the node, skipping backoff."""
-        result = cast(DiscoveryResultMDNSSD, discovery_result)
-        self.log(f"ESPHome device last seen updated ({result.address})")
+        self.log(f"ESPHome device last seen updated ({discovery_result.address})")
         if self._client is not None:
             await self._client.request_connect()
 
@@ -195,10 +194,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
         noise_psk: str | None,
     ) -> None:
         """Persist a repaired endpoint and restart the Native API session."""
-        await self.set_store_value("address", host)
-        await self.set_store_value("port", port)
-        await self.set_store_value("noise_psk", noise_psk or "")
-        await self.set_settings({"host": host, "port": str(port)})
+        await self._persist_endpoint(host, port, noise_psk=noise_psk or "")
         if self._client is not None:
             await self._client.stop()
             self._client = None
@@ -271,23 +267,31 @@ class EspHomeDevice(Device[EspHomeDriver]):
         )
         await self._client.start(self._state_handler.handle_state)
 
+    async def _persist_endpoint(
+        self,
+        host: str,
+        port: int,
+        *,
+        hostname: str | None = None,
+        noise_psk: str | None = None,
+    ) -> None:
+        """Write endpoint into store and settings (shared by discovery and repair)."""
+        await self.set_store_value("address", host)
+        await self.set_store_value("port", port)
+        if hostname is not None:
+            await self.set_store_value("host", hostname)
+        if noise_psk is not None:
+            await self.set_store_value("noise_psk", noise_psk)
+        await self.set_settings({"host": host, "port": str(port)})
+
     async def _apply_discovery_endpoint(self, result: DiscoveryResultMDNSSD) -> None:
-        """Persist discovery address into store/settings and live client config."""
-        await self.set_store_value("address", result.address)
-        if result.host is not None:
-            await self.set_store_value("host", result.host)
-        if result.port is not None:
-            await self.set_store_value("port", result.port)
-
-        settings_update: dict[str, str] = {"host": result.address}
-        if result.port is not None:
-            settings_update["port"] = str(result.port)
-        await self.set_settings(settings_update)
-
-        if self._client is not None:
-            port = int(result.port or self._client.port)
-            if result.address != self._client.host or port != self._client.port:
-                await self._client.update_endpoint(host=result.address, port=port)
+        """Persist discovery address and update the live client when it changed."""
+        port = result.port or DEFAULT_API_PORT
+        await self._persist_endpoint(result.address, port, hostname=result.host)
+        if self._client is not None and (
+            result.address != self._client.host or port != self._client.port
+        ):
+            await self._client.update_endpoint(host=result.address, port=port)
 
     async def _on_client_connected(self, device_info: DeviceInfo) -> None:
         await self._sync_device_information(device_info)
