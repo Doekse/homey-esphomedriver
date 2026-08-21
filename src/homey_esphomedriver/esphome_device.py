@@ -1,15 +1,14 @@
-"""Runtime Homey device backed by one ESPHome node (identity is the mDNS MAC).
+"""Homey Device for one ESPHome node (identity is the mDNS MAC).
 
-State and command handlers are wired here. Commands address entities by Native
-API ``key``, stored on each capability's options at pair time. Light, media,
-cover, and climate use bare capability IDs because Homey's system UIs only
-bind those.
+Owns :class:`~homey_esphomedriver.esphome_client.EspHomeClient` and the
+capability / command / state handlers. Homey discovery and settings drive
+persist + reconnect; entity I/O lives on the handlers.
 """
 
 from __future__ import annotations
 
 import asyncio
-from typing import Any, cast
+from typing import cast
 
 from aioesphomeapi import (
     DeviceInfo,
@@ -67,21 +66,21 @@ class EspHomeDevice(Device[EspHomeDriver]):
         return self._client
 
     async def on_init(self) -> None:
-        """Wire capability listeners and start the Native API session.
+        """Wire handlers and start the Native API session.
 
         Do not override. Use :meth:`on_esphome_init` for brand setup.
         """
         await super().on_init()
 
         self._client = None
+        self._state_handler = DeviceEntityStateHandler(self)
+        self._commands = DeviceEntityCommandHandler(self)
+        self._capability_handler = DeviceCapabilityHandler(self)
 
         device_class = self.get_setting("device_class")
         if device_class != "auto":
             await self._apply_device_class_setting(str(device_class))
 
-        self._state_handler = DeviceEntityStateHandler(self)
-        self._commands = DeviceEntityCommandHandler(self)
-        self._capability_handler = DeviceCapabilityHandler(self)
         await self._state_handler.init()
         await self._capability_handler.ensure()
         self._commands.register_listeners()
@@ -130,10 +129,11 @@ class EspHomeDevice(Device[EspHomeDriver]):
             f"ESPHome device available at {result.address}:{result.port} "
             f"(host={result.host})"
         )
+        client = self._client
         await self._apply_discovery_endpoint(result)
         await self._ensure_client_started()
-        if self._client is not None:
-            await self._client.request_connect()
+        if client is not None:
+            await client.request_connect()
 
     async def on_discovery_address_changed(
         self, discovery_result: DiscoveryResult
@@ -151,8 +151,9 @@ class EspHomeDevice(Device[EspHomeDriver]):
     ) -> None:
         """Connect immediately when Homey rediscovers the node, skipping backoff."""
         self.log(f"ESPHome device last seen updated ({discovery_result.address})")
-        if self._client is not None:
-            await self._client.request_connect()
+        client = self._client
+        if client is not None:
+            await client.request_connect()
 
     async def on_settings(
         self,
@@ -198,32 +199,19 @@ class EspHomeDevice(Device[EspHomeDriver]):
         target = self.get_store()["auto_class"] if value == "auto" else value
         await self.set_class(target)
 
-    async def is_on_run_listener(self, capability_id: str) -> Any:
-        """Return the current value of a boolean capability for Flow conditions."""
-        return self.get_capability_value(capability_id)
-
-    async def is_value_run_listener(self, value: Any, capability_id: str) -> bool:
-        """Return whether ``value`` matches the current capability value."""
-        if not value:
-            return False
-        return value == self.get_capability_value(capability_id)
-
     async def _ensure_client_started(self) -> None:
         """Create and start the long-lived API session from device settings."""
         if self._client is not None:
             return
 
-        host = str(
-            self.get_setting("host") or self.get_store().get("address") or ""
-        ).strip()
+        store = self.get_store()
+        host = str(self.get_setting("host") or store.get("address") or "").strip()
         if not host:
             self.error("ESPHome host is missing; waiting for discovery or settings")
             return
 
-        port = int(
-            self.get_setting("port") or self.get_store().get("port") or DEFAULT_API_PORT
-        )
-        noise_psk = str(self.get_store().get("noise_psk") or "").strip() or None
+        port = int(self.get_setting("port") or store.get("port") or DEFAULT_API_PORT)
+        noise_psk = str(store.get("noise_psk") or "").strip() or None
         expected_mac = str(self.get_data()["id"])
 
         name = str(self.get_setting("hostname") or "").strip() or None
@@ -235,9 +223,9 @@ class EspHomeDevice(Device[EspHomeDriver]):
             expected_mac=expected_mac,
             client_info=self.brand_profile.client_info,
             deep_sleep=self.get_setting("deep_sleep") == "Yes",
-            on_connected=self._on_client_connected,
-            on_disconnected=self._on_client_disconnected,
-            on_connect_error=self._on_client_connect_error,
+            on_connected=self._on_connected,
+            on_disconnected=self._on_disconnected,
+            on_connect_error=self._on_connect_error,
         )
         await self._client.start(self._state_handler.handle_state)
 
@@ -260,15 +248,25 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
     async def _apply_discovery_endpoint(self, result: DiscoveryResultMDNSSD) -> None:
         """Persist discovery address and update the live client when it changed."""
+        host = result.address
+        if not host:
+            return
         port = result.port or DEFAULT_API_PORT
-        await self._persist_endpoint(result.address, port, hostname=result.host)
-        if self._client is not None and (
-            result.address != self._client.host or port != self._client.port
-        ):
-            await self._client.update_endpoint(host=result.address, port=port)
+        await self._persist_endpoint(host, port, hostname=result.host)
+        client = self._client
+        if client is not None and (host != client.host or port != client.port):
+            await client.update_endpoint(host=host, port=port)
 
-    async def _on_client_connected(self, device_info: DeviceInfo) -> None:
-        await self._sync_device_information(device_info)
+    async def _on_connected(self, device_info: DeviceInfo) -> None:
+        client = cast(EspHomeClient, self._client)
+        has_encryption = bool(str(self.get_store().get("noise_psk") or "").strip())
+        await self.set_settings(
+            device_info_settings(
+                device_info,
+                host=client.host,
+                encrypted=has_encryption,
+            )
+        )
         await self.set_available()
 
         native_app_suggestion = self.brand_profile.native_app_suggestion(
@@ -291,33 +289,24 @@ class EspHomeDevice(Device[EspHomeDriver]):
                 1000,
             )
 
-    async def _sync_device_information(self, device_info: DeviceInfo) -> None:
-        """Mirror DeviceInfo into the read-only Device Information settings."""
-        host = str(self.get_setting("host") or self.get_store().get("address") or "")
-        has_encryption = bool(str(self.get_store().get("noise_psk") or "").strip())
-        await self.set_settings(
-            device_info_settings(
-                device_info,
-                host=host,
-                encrypted=has_encryption,
-            )
-        )
-
-    async def _on_client_disconnected(self, expected: bool) -> None:
-        info = self._client.device_info if self._client is not None else None
-        if expected or (info is not None and info.has_deep_sleep):
+    async def _on_disconnected(self, expected: bool) -> None:
+        if expected:
+            return
+        client = self._client
+        if client is not None and client.deep_sleep:
             return
         await self.set_unavailable(self.homey.translate("errors.connection_lost"))
 
-    async def _on_client_connect_error(self, error: Exception) -> None:
+    async def _on_connect_error(self, error: Exception) -> None:
         self.error("ESPHome connect error", error)
-        info = self._client.device_info if self._client is not None else None
-        if info is not None and info.has_deep_sleep:
+        client = self._client
+        if client is not None and client.deep_sleep:
             return
         await self.set_unavailable(self.homey.translate(error_key(error)))
 
     def _require_client(self) -> EspHomeClient:
         """Return the live session, or raise if the node is not ready."""
-        if self._client is None or not self._client.available:
+        client = self._client
+        if client is None or not client.available:
             raise RuntimeError(self.homey.translate("errors.device_not_connected"))
-        return self._client
+        return client

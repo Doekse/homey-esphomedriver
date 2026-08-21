@@ -38,6 +38,7 @@ def test_on_connected_awaited_before_ready() -> None:
         await client._handle_connect()
 
         assert client.state is SessionState.READY
+        assert client.deep_sleep is True
         assert client._reconnect.deep_sleep is True
         api.subscribe_states.assert_called_once_with(client._dispatch_state)
         client.command("light_command", key=1)

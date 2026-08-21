@@ -771,8 +771,8 @@ class EspHomeDriver(Driver):
         )
 
         async def light_effect_is(args: dict[str, Any], **_kwargs: Any) -> Any:
-            return await args["device"].is_value_run_listener(
-                args["light_effect"]["id"], "light_effect"
+            return self._flow_value_is(
+                args["device"], "light_effect", args["light_effect"]["id"]
             )
 
         self._wire_card(
@@ -782,8 +782,10 @@ class EspHomeDriver(Driver):
         )
 
         async def thermostat_preset_is(args: dict[str, Any], **_kwargs: Any) -> Any:
-            return await args["device"].is_value_run_listener(
-                args["thermostat_preset"]["id"], "thermostat_preset"
+            return self._flow_value_is(
+                args["device"],
+                "thermostat_preset",
+                args["thermostat_preset"]["id"],
             )
 
         self._wire_card(
@@ -793,7 +795,7 @@ class EspHomeDriver(Driver):
         )
 
         async def esphome_boolean_is(args: dict[str, Any], **_kwargs: Any) -> Any:
-            return await args["device"].is_on_run_listener(args["name"]["id"])
+            return args["device"].get_capability_value(args["name"]["id"])
 
         self._wire_card(
             self.homey.flow.get_condition_card("esphome_boolean_is"),
@@ -802,9 +804,8 @@ class EspHomeDriver(Driver):
         )
 
         async def esphome_string_is(args: dict[str, Any], **_kwargs: Any) -> Any:
-            return await args["device"].is_value_run_listener(
-                args["esphome_string"],
-                args["name"]["id"],
+            return self._flow_value_is(
+                args["device"], args["name"]["id"], args["esphome_string"]
             )
 
         self._wire_card(
@@ -814,9 +815,8 @@ class EspHomeDriver(Driver):
         )
 
         async def esphome_select_is(args: dict[str, Any], **_kwargs: Any) -> Any:
-            return await args["device"].is_value_run_listener(
-                args["esphome_select"]["id"],
-                args["name"]["id"],
+            return self._flow_value_is(
+                args["device"], args["name"]["id"], args["esphome_select"]["id"]
             )
 
         self._wire_card(
@@ -827,8 +827,8 @@ class EspHomeDriver(Driver):
         )
 
         async def light_effect_changed(args: dict[str, Any], **_kwargs: Any) -> Any:
-            return await args["device"].is_value_run_listener(
-                args["light_effect"]["id"], "light_effect"
+            return self._flow_value_is(
+                args["device"], "light_effect", args["light_effect"]["id"]
             )
 
         self._wire_card(
@@ -840,8 +840,10 @@ class EspHomeDriver(Driver):
         async def thermostat_preset_changed(
             args: dict[str, Any], **_kwargs: Any
         ) -> Any:
-            return await args["device"].is_value_run_listener(
-                args["thermostat_preset"]["id"], "thermostat_preset"
+            return self._flow_value_is(
+                args["device"],
+                "thermostat_preset",
+                args["thermostat_preset"]["id"],
             )
 
         self._wire_card(
@@ -871,17 +873,22 @@ class EspHomeDriver(Driver):
 
         self.homey.flow.get_action_card(card_id).register_run_listener(run)
 
+    @staticmethod
+    def _flow_value_is(device: Any, capability_id: str, value: Any) -> bool:
+        """Compare a Flow argument to the live capability; empty args never match."""
+        if not value:
+            return False
+        return value == device.get_capability_value(capability_id)
+
     def _condition_on(self, card_id: str, capability_id: str) -> None:
         async def run(args: dict[str, Any], **_kwargs: Any) -> Any:
-            return await args["device"].is_on_run_listener(capability_id)
+            return args["device"].get_capability_value(capability_id)
 
         self.homey.flow.get_condition_card(card_id).register_run_listener(run)
 
     def _condition_value(self, card_id: str, capability_id: str, arg_key: str) -> None:
         async def run(args: dict[str, Any], **_kwargs: Any) -> Any:
-            return await args["device"].is_value_run_listener(
-                args[arg_key], capability_id
-            )
+            return self._flow_value_is(args["device"], capability_id, args[arg_key])
 
         self.homey.flow.get_condition_card(card_id).register_run_listener(run)
 

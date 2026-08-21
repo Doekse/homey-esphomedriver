@@ -127,6 +127,11 @@ class EspHomeClient:
         return self._device_info
 
     @property
+    def deep_sleep(self) -> bool:
+        """Settings hint until the first login, then ``DeviceInfo.has_deep_sleep``."""
+        return self._deep_sleep
+
+    @property
     def api(self) -> APIClient:
         """Underlying aioesphomeapi client.
 
