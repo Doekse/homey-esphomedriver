@@ -16,6 +16,29 @@ def _client(**kwargs: Any) -> EspHomeClient:
     return EspHomeClient("192.0.2.1", **kwargs)
 
 
+def test_deep_sleep_hint_until_login_then_device_info() -> None:
+    """Constructor hint holds until login; then ``DeviceInfo.has_deep_sleep`` wins."""
+
+    async def run() -> None:
+        client = _client(deep_sleep=True)
+        assert client.deep_sleep is True
+
+        client._on_state = AsyncMock()
+        client._reconnect = MagicMock()
+        api = MagicMock()
+        api.device_info_and_list_entities = AsyncMock(
+            return_value=(DeviceInfo(name="node", has_deep_sleep=False), [], [])
+        )
+        client._cli = api
+
+        await client._handle_connect()
+
+        assert client.deep_sleep is False
+        assert client._reconnect.deep_sleep is False
+
+    asyncio.run(run())
+
+
 def test_on_connected_awaited_before_ready() -> None:
     """Commands stay blocked until ``on_connected`` returns."""
 
@@ -45,6 +68,28 @@ def test_on_connected_awaited_before_ready() -> None:
         api.light_command.assert_called_once_with(key=1)
 
     client = _client(on_connected=on_connected)
+    asyncio.run(run())
+
+
+def test_stop_suppresses_disconnect_hook() -> None:
+    """``stop()`` clears ``_on_state`` so teardown does not call ``on_disconnected``."""
+
+    async def run() -> None:
+        on_disconnected = AsyncMock()
+        client = _client(on_disconnected=on_disconnected)
+        client._on_state = AsyncMock()
+        client._cli = MagicMock()
+        client._cli.disconnect = AsyncMock()
+        client._reconnect = MagicMock()
+        client._reconnect.stop = AsyncMock()
+        client._state = SessionState.READY
+
+        await client.stop()
+
+        assert client._on_state is None
+        await client._handle_disconnect(expected_disconnect=True)
+        on_disconnected.assert_not_awaited()
+
     asyncio.run(run())
 
 

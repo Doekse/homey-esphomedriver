@@ -7,6 +7,7 @@ remapping cannot reshuffle Flow cards bound to bare Homey ids. Caps without a
 
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 from typing import Any
 
@@ -18,6 +19,7 @@ from homey_esphomedriver.capabilities.refresh import (
     plan_capability_refresh,
 )
 from homey_esphomedriver.entities.commands import DeviceEntityCommandHandler
+from homey_esphomedriver.entities.state import DeviceEntityStateHandler
 
 
 def test_capability_base() -> None:
@@ -179,3 +181,28 @@ def test_command_resolve_survives_null_capability_options() -> None:
     assert commands._resolve("button.refresh") is None
     assert commands._resolve("button.play") == (stub, "press")
     assert commands._resolve("esphome_number.level") is None
+
+
+def test_state_index_survives_null_capability_options() -> None:
+    """State init indexes caps with a key and skips null options as empty."""
+    state = DeviceEntityStateHandler.__new__(DeviceEntityStateHandler)
+    state._device = SimpleNamespace(
+        get_capabilities=lambda: [
+            "onoff",
+            "esphome_string.broken",
+            "measure_temperature",
+        ],
+        get_capability_value=lambda _cap: None,
+        _capabilities_options={
+            "onoff": {"key": 1},
+            "esphome_string.broken": None,
+            "measure_temperature": {"key": 2},
+        },
+    )
+    state._key_to_capabilities = {}
+    state._last_states = {}
+    state._handlers_by_type = {}
+
+    asyncio.run(state.init())
+
+    assert state._key_to_capabilities == {1: ["onoff"], 2: ["measure_temperature"]}
