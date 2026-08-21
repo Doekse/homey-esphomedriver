@@ -1,4 +1,9 @@
-"""Driver logic for pairing ESPHome nodes discovered on the LAN."""
+"""Homey Driver for ESPHome brand apps.
+
+Wires :class:`~homey_esphomedriver.flow.DriverFlowHandler` and
+:class:`~homey_esphomedriver.pairing.DriverPairHandler`. Homey lifecycle stays
+here; Flow cards and pair/repair wizards live on those handlers.
+"""
 
 from __future__ import annotations
 
@@ -28,12 +33,6 @@ class EspHomeDriver(Driver):
     :meth:`on_init` / :meth:`on_uninit`. Product filters come from the driver
     manifest ``esphome`` object; a class-level :attr:`brand_profile` overrides
     that when Python-only hooks such as ``after_map`` are needed.
-
-    Homey's stock ``add_devices`` template only creates the list_devices
-    selection, so pairing finishes in a custom ``add_device`` view that calls
-    ``get_device`` and ``Homey.createDevice`` with the mapped payload.
-    BLE Improv only puts the node on Wi-Fi, then pairing returns to
-    ``list_devices`` so the user picks it over mDNS like any other node.
 
     Example:
         ```python
