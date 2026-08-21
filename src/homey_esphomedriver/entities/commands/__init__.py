@@ -84,17 +84,17 @@ class DeviceEntityCommandHandler:
         self, capability_id: str
     ) -> tuple[AbstractEntityCommandHandler, str] | None:
         """Return ``(handler, method_name)`` for ``capability_id``, if any."""
+        # WORKAROUND: get_capability_options raises on stored null (Athom will return {}).
+        options = self._device._capabilities_options.get(capability_id) or {}
         if capability_id == "onoff" or capability_id.startswith("onoff."):
             return self._handlers.get("onoff")
         if capability_id.startswith(("button.", "restart", "identify")):
             # Remap is button.refresh, so the button.* prefix is not enough.
-            if self._device.get_capability_options(capability_id).get("key") is None:
+            if options.get("key") is None:
                 return None
             return self._handlers.get("button")
         if capability_id.startswith("esphome_number."):
-            if not self._device.get_capability_options(capability_id).get(
-                "setable", False
-            ):
+            if not options.get("setable", False):
                 return None
             return self._handlers.get("number")
         if capability_id.startswith("esphome_select."):
@@ -104,9 +104,7 @@ class DeviceEntityCommandHandler:
             return None
         handler, _method_name = resolved
         if handler.REQUIRE_ENTITY_TYPE:
-            entity_type = self._device.get_capability_options(capability_id).get(
-                "entity_type"
-            )
+            entity_type = options.get("entity_type")
             if entity_type != handler.ENTITY_TYPE:
                 return None
         return resolved

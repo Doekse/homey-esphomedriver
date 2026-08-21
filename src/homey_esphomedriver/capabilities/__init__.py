@@ -180,8 +180,9 @@ class DeviceCapabilityHandler:
 
         diagnostic: list[str] = []
         configuration: list[str] = []
-        for capability_id, options in self._device._capabilities_options.items():
-            key = options.get("key")
+        for capability_id, stored in self._device._capabilities_options.items():
+            # WORKAROUND: Homey may persist options as null (Athom will return {}).
+            key = (stored or {}).get("key")
             if key is None:
                 continue
             key = int(key)

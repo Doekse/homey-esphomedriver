@@ -7,12 +7,17 @@ remapping cannot reshuffle Flow cards bound to bare Homey ids. Caps without a
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
+from aioesphomeapi import BinarySensorInfo, EntityCategory
+
+from homey_esphomedriver.capabilities import DeviceCapabilityHandler
 from homey_esphomedriver.capabilities.refresh import (
     capability_base,
     plan_capability_refresh,
 )
+from homey_esphomedriver.entities.commands import DeviceEntityCommandHandler
 
 
 def test_capability_base() -> None:
@@ -122,3 +127,55 @@ def test_plan_keeps_a_null_options_capability_the_node_still_has() -> None:
 
     assert to_remove == []
     assert to_update == [("esphome_boolean", {"uiComponent": None})]
+
+
+def test_category_split_survives_null_capability_options() -> None:
+    """Category split skips null options instead of AttributeError on ``.get``."""
+    handler = DeviceCapabilityHandler.__new__(DeviceCapabilityHandler)
+    handler._device = SimpleNamespace(
+        _capabilities_options={
+            "measure_temperature": {"key": 1},
+            "esphome_string.broken": None,
+            "onoff": {"key": 2},
+        }
+    )
+    entities = [
+        BinarySensorInfo(
+            object_id="status",
+            key=1,
+            name="Status",
+            entity_category=EntityCategory.DIAGNOSTIC,
+        ),
+        BinarySensorInfo(
+            object_id="relay",
+            key=2,
+            name="Relay",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ]
+
+    diagnostic, configuration = handler._capabilities_by_category(entities)
+
+    assert diagnostic == ["measure_temperature"]
+    assert configuration == ["onoff"]
+
+
+def test_command_resolve_survives_null_capability_options() -> None:
+    """Resolve reads null options as ``{}`` instead of raising via the SDK."""
+    commands = DeviceEntityCommandHandler.__new__(DeviceEntityCommandHandler)
+    commands._device = SimpleNamespace(
+        _capabilities_options={
+            "button.refresh": None,
+            "button.play": {"key": 1},
+            "esphome_number.level": None,
+        }
+    )
+    stub = object()
+    commands._handlers = {
+        "button": (stub, "press"),
+        "number": (stub, "set_value"),
+    }
+
+    assert commands._resolve("button.refresh") is None
+    assert commands._resolve("button.play") == (stub, "press")
+    assert commands._resolve("esphome_number.level") is None

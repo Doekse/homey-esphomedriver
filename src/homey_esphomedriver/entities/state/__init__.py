@@ -134,7 +134,8 @@ class DeviceEntityStateHandler:
                     capability,
                     False if capability.startswith("alarm_doorbell.") else "idle",
                 )
-            key = self._device.get_capability_options(capability).get("key")
+            # WORKAROUND: get_capability_options raises on stored null (Athom will return {}).
+            key = (self._device._capabilities_options.get(capability) or {}).get("key")
             if key is None:
                 continue
             self._key_to_capabilities.setdefault(int(key), []).append(capability)

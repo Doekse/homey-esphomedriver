@@ -40,6 +40,7 @@ def plan_capability_refresh(
     taken: set[str] = set()
 
     for capability_id, stored in current_options.items():
+        # WORKAROUND: Homey may persist options as null (Athom will return {}).
         options = stored or {}
         key = options.get("key")
         if key is None:
