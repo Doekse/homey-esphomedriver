@@ -84,7 +84,8 @@ class DeviceEntityCommandHandler:
         self, capability_id: str
     ) -> tuple[AbstractEntityCommandHandler, str] | None:
         """Return ``(handler, method_name)`` for ``capability_id``, if any."""
-        # WORKAROUND: get_capability_options raises on stored null (Athom will return {}).
+        # WORKAROUND: get_capability_options raises on stored null
+        # (Athom will return {}).
         options = self._device._capabilities_options.get(capability_id) or {}
         if capability_id == "onoff" or capability_id.startswith("onoff."):
             return self._handlers.get("onoff")
