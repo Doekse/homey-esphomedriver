@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
 from homey_esphomedriver.entities.commands.alarm_control_panel import (
@@ -58,23 +58,31 @@ class DeviceEntityCommandHandler:
         """Wire Homey listeners for every capability currently on the device."""
         for capability_id in self._device.get_capabilities():
             self.register_listener_for_capability(capability_id)
+        self.register_multi_listeners()
 
     def register_listener_for_capability(self, capability_id: str) -> None:
         """Wire the Homey listener for one settable capability, if any."""
         resolved = self._resolve(capability_id)
-        if resolved is not None:
-            handler, method_name = resolved
-            self._device.register_capability_listener(
+        if resolved is None:
+            return
+        handler, method_name = resolved
+        self._device.register_capability_listener(
+            capability_id,
+            self._listener_with_capability_id(
+                getattr(handler, method_name),
                 capability_id,
-                self._listener_with_capability_id(
-                    getattr(handler, method_name),
-                    capability_id,
-                    pass_value=method_name not in handler.VALUELESS_CAPABILITIES,
-                ),
-            )
+                pass_value=method_name not in handler.VALUELESS_CAPABILITIES,
+            ),
+        )
 
+    def register_multi_listeners(self, added: Sequence[str] | None = None) -> None:
+        """Wire grouped listeners whose members are all present.
+
+        ``added`` limits registration to groups that intersect a just-added batch.
+        """
+        added_set = None if added is None else set(added)
         for caps, listener in self._multi:
-            if capability_id not in caps:
+            if added_set is not None and added_set.isdisjoint(caps):
                 continue
             if not all(self._device.has_capability(cap) for cap in caps):
                 continue

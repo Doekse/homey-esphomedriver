@@ -146,6 +146,7 @@ class DeviceCapabilityHandler:
         device._capabilities_options.update(options)
         for capability_id in capability_ids:
             device._commands.register_listener_for_capability(capability_id)
+        device._commands.register_multi_listeners(capability_ids)
 
     async def _remove_capabilities(self, capability_ids: Sequence[str]) -> None:
         """Batch-remove capabilities and drop their local state."""
