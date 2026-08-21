@@ -18,7 +18,6 @@ from homey_esphomedriver.entities.mapping import (
     REFRESH_CAPABILITY_OPTIONS,
     DeviceEntityMapper,
 )
-from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 
 if TYPE_CHECKING:
     from homey_esphomedriver.esphome_device import EspHomeDevice
@@ -44,7 +43,7 @@ class DeviceCapabilityHandler:
         """Add/remove capabilities from a live remap; keep unchanged Homey ids."""
         device = self._device
         entities, _services = await device._require_client().list_entities_services()
-        scratch = self._scratch([])
+        scratch = DeviceEntityMapper.empty_option()
         DeviceEntityMapper.map_device(
             entities,
             scratch,
@@ -94,7 +93,7 @@ class DeviceCapabilityHandler:
 
         entities, _services = await device._require_client().list_entities_services()
         existing = device.get_capabilities()
-        scratch = self._scratch(list(existing))
+        scratch = DeviceEntityMapper.empty_option(list(existing))
         DeviceEntityMapper.map(
             entities,
             scratch,
@@ -117,17 +116,6 @@ class DeviceCapabilityHandler:
         await device.set_store_value(store_key, added)
         if added:
             await device._state_handler.init()
-
-    def _scratch(self, capabilities: list[str]) -> HomeyEspHomeDeviceOption:
-        """Empty pair-time payload the mapper mutates in place."""
-        return {
-            "name": "",
-            "data": {},
-            "store": {},
-            "settings": {},
-            "capabilities": capabilities,
-            "capabilitiesOptions": {},
-        }
 
     async def _add_capabilities(
         self,

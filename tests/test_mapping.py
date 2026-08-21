@@ -7,12 +7,11 @@ and the hidden bare ids ``add_suffixed`` adds so Homey Flow ``$filter`` can matc
 
 from __future__ import annotations
 
-from typing import cast
-
 import pytest
 from aioesphomeapi import (
     BinarySensorInfo,
     ButtonInfo,
+    DeviceInfo,
     EntityCategory,
     EntityInfo,
     TemperatureUnit,
@@ -50,19 +49,83 @@ def aliases() -> tuple[ObjectIdAlias, ...]:
 
 
 def mapped_device(*entities: EntityInfo) -> HomeyEspHomeDeviceOption:
-    homey_device = cast(
-        HomeyEspHomeDeviceOption,
-        {
-            "name": "node",
-            "data": {},
-            "store": {},
-            "settings": {},
-            "capabilities": [],
-            "capabilitiesOptions": {},
-        },
-    )
+    homey_device = DeviceEntityMapper.empty_option()
     DeviceEntityMapper.map(list(entities), homey_device)
     return homey_device
+
+
+def test_empty_option_shape() -> None:
+    option = DeviceEntityMapper.empty_option()
+    assert option == {
+        "name": "",
+        "data": {},
+        "store": {},
+        "settings": {},
+        "capabilities": [],
+        "capabilitiesOptions": {},
+    }
+    seeded = DeviceEntityMapper.empty_option(["onoff"])
+    assert seeded["capabilities"] == ["onoff"]
+    assert seeded["capabilitiesOptions"] == {}
+
+
+def test_pair_option_shape_then_mapped_caps() -> None:
+    info = DeviceInfo(
+        name="garage",
+        friendly_name="Garage Door",
+        mac_address="AA:BB:CC:DD:EE:FF",
+        model="ESP32",
+        manufacturer="Espressif",
+        esphome_version="2026.7.0",
+    )
+    option = DeviceEntityMapper.pair_option(
+        info,
+        host="10.0.0.5",
+        port=6053,
+        noise_psk="secret",
+        data_id="aabbccddeeff",
+    )
+    assert option["name"] == "Garage Door"
+    assert option["data"] == {"id": "aabbccddeeff"}
+    assert option["store"] == {
+        "address": "10.0.0.5",
+        "host": "garage",
+        "port": 6053,
+        "mac": "AA:BB:CC:DD:EE:FF",
+        "model": "ESP32",
+        "manufacturer": "Espressif",
+        "esphome_version": "2026.7.0",
+        "noise_psk": "secret",
+    }
+    assert option["settings"]["host"] == "10.0.0.5"
+    assert option["settings"]["port"] == "6053"
+    assert option["settings"]["encryption"] == "Configured"
+    assert option["settings"]["device_class"] == "auto"
+    assert option["settings"]["show_diagnostics"] is False
+    assert option["settings"]["show_configuration"] is False
+    assert option["capabilities"] == []
+    assert option["capabilitiesOptions"] == {}
+
+    plaintext = DeviceEntityMapper.pair_option(
+        info,
+        host="10.0.0.5",
+        port=6053,
+        noise_psk=None,
+        data_id="aabbccddeeff",
+    )
+    assert plaintext["store"]["noise_psk"] == ""
+    assert plaintext["settings"]["encryption"] == "Not set"
+
+    DeviceEntityMapper.map_device(
+        [ButtonInfo(object_id="press_me", key=1, name="Press")],
+        option,
+    )
+    assert option["capabilities"] == [
+        "esphome_button",
+        "button.press_me",
+        REFRESH_CAPABILITY,
+    ]
+    assert option["capabilitiesOptions"]["button.press_me"]["key"] == 1
 
 
 def test_match_object_id_alias_exact_is_case_insensitive() -> None:

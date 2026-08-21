@@ -20,7 +20,6 @@ from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 from homey_esphomedriver.esphome_util import (
     attach_library_logs,
     debug_log,
-    device_info_settings,
     error_key,
     invalid_encryption_key,
     needs_encryption_key,
@@ -604,34 +603,13 @@ class EspHomeDriver(Driver):
         # Homey discovery matches paired devices by this id; keep the mDNS form.
         data_id = expected_id or device_id
 
-        name = device_info.friendly_name or device_info.name or "ESPHome Device"
-
-        homey_device: HomeyEspHomeDeviceOption = {
-            "name": name,
-            "data": {"id": data_id},
-            "store": {
-                "address": host,
-                "host": device_info.name or host,
-                "port": port,
-                "mac": device_info.mac_address,
-                "model": device_info.model,
-                "manufacturer": device_info.manufacturer,
-                "esphome_version": device_info.esphome_version,
-                "noise_psk": noise_psk or "",
-            },
-            "settings": {
-                "host": host,
-                "port": str(port),
-                **device_info_settings(
-                    device_info, host=host, encrypted=bool(noise_psk)
-                ),
-                "device_class": "auto",
-                "show_diagnostics": False,
-                "show_configuration": False,
-            },
-            "capabilities": [],
-            "capabilitiesOptions": {},
-        }
+        homey_device = DeviceEntityMapper.pair_option(
+            device_info,
+            host=host,
+            port=port,
+            noise_psk=noise_psk,
+            data_id=data_id,
+        )
 
         try:
             DeviceEntityMapper.map_device(
@@ -647,8 +625,9 @@ class EspHomeDriver(Driver):
         homey_device["store"]["auto_class"] = homey_device["class"]
 
         self.debug(
-            f"Mapped {name} ({data_id}) to {len(homey_device['capabilities'])} "
-            f"capabilities, class={homey_device['store']['auto_class']}"
+            f"Mapped {homey_device['name']} ({data_id}) to "
+            f"{len(homey_device['capabilities'])} capabilities, "
+            f"class={homey_device['store']['auto_class']}"
         )
         return homey_device
 
