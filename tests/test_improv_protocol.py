@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from homey_esphomedriver.improv_ble.protocol import (
+from homey_esphomedriver.pairing.ble_protocol import (
     ERROR_NONE,
     ERROR_UNABLE_TO_CONNECT,
     ERROR_UNKNOWN,

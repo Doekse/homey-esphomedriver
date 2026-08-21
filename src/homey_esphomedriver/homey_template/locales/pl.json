@@ -47,6 +47,7 @@
     "handshake": "Nie udało się nawiązać szyfrowanego połączenia. Sprawdź klucz szyfrowania oraz czy oprogramowanie urządzenia jest aktualne.",
     "device_mismatch": "Urządzenie pod tym adresem nie jest tym, które Homey sparował. Sprawdź adres IP lub rezerwację DHCP.",
     "mac_missing": "Urządzenie ESPHome nie przesłało adresu MAC.",
+    "project_not_supported": "Ten projekt ESPHome nie jest obsługiwany przez tę aplikację Homey.",
     "no_supported_entities": "To urządzenie ESPHome nie ma elementów obsługiwanych przez Homey.",
     "device_not_connected": "Urządzenie ESPHome nie jest połączone",
     "device_not_prepared": "Urządzenie nie jest gotowe. Wróć i połącz ponownie.",

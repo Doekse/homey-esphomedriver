@@ -12,7 +12,7 @@ from homey_esphomedriver.esphome_util import debug_log
 if TYPE_CHECKING:
     from homey.device import Device
 
-    from homey_esphomedriver.esphome_driver import EspHomeDriver
+    from homey_esphomedriver.flow import DriverFlowHandler
 
 
 class AbstractEntityStateUpdateHandler:
@@ -69,64 +69,11 @@ class AbstractEntityStateUpdateHandler:
         await self.device.set_capability_value(capability_id, value)
         if previous == value:
             return
-        await self._trigger_esphome_flow_if_needed(capability_id, value)
+        await self._flow.trigger_subcapability(self.device, capability_id, value)
 
-    async def _trigger_esphome_flow_if_needed(
-        self,
-        capability_id: str,
-        value: Any,
-    ) -> None:
-        if "." not in capability_id:
-            return
-
-        base, _suffix = capability_id.split(".", 1)
-        if base not in {
-            "esphome_number",
-            "esphome_select",
-            "esphome_string",
-            "esphome_boolean",
-        }:
-            return
-
-        driver = self._esphome_driver()
-        name = self._capability_title(capability_id)
-        if base == "esphome_number" and isinstance(value, (int, float)):
-            await driver.trigger_esphome_number_changed(
-                self.device,
-                float(value),
-                name,
-            )
-        elif base == "esphome_select" and value is not None:
-            await driver.trigger_esphome_select_changed(
-                self.device,
-                str(value),
-                name,
-            )
-        elif base == "esphome_string" and value is not None:
-            await driver.trigger_esphome_string_changed(
-                self.device,
-                str(value),
-                name,
-            )
-        elif base == "esphome_boolean" and isinstance(value, bool):
-            await driver.trigger_esphome_boolean_changed(
-                self.device,
-                value,
-                name,
-            )
-
-    def _esphome_driver(self) -> EspHomeDriver:
-        return self.device.driver  # type: ignore[return-value]
-
-    def _capability_title(self, capability_id: str) -> str:
-        title = self.device.get_capability_options(capability_id).get("title")
-        if isinstance(title, str) and title:
-            return title
-        if isinstance(title, dict):
-            text = title.get("en")
-            if isinstance(text, str) and text:
-                return text
-        return capability_id
+    @property
+    def _flow(self) -> DriverFlowHandler:
+        return self.device.driver._flow  # type: ignore[attr-defined,no-any-return]
 
     def handle_on_off(
         self,

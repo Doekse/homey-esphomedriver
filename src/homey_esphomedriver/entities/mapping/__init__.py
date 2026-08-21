@@ -19,6 +19,7 @@ from aioesphomeapi import (
     ButtonInfo,
     ClimateInfo,
     CoverInfo,
+    DeviceInfo,
     EntityCategory,
     EntityInfo,
     EventInfo,
@@ -38,6 +39,7 @@ from aioesphomeapi import (
 )
 
 from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
+from homey_esphomedriver.esphome_util import device_info_settings
 from homey_esphomedriver.profile import DEFAULT_BRAND_PROFILE, BrandProfile
 
 REFRESH_CAPABILITY = "button.refresh"
@@ -207,6 +209,58 @@ _MAPPERS: dict[type[EntityInfo], _EntityMapper] | None = None
 
 class DeviceEntityMapper:
     """Maps ESPHome entities onto a Homey pair-time payload."""
+
+    @staticmethod
+    def empty_option(
+        capabilities: list[str] | None = None,
+    ) -> HomeyEspHomeDeviceOption:
+        """Empty pair-time payload the mapper mutates in place."""
+        return {
+            "name": "",
+            "data": {},
+            "store": {},
+            "settings": {},
+            "capabilities": capabilities if capabilities is not None else [],
+            "capabilitiesOptions": {},
+        }
+
+    @staticmethod
+    def pair_option(
+        device_info: DeviceInfo,
+        *,
+        host: str,
+        port: int,
+        noise_psk: str | None,
+        data_id: str,
+    ) -> HomeyEspHomeDeviceOption:
+        """Pair-time payload with connection data and empty capabilities."""
+        name = device_info.friendly_name or device_info.name or "ESPHome Device"
+        return {
+            "name": name,
+            "data": {"id": data_id},
+            "store": {
+                "address": host,
+                "host": device_info.name or host,
+                "port": port,
+                "mac": device_info.mac_address,
+                "model": device_info.model,
+                "manufacturer": device_info.manufacturer,
+                "esphome_version": device_info.esphome_version,
+                "noise_psk": noise_psk or "",
+            },
+            "settings": {
+                "host": host,
+                "port": str(port),
+                **device_info_settings(
+                    device_info, host=host, encrypted=bool(noise_psk)
+                ),
+                "device_class": "auto",
+                "show_diagnostics": False,
+                "show_configuration": False,
+            },
+            "capabilities": [],
+            "capabilitiesOptions": {},
+        }
 
     @classmethod
     def map(
