@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-22
+
 ### Added
 
 - Map ESPHome lock ``supports_open`` to an ``open`` button that sends ``LockCommand.OPEN`` (door strike / unlatch).
 - Offer a generic Press Flow card for suffixed ``button.*`` capabilities.
 - Add missing custom capability icons.
+- Add ``on_esphome_connected`` so brand devices can run setup after each Native API login.
 
 ### Changed
 
@@ -20,9 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Pair and repair custom views navigate after their emit resolves, instead of awaiting ``show_view`` from inside the handler (Homey pair-client deadlock on Continue).
+- Enable Continue on the encryption-key and Wi-Fi pair views when the field is already filled (autofill / load).
 - Fill diagnostic and configuration capabilities from last known states when they are added.
 - Offer generic Flow cards for suffixed custom capabilities by adding a hidden bare id Homey's ``$filter`` can match.
 - Refresh capabilities installs and drops pair-time Flow-filter markers the same way pairing does.
+- Reject capability commands until the Native API session is READY, so Homey cannot write default values on pair or reconnect.
+- Register hue/saturation command listeners once so Homey's grouped listener does not log already-registered.
+- Derive the ``in/d`` speed divisor from ``in/h`` instead of a standalone constant.
+- Treat stored ``None`` capability options as empty so Refresh and init do not raise.
 
 ## [0.3.0] - 2026-08-19
 
@@ -65,7 +73,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Brand product filters via the driver compose `esphome` object.
 - `esphome-homey sync` to copy Homey Compose templates into the app.
 
-[unreleased]: https://github.com/Doekse/homey-esphomedriver/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/Doekse/homey-esphomedriver/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.1.0

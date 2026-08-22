@@ -14,7 +14,7 @@ from typing import Any
 
 from homey_esphomedriver.profile import DEFAULT_BRAND_PROFILE, BrandProfile
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "BrandProfile",
