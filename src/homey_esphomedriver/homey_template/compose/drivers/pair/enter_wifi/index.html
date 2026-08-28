@@ -51,9 +51,9 @@
   </div>
   <button
     id="btn-continue"
+    type="button"
     class="homey-button-primary-shadow-full is-disabled"
     data-i18n="__continue"
-    disabled
   ></button>
 </div>
 <script type="text/javascript">
@@ -72,15 +72,14 @@
     function syncContinue() {
       if ($inputSsid.value.length > 0) {
         $btnContinue.classList.remove('is-disabled');
-        $btnContinue.disabled = false;
       } else {
         $btnContinue.classList.add('is-disabled');
-        $btnContinue.disabled = true;
       }
     }
 
     $inputSsid.addEventListener('input', syncContinue);
     $inputSsid.addEventListener('change', syncContinue);
+    $inputSsid.addEventListener('keyup', syncContinue);
     syncContinue();
     $inputSsid.addEventListener('keyup', function (event) {
       if (event.key === 'Enter' && $inputSsid.value.length > 0) {
@@ -93,8 +92,14 @@
       }
     });
 
-    $btnContinue.addEventListener('click', function () {
-      if ($btnContinue.disabled || $btnContinue.classList.contains('is-loading')) return;
+    $btnContinue.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (
+        $btnContinue.classList.contains('is-disabled') ||
+        $btnContinue.classList.contains('is-loading')
+      ) {
+        return;
+      }
       $btnContinue.classList.add('is-loading');
 
       Homey.emit('enter_wifi', {
@@ -102,11 +107,7 @@
         password: $inputPassword.value,
       })
         .then(function (next) {
-          if (next) {
-            Homey.showView(next);
-            return;
-          }
-          $btnContinue.classList.remove('is-loading');
+          Homey.showView(next);
         })
         .catch(function (err) {
           $btnContinue.classList.remove('is-loading');

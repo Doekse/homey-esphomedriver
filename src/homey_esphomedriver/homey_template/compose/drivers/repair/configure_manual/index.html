@@ -185,11 +185,12 @@
           port: $port.value,
         })
           .then(function (next) {
+            // Repair returns no view once the connection is applied.
             if (next) {
               Homey.showView(next);
-              return;
+            } else {
+              Homey.done();
             }
-            btn.classList.remove('is-loading');
           })
           .catch(function (err) {
             btn.classList.remove('is-loading');

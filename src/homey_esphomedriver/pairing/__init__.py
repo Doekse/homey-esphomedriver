@@ -312,7 +312,6 @@ class DriverPairHandler:
         """Probe and apply connection; return next view, or None when done."""
         device = self._device
         expected_id = self._expected_id
-        session = self._require_session()
         assert device is not None and expected_id is not None
 
         async def run() -> None:
@@ -326,7 +325,6 @@ class DriverPairHandler:
                 port=self.port,
                 noise_psk=psk,
             )
-            await session.done()
 
         return await self._with_connect_errors(run, prompt_key=prompt_key)
 
@@ -426,7 +424,7 @@ class DriverPairHandler:
             return []
 
         typed_strategy = cast(
-            DiscoveryStrategy[DiscoveryResultMDNSSD],
+            "DiscoveryStrategy[DiscoveryResultMDNSSD]",
             discovery_strategy,
         )
         discovery_results = typed_strategy.get_discovery_results()

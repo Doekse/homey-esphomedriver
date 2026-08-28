@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Enable Continue on the encryption-key and Wi-Fi pair views after typing or autofill on iOS (do not use the HTML ``disabled`` attribute).
+- List discovered devices during pairing without raising ``NameError: DiscoveryStrategy is not defined``.
+- Close the repair session from the view after a successful repair; awaiting ``session.done()`` inside a custom emit handler deadlocks Homey's pair client, which 0.4.0 fixed for ``show_view`` but not for ``done``.
+
 ## [0.4.0] - 2026-08-22
 
 ### Added

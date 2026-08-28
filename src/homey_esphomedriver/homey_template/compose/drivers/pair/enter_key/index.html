@@ -46,9 +46,9 @@
   </div>
   <button
     id="btn-continue"
+    type="button"
     class="homey-button-primary-shadow-full is-disabled"
     data-i18n="__continue"
-    disabled
   ></button>
 </div>
 <script type="text/javascript">
@@ -65,15 +65,14 @@
     function syncContinue() {
       if ($inputKey.value.trim().length > 0) {
         $btnContinue.classList.remove('is-disabled');
-        $btnContinue.disabled = false;
       } else {
         $btnContinue.classList.add('is-disabled');
-        $btnContinue.disabled = true;
       }
     }
 
     $inputKey.addEventListener('input', syncContinue);
     $inputKey.addEventListener('change', syncContinue);
+    $inputKey.addEventListener('keyup', syncContinue);
     syncContinue();
     $inputKey.addEventListener('keyup', function (event) {
       if (event.key === 'Enter') {
@@ -81,19 +80,26 @@
       }
     });
 
-    $btnContinue.addEventListener('click', function () {
-      if ($btnContinue.disabled || $btnContinue.classList.contains('is-loading')) return;
+    $btnContinue.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (
+        $btnContinue.classList.contains('is-disabled') ||
+        $btnContinue.classList.contains('is-loading')
+      ) {
+        return;
+      }
       $btnContinue.classList.add('is-loading');
 
       Homey.emit('enter_key', {
         noise_psk: $inputKey.value,
       })
         .then(function (next) {
+          // Repair returns no view once the connection is applied.
           if (next) {
             Homey.showView(next);
-            return;
+          } else {
+            Homey.done();
           }
-          $btnContinue.classList.remove('is-loading');
         })
         .catch(function (err) {
           $btnContinue.classList.remove('is-loading');
