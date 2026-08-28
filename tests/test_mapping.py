@@ -239,7 +239,7 @@ def test_suffixed_custom_cap_adds_hidden_flow_filter_marker() -> None:
 
 
 def test_button_entity_adds_custom_flow_filter_marker() -> None:
-    """Bare ``esphome_button`` exists only so Homey ``$filter`` can match ``button.*``."""
+    """Bare ``esphome_button`` exists only so Homey ``$filter`` matches ``button.*``."""
     homey_device = mapped_device(
         ButtonInfo(object_id="press_me", key=1, name="Press"),
         ButtonInfo(object_id="reset", key=2, name="Reset"),
