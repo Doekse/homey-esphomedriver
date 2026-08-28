@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-08-28
+
 ### Fixed
 
 - Enable Continue on the encryption-key and Wi-Fi pair views after typing or autofill on iOS (do not use the HTML ``disabled`` attribute).
@@ -79,7 +81,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Brand product filters via the driver compose `esphome` object.
 - `esphome-homey sync` to copy Homey Compose templates into the app.
 
-[unreleased]: https://github.com/Doekse/homey-esphomedriver/compare/v0.4.0...HEAD
+[unreleased]: https://github.com/Doekse/homey-esphomedriver/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.4.1
 [0.4.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.2.0
