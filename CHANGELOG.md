@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Treat unpublished ESPHome switch, climate, and water-heater state (and NaN readings) as unknown Homey values instead of off / 0 °C.
+
 ## [0.4.1] - 2026-08-28
 
 ### Fixed

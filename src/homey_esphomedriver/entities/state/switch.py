@@ -14,5 +14,9 @@ from homey_esphomedriver.entities.state.base import (
 class SwitchEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
     async def handle(self, state: EntityState, capabilities: list[str]) -> None:
         switch = cast(SwitchState, state)
+        if getattr(switch, "missing_state", False):
+            for capability in capabilities:
+                self.set_capability_value(capability, None)
+            return
         for capability in capabilities:
             self.handle_on_off(bool(switch.state), capability)

@@ -7,6 +7,7 @@ Color temperature uses the same module for mireds to Kelvin.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
@@ -29,9 +30,11 @@ def convert_units(device: Device, capability_id: str, value: Any) -> Any:
         value: Raw ESPHome state value.
 
     Returns:
-        Converted value, or ``value`` unchanged when it is not numeric or has
-        no stored unit.
+        Converted value, ``None`` when ``value`` is NaN, or ``value`` unchanged
+        when it is not numeric or has no stored unit.
     """
+    if isinstance(value, float) and math.isnan(value):
+        return None
     if not isinstance(value, (int, float)):
         return value
 

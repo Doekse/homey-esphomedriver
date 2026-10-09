@@ -56,6 +56,10 @@ _PRESET = {
 class ClimateEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
     async def handle(self, state: EntityState, capabilities: list[str]) -> None:
         climate = cast(ClimateState, state)
+        if getattr(climate, "missing_state", False):
+            for capability in capabilities:
+                self.set_capability_value(capability, None)
+            return
 
         onoff_id = self.find_capability(capabilities, "onoff")
         if onoff_id is not None:
@@ -83,13 +87,16 @@ class ClimateEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
 
         humidity_id = self.find_capability(capabilities, "measure_humidity")
         if humidity_id is not None:
-            self.set_capability_value(humidity_id, float(climate.current_humidity))
+            self.set_capability_value(
+                humidity_id,
+                convert_units(self.device, humidity_id, climate.current_humidity),
+            )
 
         target_humidity_id = self.find_capability(capabilities, "target_humidity")
         if target_humidity_id is not None:
             self.set_capability_value(
                 target_humidity_id,
-                float(climate.target_humidity),
+                convert_units(self.device, target_humidity_id, climate.target_humidity),
             )
 
         fan_mode_id = self.find_capability(capabilities, "fan_mode")

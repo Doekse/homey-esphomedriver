@@ -303,6 +303,11 @@ def test_convert_units_passes_through_without_stored_unit() -> None:
     assert convert_units(device, "measure_temperature", 99.0) == 99.0
 
 
+def test_convert_units_drops_nan() -> None:
+    device = FakeDevice({"measure_temperature": {"esphome_unit": "°F"}})
+    assert convert_units(device, "measure_temperature", float("nan")) is None
+
+
 def test_convert_units_passes_through_unknown_capability() -> None:
     """A capability with no converter keeps its value even with a unit stored."""
     device = FakeDevice({"esphome_number.thing": {"esphome_unit": "widgets"}})
