@@ -93,6 +93,55 @@ def test_stop_suppresses_disconnect_hook() -> None:
     asyncio.run(run())
 
 
+def test_update_endpoint_adds_address_without_restart() -> None:
+    """Same-port discovery appends the IP and leaves ReconnectLogic running."""
+
+    async def run() -> None:
+        client = _client()
+        client._on_state = AsyncMock()
+        api = MagicMock()
+        api.add_addresses = MagicMock(return_value=True)
+        api.disconnect = AsyncMock()
+        client._cli = api
+        reconnect = MagicMock()
+        reconnect.stop = AsyncMock()
+        client._reconnect = reconnect
+        client._state = SessionState.READY
+
+        await client.update_endpoint(host="192.0.2.2", port=6053)
+
+        api.add_addresses.assert_called_once_with(["192.0.2.2"])
+        assert client.host == "192.0.2.2"
+        assert client._reconnect is reconnect
+        reconnect.stop.assert_not_awaited()
+        api.disconnect.assert_not_awaited()
+        assert client.state is SessionState.READY
+
+    asyncio.run(run())
+
+
+def test_update_endpoint_restarts_without_reconnect() -> None:
+    """A stopped reconnect (MAC mismatch) still rebuilds on a new address."""
+
+    async def run() -> None:
+        client = _client()
+        client._on_state = None
+        api = MagicMock()
+        api.add_addresses = MagicMock()
+        api.disconnect = AsyncMock()
+        client._cli = api
+        client._reconnect = None
+
+        await client.update_endpoint(host="192.0.2.2", port=6053)
+
+        api.add_addresses.assert_not_called()
+        api.disconnect.assert_awaited()
+        assert client.host == "192.0.2.2"
+        assert client._cli is None
+
+    asyncio.run(run())
+
+
 def test_async_on_state_is_invoked() -> None:
     """The sync ``subscribe_states`` hop invokes the async ``on_state`` callback."""
     received: list[EntityState] = []

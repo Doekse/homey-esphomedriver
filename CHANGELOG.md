@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Feed newly discovered IPs into the running Native API client instead of tearing down the session on every mDNS address change.
+
 ### Fixed
 
 - Treat unpublished ESPHome switch, climate, and water-heater state (and NaN readings) as unknown Homey values instead of off / 0 °C.

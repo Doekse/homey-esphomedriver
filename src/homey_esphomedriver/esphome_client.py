@@ -171,7 +171,11 @@ class EspHomeClient:
         self._device_info = None
 
     async def update_endpoint(self, *, host: str, port: int) -> None:
-        """Apply a discovery address change and restart ReconnectLogic if running."""
+        """Feed a discovery address into the live client, or rebuild on port change."""
+        if self._cli is not None and self._reconnect is not None and port == self._port:
+            self._host = host
+            self._cli.add_addresses([host])
+            return
         on_state = self._on_state
         self._host = host
         self._port = port

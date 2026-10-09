@@ -13,7 +13,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "Abe Haverkamp", email = "abe.haverkamp@gmail.com" }]
 keywords = ["esphome", "homey", "iot", "smart-home"]
 dependencies = [
-    "aioesphomeapi>=45.8.0",
+    "aioesphomeapi>=45.10.1",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
