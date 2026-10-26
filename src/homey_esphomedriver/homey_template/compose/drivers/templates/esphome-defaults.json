@@ -227,8 +227,18 @@
   ],
   "repair": [
     {
+      "id": "maintenance",
+      "$template": "maintenance"
+    },
+    {
       "id": "configure_manual",
-      "$template": "configure_manual"
+      "$template": "configure_manual",
+      "navigation": false
+    },
+    {
+      "id": "show_key",
+      "$template": "show_key",
+      "navigation": false
     },
     {
       "id": "enter_key",

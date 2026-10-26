@@ -29,9 +29,28 @@
     }
   },
   "repair": {
+    "maintenance": {
+      "title": "Maintenance",
+      "subtitle": "Répare l’appareil ou affiche la clé de chiffrement.",
+      "repair": "Réparer l’appareil",
+      "repair_hint": "Modifie l’adresse IP ou la clé de chiffrement",
+      "show_key": "Afficher la clé",
+      "show_key_hint": "Consulte ou copie la clé de chiffrement"
+    },
     "configure_manual": {
       "title": "Réparer l’appareil",
       "subtitle": "Saisis l’adresse IP ou le nom d’hôte de cet appareil."
+    },
+    "show_key": {
+      "title": "Clé de chiffrement",
+      "subtitle": "Copie cette clé si tu veux ajouter cet appareil dans une autre application.",
+      "label": "Clé de chiffrement",
+      "not_set": "Non définie",
+      "copy": "Copier la clé",
+      "copied": "Copiée",
+      "show": "Afficher la clé",
+      "hide": "Masquer la clé",
+      "back": "Retour"
     }
   },
   "errors": {

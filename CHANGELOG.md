@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Provision a Noise encryption key over the zero-PSK handshake during pair/repair when the node is unprovisioned, instead of asking the user to paste one.
+- Repair starts on a Maintenance page: Repair Device (existing IP/key flow) or Show Key (copy the stored Noise PSK).
+
 ### Changed
 
 - Feed newly discovered IPs into the running Native API client instead of tearing down the session on every mDNS address change.

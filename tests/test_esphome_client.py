@@ -3,13 +3,24 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aioesphomeapi import APIConnectionError, DeviceInfo, EntityState
+from aioesphomeapi import (
+    ZERO_NOISE_PSK,
+    APIConnectionError,
+    DeviceInfo,
+    EntityState,
+    RequiresEncryptionAPIError,
+)
 
-from homey_esphomedriver.esphome_client import EspHomeClient, SessionState
+from homey_esphomedriver.esphome_client import (
+    EspHomeClient,
+    SessionState,
+    provision_noise_encryption_key,
+)
 
 
 def _client(**kwargs: Any) -> EspHomeClient:
@@ -140,6 +151,77 @@ def test_update_endpoint_restarts_without_reconnect() -> None:
         assert client._cli is None
 
     asyncio.run(run())
+
+
+def _provision_client(
+    *,
+    provisionable: bool = True,
+    set_key: bool = True,
+) -> MagicMock:
+    cli = MagicMock()
+    cli.connect = AsyncMock()
+    cli.device_info = AsyncMock(
+        return_value=DeviceInfo(api_encryption_provisionable=provisionable)
+    )
+    cli.noise_encryption_set_key = AsyncMock(return_value=set_key)
+    cli.disconnect = AsyncMock()
+    return cli
+
+
+def _patch_api_client(
+    monkeypatch: pytest.MonkeyPatch, cli: MagicMock
+) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {}
+
+    def factory(*_args: Any, **passed: Any) -> MagicMock:
+        kwargs.update(passed)
+        return cli
+
+    monkeypatch.setattr("homey_esphomedriver.esphome_client.APIClient", factory)
+    return kwargs
+
+
+def test_provision_noise_encryption_key_sets_and_returns_psk(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Zero-PSK session installs a generated key and never stores the zero PSK."""
+    cli = _provision_client()
+    kwargs = _patch_api_client(monkeypatch, cli)
+
+    psk = asyncio.run(provision_noise_encryption_key("10.0.0.5", 6053))
+
+    assert kwargs["noise_psk"] == ZERO_NOISE_PSK
+    assert psk != ZERO_NOISE_PSK
+    assert len(base64.b64decode(psk)) == 32
+    cli.noise_encryption_set_key.assert_awaited_once_with(psk.encode())
+    cli.disconnect.assert_awaited_once_with(force=True)
+
+
+def test_provision_noise_encryption_key_requires_provisionable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-provisionable devices raise and still disconnect."""
+    cli = _provision_client(provisionable=False)
+    _patch_api_client(monkeypatch, cli)
+
+    with pytest.raises(RequiresEncryptionAPIError):
+        asyncio.run(provision_noise_encryption_key("10.0.0.5"))
+
+    cli.noise_encryption_set_key.assert_not_called()
+    cli.disconnect.assert_awaited_once_with(force=True)
+
+
+def test_provision_noise_encryption_key_rejects_failed_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A rejected set-key still disconnects and does not return a PSK."""
+    cli = _provision_client(set_key=False)
+    _patch_api_client(monkeypatch, cli)
+
+    with pytest.raises(RequiresEncryptionAPIError):
+        asyncio.run(provision_noise_encryption_key("10.0.0.5"))
+
+    cli.disconnect.assert_awaited_once_with(force=True)
 
 
 def test_async_on_state_is_invoked() -> None:

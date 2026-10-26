@@ -29,9 +29,28 @@
     }
   },
   "repair": {
+    "maintenance": {
+      "title": "Manutenzione",
+      "subtitle": "Ripara il dispositivo o mostra la chiave di crittografia.",
+      "repair": "Ripara dispositivo",
+      "repair_hint": "Modifica l’indirizzo IP o la chiave di crittografia",
+      "show_key": "Mostra chiave",
+      "show_key_hint": "Visualizza o copia la chiave di crittografia"
+    },
     "configure_manual": {
       "title": "Ripara il dispositivo",
       "subtitle": "Inserisci l’indirizzo IP o il nome host di questo dispositivo."
+    },
+    "show_key": {
+      "title": "Chiave di crittografia",
+      "subtitle": "Copia questa chiave se vuoi aggiungere questo dispositivo in un’altra app.",
+      "label": "Chiave di crittografia",
+      "not_set": "Non impostata",
+      "copy": "Copia chiave",
+      "copied": "Copiata",
+      "show": "Mostra chiave",
+      "hide": "Nascondi chiave",
+      "back": "Indietro"
     }
   },
   "errors": {

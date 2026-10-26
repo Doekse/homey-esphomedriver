@@ -29,9 +29,28 @@
     }
   },
   "repair": {
+    "maintenance": {
+      "title": "Onderhoud",
+      "subtitle": "Repareer het apparaat of toon de encryptiesleutel.",
+      "repair": "Apparaat repareren",
+      "repair_hint": "Wijzig het IP-adres of de encryptiesleutel",
+      "show_key": "Sleutel tonen",
+      "show_key_hint": "Bekijk of kopieer de encryptiesleutel"
+    },
     "configure_manual": {
       "title": "Apparaat repareren",
       "subtitle": "Voer het IP-adres of de hostnaam van dit apparaat in."
+    },
+    "show_key": {
+      "title": "Encryptiesleutel",
+      "subtitle": "Kopieer deze sleutel als je dit apparaat in een andere app wilt toevoegen.",
+      "label": "Encryptiesleutel",
+      "not_set": "Niet ingesteld",
+      "copy": "Sleutel kopiëren",
+      "copied": "Gekopieerd",
+      "show": "Sleutel tonen",
+      "hide": "Sleutel verbergen",
+      "back": "Terug"
     }
   },
   "errors": {

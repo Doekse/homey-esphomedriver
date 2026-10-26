@@ -29,9 +29,28 @@
     }
   },
   "repair": {
+    "maintenance": {
+      "title": "Underhåll",
+      "subtitle": "Reparera enheten eller visa krypteringsnyckeln.",
+      "repair": "Reparera enhet",
+      "repair_hint": "Ändra IP-adressen eller krypteringsnyckeln",
+      "show_key": "Visa nyckel",
+      "show_key_hint": "Visa eller kopiera krypteringsnyckeln"
+    },
     "configure_manual": {
       "title": "Reparera enheten",
       "subtitle": "Ange IP-adressen eller värdnamnet för den här enheten."
+    },
+    "show_key": {
+      "title": "Krypteringsnyckel",
+      "subtitle": "Kopiera den här nyckeln om du vill lägga till enheten i en annan app.",
+      "label": "Krypteringsnyckel",
+      "not_set": "Inte angiven",
+      "copy": "Kopiera nyckel",
+      "copied": "Kopierad",
+      "show": "Visa nyckel",
+      "hide": "Dölj nyckel",
+      "back": "Tillbaka"
     }
   },
   "errors": {

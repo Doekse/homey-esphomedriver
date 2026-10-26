@@ -6,12 +6,18 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, cast
 
-from aioesphomeapi import DeviceInfo, EncryptionPlaintextAPIError, EntityInfo
+from aioesphomeapi import (
+    DeviceInfo,
+    EncryptionPlaintextAPIError,
+    EntityInfo,
+    RequiresEncryptionAPIError,
+)
 
 from homey_esphomedriver.entities.mapping import DeviceEntityMapper
 from homey_esphomedriver.esphome_client import (
     DEFAULT_API_PORT,
     probe_esphome_device,
+    provision_noise_encryption_key,
 )
 from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 from homey_esphomedriver.esphome_util import (
@@ -73,7 +79,7 @@ class DriverPairHandler:
         session.set_handler("disconnect", self._close_improv)
 
     async def repair(self, session: PairSession, device: EspHomeDevice) -> None:
-        """Update host/port, prompting for a Noise PSK only when the node needs it."""
+        """Repair hub: IP/key repair, or show the stored Noise PSK."""
         self._session = session
         self._device = device
         self.host = ""
@@ -82,6 +88,7 @@ class DriverPairHandler:
         self._expected_id = str(device.get_data()["id"])
 
         session.set_handler("get_connection", self._repair_connection_values)
+        session.set_handler("get_key", self._repair_encryption_key)
         session.set_handler("showView", self._on_repair_show_view)
         session.set_handler("configure_manual", self._on_repair_configure_manual)
         session.set_handler("enter_key", self._on_repair_enter_key)
@@ -222,6 +229,12 @@ class DriverPairHandler:
             "port": "" if port_value in (None, "") else str(port_value),
         }
 
+    async def _repair_encryption_key(self, _data: Any = None) -> dict[str, str]:
+        """Return the stored Noise PSK for the Show Key repair view."""
+        device = self._device
+        assert device is not None
+        return {"noise_psk": str(device.get_store().get("noise_psk") or "").strip()}
+
     async def _on_repair_configure_manual(self, data: dict[str, Any]) -> str | None:
         self.host, self.port = self._parse_manual_connection(data)
         return await self._try_repair(prompt_key=True)
@@ -347,7 +360,7 @@ class DriverPairHandler:
             raise ValueError(self._t(error_key(err))) from err
 
     async def _probe(self) -> tuple[DeviceInfo, list[EntityInfo], str | None]:
-        """Probe once; retry without PSK when the node is plaintext."""
+        """Probe once; retry plaintext, or provision a PSK when the node allows it."""
         host = self.host
         if not host:
             raise ValueError(self._t("errors.host_required"))
@@ -370,6 +383,15 @@ class DriverPairHandler:
                 if not noise_psk:
                     raise
                 noise_psk = None
+            except RequiresEncryptionAPIError:
+                if noise_psk is not None:
+                    raise
+                noise_psk = await provision_noise_encryption_key(
+                    host,
+                    self.port,
+                    client_info=self._driver.brand_profile.client_info,
+                    debug=self._driver.debug,
+                )
 
     def _map_pair_payload(
         self,
