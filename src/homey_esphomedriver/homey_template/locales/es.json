@@ -29,9 +29,28 @@
     }
   },
   "repair": {
+    "maintenance": {
+      "title": "Mantenimiento",
+      "subtitle": "Repara el dispositivo o muestra la clave de cifrado.",
+      "repair": "Reparar dispositivo",
+      "repair_hint": "Cambia la dirección IP o la clave de cifrado",
+      "show_key": "Mostrar clave",
+      "show_key_hint": "Consulta o copia la clave de cifrado"
+    },
     "configure_manual": {
       "title": "Reparar el dispositivo",
       "subtitle": "Introduce la dirección IP o el nombre de host de este dispositivo."
+    },
+    "show_key": {
+      "title": "Clave de cifrado",
+      "subtitle": "Copia esta clave si quieres añadir este dispositivo en otra aplicación.",
+      "label": "Clave de cifrado",
+      "not_set": "No configurada",
+      "copy": "Copiar clave",
+      "copied": "Copiada",
+      "show": "Mostrar clave",
+      "hide": "Ocultar clave",
+      "back": "Atrás"
     }
   },
   "errors": {

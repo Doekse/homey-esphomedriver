@@ -29,9 +29,28 @@
     }
   },
   "repair": {
+    "maintenance": {
+      "title": "Wartung",
+      "subtitle": "Repariere das Gerät oder zeige den Verschlüsselungsschlüssel.",
+      "repair": "Gerät reparieren",
+      "repair_hint": "Ändere die IP-Adresse oder den Verschlüsselungsschlüssel",
+      "show_key": "Schlüssel anzeigen",
+      "show_key_hint": "Sieh dir den Verschlüsselungsschlüssel an oder kopiere ihn"
+    },
     "configure_manual": {
       "title": "Gerät reparieren",
       "subtitle": "Gib die IP-Adresse oder den Hostnamen dieses Geräts ein."
+    },
+    "show_key": {
+      "title": "Verschlüsselungsschlüssel",
+      "subtitle": "Kopiere diesen Schlüssel, wenn du das Gerät in einer anderen App hinzufügen möchtest.",
+      "label": "Verschlüsselungsschlüssel",
+      "not_set": "Nicht gesetzt",
+      "copy": "Schlüssel kopieren",
+      "copied": "Kopiert",
+      "show": "Schlüssel anzeigen",
+      "hide": "Schlüssel ausblenden",
+      "back": "Zurück"
     }
   },
   "errors": {

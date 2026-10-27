@@ -12,18 +12,22 @@ reach the node before the initial state dump has been applied.
 from __future__ import annotations
 
 import asyncio
+import base64
 import logging
+import secrets
 from collections.abc import Awaitable, Callable
 from enum import Enum, auto
 from typing import Any
 
 from aioesphomeapi import (
+    ZERO_NOISE_PSK,
     APIClient,
     APIConnectionError,
     DeviceInfo,
     EntityInfo,
     EntityState,
     ReconnectLogic,
+    RequiresEncryptionAPIError,
     UserService,
 )
 
@@ -335,5 +339,41 @@ async def probe_esphome_device(
                 f"from {device_info.name}"
             )
         return device_info, entities, services
+    finally:
+        await cli.disconnect(force=True)
+
+
+async def provision_noise_encryption_key(
+    host: str,
+    port: int = DEFAULT_API_PORT,
+    *,
+    client_info: str = DEFAULT_CLIENT_INFO,
+    debug: DebugCallback | None = None,
+) -> str:
+    """Install a generated Noise PSK over ZERO_NOISE_PSK; never persist the zero key."""
+    if not host:
+        raise ValueError("ESPHome host is required")
+
+    resolved_port = int(port) if port else DEFAULT_API_PORT
+    if debug is not None:
+        debug(f"Provisioning encryption key on {host}:{resolved_port}")
+
+    cli = APIClient(
+        host,
+        resolved_port,
+        client_info=client_info,
+        noise_psk=ZERO_NOISE_PSK,
+    )
+    try:
+        await cli.connect(login=True)
+        device_info = await cli.device_info()
+        if not device_info.api_encryption_provisionable:
+            raise RequiresEncryptionAPIError(
+                "Device cannot provision an encryption key"
+            )
+        psk = base64.b64encode(secrets.token_bytes(32)).decode()
+        if not await cli.noise_encryption_set_key(psk.encode()):
+            raise RequiresEncryptionAPIError("Device rejected the encryption key")
+        return psk
     finally:
         await cli.disconnect(force=True)

@@ -29,9 +29,28 @@
     }
   },
   "repair": {
+    "maintenance": {
+      "title": "Vedlikehold",
+      "subtitle": "Reparer enheten eller vis krypteringsnøkkelen.",
+      "repair": "Reparer enhet",
+      "repair_hint": "Endre IP-adressen eller krypteringsnøkkelen",
+      "show_key": "Vis nøkkel",
+      "show_key_hint": "Se eller kopier krypteringsnøkkelen"
+    },
     "configure_manual": {
       "title": "Reparer enheten",
       "subtitle": "Skriv inn IP-adressen eller vertsnavnet til denne enheten."
+    },
+    "show_key": {
+      "title": "Krypteringsnøkkel",
+      "subtitle": "Kopier denne nøkkelen hvis du vil legge til enheten i en annen app.",
+      "label": "Krypteringsnøkkel",
+      "not_set": "Ikke angitt",
+      "copy": "Kopier nøkkel",
+      "copied": "Kopiert",
+      "show": "Vis nøkkel",
+      "hide": "Skjul nøkkel",
+      "back": "Tilbake"
     }
   },
   "errors": {
