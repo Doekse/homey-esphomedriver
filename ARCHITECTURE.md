@@ -83,6 +83,10 @@ If both `projects` and `projectPrefix` are configured, a match on either is enou
 
 If neither is configured, every ESPHome project is accepted. This is how `io.esphome` works.
 
+A setting on the driver can also be backed by an entity through `settings[].esphome.entity`. The link sits on the setting rather than in the `esphome` block, the same way Z-Wave puts `zwave` on each setting, so a setting and the entity it configures cannot drift apart. Homey settings are declared statically per driver, so only a brand driver that knows its product can use this; the generic `io.esphome` driver cannot.
+
+The node holds the value and other API clients may change it, so the node is the truth: reported states are mirrored into the setting and the entity is written only when the user saves. Bindings (setting → entity key and domain) are stored at pair time and rewritten on Refresh and on a firmware rebuild, like capability options. A save while a deep-sleep node is asleep is queued in the store and written on its next READY session; a queued value wins over the stale value in the connect dump. See the `settings` package: `links.py` parses and binds, `__init__.py` keeps the node and Homey in step.
+
 Compose is the only source of profile data; an unknown key is logged and ignored. `after_map` and `device_class_for` cannot live in JSON, so a brand that needs one subclasses `BrandProfile` and sets it as the driver's `brand_profile_class`. The library builds that subclass from the same manifest, so data and hooks never come from two places.
 
 ```json

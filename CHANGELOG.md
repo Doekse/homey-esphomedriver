@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Back a settings-page field with an ESPHome `number`, `select` or `switch` entity by adding `"esphome": {"entity": "<object_id>"}` to the setting. Saving writes the entity, the setting follows what the node reports, and a save while a deep-sleep node is asleep is applied when it wakes. Based on the idea in #9 by SoundGoof (Markus Häll).
+
 - Setting templates for each default settings group (`esphome-device`, `esphome-device-capabilities`, `esphome-device-notifications`, `esphome-device-information`), so a driver can declare its own `settings` and keep the defaults with `$extends`. `esphome-homey sync` copies them to `.homeycompose/drivers/settings/`.
 - A driver whose own `settings` leave out a default group fails on init with an error naming the template to add.
 

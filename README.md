@@ -124,6 +124,36 @@ homey_export = Aq1Driver
 
 A driver that leaves one out fails on init with an error naming the `$extends` to add.
 
+### Settings backed by an entity
+
+A configuration entity, such as a calibration offset, can be shown on the device's settings page instead of the device tile. Link the setting to the entity with an `esphome` object on the setting, the way Z-Wave drivers use `zwave`:
+
+```json
+"settings": [
+  {
+    "id": "temp_offset",
+    "type": "number",
+    "label": { "en": "Temperature offset" },
+    "value": 0, "min": -5, "max": 5, "step": 0.1,
+    "units": { "en": "°C" },
+    "esphome": { "entity": "temperature_offset" }
+  }
+]
+```
+
+| Setting type | ESPHome entity |
+| ------------ | -------------- |
+| `number`     | `number`       |
+| `dropdown`   | `select`       |
+| `checkbox`   | `switch`       |
+
+- The node is the truth for the value: what it reports, including changes from Home Assistant or the web server, is copied into the setting. Pairing never pushes the setting's default.
+- Saving the setting writes the entity. An invalid value, or a node that is offline and not a deep-sleep node, rejects the save.
+- A deep-sleep node that is asleep gets the write when it next wakes, and the user sees a message saying so.
+- The linked entity is left off the device tile.
+
+Override `setting_to_entity` / `entity_to_setting` on the device to convert values, for example to scale units or to map dropdown ids to select options. Python-only drivers can set `BrandProfile(setting_entities={"temp_offset": SettingEntity("temperature_offset", "number")})`.
+
 ### Driver
 
 ```python
