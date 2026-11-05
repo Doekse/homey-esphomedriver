@@ -22,6 +22,7 @@ from typing import Any
 from aioesphomeapi import EntityInfo
 
 from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
+from homey_esphomedriver.settings.links import SettingEntity, parse_setting_entities
 
 
 def _is_pattern(entry: str) -> bool:
@@ -96,6 +97,15 @@ class BrandProfile:
     capability_overrides: Mapping[tuple[str, str], str] = field(default_factory=dict)
     """``(object_id, default_capability_id)`` to capability id."""
 
+    setting_entities: Mapping[str, SettingEntity] = field(default_factory=dict)
+    """Homey setting id to the entity backing it.
+
+    Read from ``settings[].esphome.entity`` in the driver manifest rather than
+    the ``esphome`` object, so the link sits on the setting it configures. The
+    entity is written when the user saves the setting, and the setting follows
+    what the node reports. A mapped entity is left off the device tile.
+    """
+
     @classmethod
     def from_manifest(cls, manifest: Mapping[str, Any] | None) -> BrandProfile:
         """Build a profile from a Homey driver manifest's ``esphome`` object.
@@ -104,13 +114,18 @@ class BrandProfile:
             manifest: Driver manifest, typically ``self.manifest``.
 
         Returns:
-            A profile of this class; one with no filters or remaps when
-            ``esphome`` is missing, so a subclass keeps its hooks.
+            A profile of this class, with the ``settings[].esphome.entity``
+            links; one with no filters or remaps when ``esphome`` is missing,
+            so a subclass keeps its hooks.
         """
         raw = manifest.get("esphome") if manifest else None
-        if not isinstance(raw, Mapping):
-            return cls()
-        return cls.from_compose(raw)
+        profile = cls.from_compose(raw) if isinstance(raw, Mapping) else cls()
+        setting_entities = parse_setting_entities(
+            manifest.get("settings") if manifest else None
+        )
+        if not setting_entities:
+            return profile
+        return profile.replace(setting_entities=setting_entities)
 
     @classmethod
     def from_compose(cls, data: Mapping[str, Any]) -> BrandProfile:
@@ -174,6 +189,12 @@ class BrandProfile:
         """Return whether the brand wants this entity omitted from the Homey device."""
         object_id = entity.object_id
         if object_id in self.hidden_entities:
+            return True
+        # The settings page is a mapped entity's one writer; a tile control
+        # beside it would be a second path to the same value.
+        if any(
+            target.object_id == object_id for target in self.setting_entities.values()
+        ):
             return True
         return any(
             _is_pattern(entry) and fnmatchcase(object_id, entry)
