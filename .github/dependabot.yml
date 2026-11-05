@@ -1,0 +1,40 @@
+# This is a library, so pyproject.toml only sets lower bounds (>=).
+# Dependabot keeps those ranges open and does not raise the floor on every
+# release, which would force apps that use this library to upgrade too. CI
+# already installs the latest versions on every run. Security updates still
+# raise a floor past a vulnerable version when needed.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 3
+    versioning-strategy: "increase-if-necessary"
+    commit-message:
+      prefix: "build"
+      include: "scope"
+    groups:
+      # aioesphomeapi is the runtime dependency and gets its own PR, so a
+      # break in the ESPHome API is not hidden among tooling bumps.
+      dev-tools:
+        patterns:
+          - "homey-stubs"
+          - "pytest"
+          - "ruff"
