@@ -66,7 +66,9 @@ def homey_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[dict[str, object]]:
     module.Homey = Homey
     monkeypatch.setitem(sys.modules, "homey", package)
     monkeypatch.setitem(sys.modules, "homey.homey", module)
+    is_debug_enabled.cache_clear()
     yield env
+    is_debug_enabled.cache_clear()
 
 
 @pytest.fixture

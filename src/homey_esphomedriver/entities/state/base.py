@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from aioesphomeapi import EntityState
 
-from homey_esphomedriver.esphome_util import debug_log
-
 if TYPE_CHECKING:
     from homey.device import Device
 
@@ -89,9 +87,6 @@ class AbstractEntityStateUpdateHandler:
 
     def log(self, *args: object) -> None:
         self.device.log(*args)
-
-    def debug(self, *args: object) -> None:
-        debug_log(self.device.log, *args)
 
     def error(self, *args: object) -> None:
         self.device.error(*args)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 from collections.abc import Callable, Mapping
 from datetime import datetime
@@ -73,10 +74,12 @@ def normalize_mac(mac: str) -> str:
     return mac.replace(":", "").replace("-", "").lower()
 
 
+@functools.cache
 def is_debug_enabled() -> bool:
     """Return whether ``env.json`` ``DEBUG`` is ``true`` or ``1``.
 
     Homey env values are strings, so this does not treat a boolean ``True``.
+    Cached: the SDK sets ``Homey.env`` once before app code runs.
     """
     from homey.homey import Homey
 

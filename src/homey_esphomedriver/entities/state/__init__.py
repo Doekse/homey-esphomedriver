@@ -81,7 +81,7 @@ from homey_esphomedriver.entities.state.valve import (
 from homey_esphomedriver.entities.state.water_heater import (
     WaterHeaterEntityStateUpdateHandler,
 )
-from homey_esphomedriver.esphome_util import debug_log
+from homey_esphomedriver.esphome_util import debug_log, is_debug_enabled
 
 if TYPE_CHECKING:
     from homey.device import Device
@@ -161,9 +161,11 @@ class DeviceEntityStateHandler:
                 self._last_states[state.key] = state
             return
         self._last_states.pop(state.key, None)
-        self._debug(
-            f"Handling entity state key={state.key} caps={capabilities}: {state}"
-        )
+        if is_debug_enabled():
+            # Guarded: repr(state) runs on every update otherwise.
+            self._debug(
+                f"Handling entity state key={state.key} caps={capabilities}: {state}"
+            )
         handler = self._handlers_by_type.get(type(state))
         if handler is None:
             return
