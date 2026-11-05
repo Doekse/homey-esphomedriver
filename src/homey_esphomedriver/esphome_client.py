@@ -166,6 +166,9 @@ class EspHomeClient:
             on_connect_error=self._handle_connect_error,
             # Homey runs mDNS discovery; its sightings reach request_connect().
             zeroconf_wake=False,
+            # A sighting while connected pings now, so a node that rebooted
+            # without a goodbye drops on its TCP reset, not the pong timeout.
+            probe_on_announce=True,
         )
         self._reconnect.deep_sleep = self._deep_sleep
         await self._reconnect.start()
@@ -190,7 +193,7 @@ class EspHomeClient:
             await self.start(on_state)
 
     async def request_connect(self) -> None:
-        """Kick a pending connect now because Homey saw the node on mDNS."""
+        """Homey saw the node: kick a pending connect, or ping the live session."""
         if self._reconnect is None:
             return
         self._reconnect.notify_device_seen()

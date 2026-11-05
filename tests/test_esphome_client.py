@@ -153,10 +153,10 @@ def test_update_endpoint_restarts_without_reconnect() -> None:
     asyncio.run(run())
 
 
-def test_start_disables_reconnect_zeroconf_wake(
+def test_start_configures_reconnect_for_homey_discovery(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """ReconnectLogic never starts its own mDNS listener; Homey discovery does that."""
+    """Homey discovery replaces the mDNS listener and probes live sessions."""
     kwargs: dict[str, Any] = {}
     reconnect = MagicMock()
     reconnect.start = AsyncMock()
@@ -172,6 +172,7 @@ def test_start_disables_reconnect_zeroconf_wake(
         await client.start(AsyncMock())
 
         assert kwargs["zeroconf_wake"] is False
+        assert kwargs["probe_on_announce"] is True
         assert kwargs["name"] == "node"
         reconnect.start.assert_awaited_once()
 
