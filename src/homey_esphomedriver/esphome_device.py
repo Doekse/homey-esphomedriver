@@ -245,14 +245,22 @@ class EspHomeDevice(Device[EspHomeDriver]):
         hostname: str | None = None,
         noise_psk: str | None = None,
     ) -> None:
-        """Write endpoint into store and settings (shared by discovery and repair)."""
-        await self.set_store_value("address", host)
-        await self.set_store_value("port", port)
-        if hostname is not None:
-            await self.set_store_value("host", hostname)
-        if noise_psk is not None:
-            await self.set_store_value("noise_psk", noise_psk)
-        await self.set_settings({"host": host, "port": str(port)})
+        """Write endpoint into store and settings (shared by discovery and repair).
+
+        Only changed values are written; discovery repeats the same endpoint.
+        """
+        store = changed_values(
+            self.get_store(),
+            {"address": host, "port": port, "host": hostname, "noise_psk": noise_psk},
+        )
+        for key, value in store.items():
+            if value is not None:
+                await self.set_store_value(key, value)
+        settings = changed_values(
+            self.get_settings(), {"host": host, "port": str(port)}
+        )
+        if settings:
+            await self.set_settings(settings)
 
     async def _apply_discovery_endpoint(self, result: DiscoveryResultMDNSSD) -> None:
         """Persist discovery address and update the live client when it changed."""
