@@ -56,6 +56,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
     """
 
     _client: EspHomeClient | None
+    _mac: str
     _capability_handler: DeviceCapabilityHandler
     _commands: DeviceEntityCommandHandler
     _state_handler: DeviceEntityStateHandler
@@ -78,6 +79,8 @@ class EspHomeDevice(Device[EspHomeDriver]):
         await super().on_init()
 
         self._client = None
+        # Device data never changes, and Homey only matches discovery after on_init.
+        self._mac = normalize_mac(str(self.get_data()["id"]))
         self._pending_build: str | None = None
         self._state_handler = DeviceEntityStateHandler(self)
         self._commands = DeviceEntityCommandHandler(self)
@@ -131,9 +134,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
     async def on_discovery_result(self, discovery_result: DiscoveryResult) -> bool:
         """Match discovery results by MAC even when separator/casing differs."""
-        return normalize_mac(discovery_result.id) == normalize_mac(
-            str(self.get_data()["id"])
-        )
+        return normalize_mac(discovery_result.id) == self._mac
 
     async def on_discovery_available(self, discovery_result: DiscoveryResult) -> None:
         """Refresh address from discovery and ensure the API session is running."""
@@ -225,7 +226,6 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
         port = int(self.get_setting("port") or store.get("port") or DEFAULT_API_PORT)
         noise_psk = str(store.get("noise_psk") or "").strip() or None
-        expected_mac = str(self.get_data()["id"])
 
         name = str(self.get_setting("hostname") or "").strip() or None
         self._client = EspHomeClient(
@@ -233,7 +233,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
             port,
             name=name,
             noise_psk=noise_psk,
-            expected_mac=expected_mac,
+            expected_mac=self._mac,
             client_info=self.brand_profile.client_info,
             deep_sleep=self.get_setting("deep_sleep") == "Yes",
             on_connected=self._on_connected,
