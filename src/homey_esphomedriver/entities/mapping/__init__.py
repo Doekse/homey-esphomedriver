@@ -41,6 +41,7 @@ from aioesphomeapi import (
 from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 from homey_esphomedriver.esphome_util import device_info_settings
 from homey_esphomedriver.profile import DEFAULT_BRAND_PROFILE, BrandProfile
+from homey_esphomedriver.settings.links import bind_setting_entities
 
 REFRESH_CAPABILITY = "button.refresh"
 
@@ -318,7 +319,11 @@ class DeviceEntityMapper:
         configuration: bool = False,
         profile: BrandProfile | None = None,
     ) -> None:
-        """Fill a pair-time payload, including ``button.refresh``."""
+        """Fill a pair-time payload, including ``button.refresh``.
+
+        Settings linked to an entity are bound into ``store.setting_entities``,
+        so a Refresh or firmware rebuild can rewrite them from the same scratch.
+        """
         cls.map(entities, homey_device, profile=profile)
         if diagnostics:
             cls.map(
@@ -338,6 +343,10 @@ class DeviceEntityMapper:
         homey_device["capabilitiesOptions"][REFRESH_CAPABILITY] = dict(
             REFRESH_CAPABILITY_OPTIONS
         )
+        if profile is not None and profile.setting_entities:
+            homey_device["store"]["setting_entities"] = bind_setting_entities(
+                entities, profile.setting_entities
+            )
 
     @staticmethod
     def _should_skip(

@@ -17,6 +17,10 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from aioesphomeapi import EntityInfo
+
+from homey_esphomedriver.entities.commands.generic import WRITABLE_DOMAINS
+
 _LOGGER = logging.getLogger(__name__)
 
 SETTING_TYPE_DOMAINS: Mapping[str, str] = {
@@ -94,3 +98,56 @@ def _walk_settings(settings: object) -> Iterable[Mapping[str, Any]]:
             yield from _walk_settings(setting.get("children"))
         else:
             yield setting
+
+
+def writable_domain(entity: EntityInfo) -> str | None:
+    """Domain of an entity a setting can write, or ``None``."""
+    for domain, writable in WRITABLE_DOMAINS.items():
+        if isinstance(entity, writable.info):
+            return domain
+    return None
+
+
+def bind_setting_entities(
+    entities: Iterable[EntityInfo],
+    setting_entities: Mapping[str, SettingEntity],
+) -> dict[str, dict[str, Any]]:
+    """Resolve each linked setting to the entity key and domain on this node.
+
+    Keys are stored once and reused, like capability options store theirs, so
+    bindings are rebuilt wherever entities are listed: pairing, Refresh, and a
+    firmware rebuild. A missing entity or one whose domain does not fit the
+    setting type is logged and left unbound; the setting then only saves in
+    Homey.
+
+    Returns:
+        Setting id to ``{"key": int, "domain": str}``, ready for the store.
+    """
+    by_object_id: dict[str, EntityInfo] = {}
+    for entity in entities:
+        by_object_id.setdefault(entity.object_id, entity)
+
+    bindings: dict[str, dict[str, Any]] = {}
+    for setting_id, target in setting_entities.items():
+        entity = by_object_id.get(target.object_id)
+        if entity is None:
+            _LOGGER.warning(
+                "Setting %r maps to entity %r, which this node does not have",
+                setting_id,
+                target.object_id,
+            )
+            continue
+        domain = writable_domain(entity)
+        wanted = SETTING_TYPE_DOMAINS[target.setting_type]
+        if domain != wanted:
+            _LOGGER.warning(
+                "Setting %r is a %s field but entity %r is a %s, not a %s",
+                setting_id,
+                target.setting_type,
+                target.object_id,
+                type(entity).__name__,
+                wanted,
+            )
+            continue
+        bindings[setting_id] = {"key": entity.key, "domain": domain}
+    return bindings

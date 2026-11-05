@@ -6,7 +6,13 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from aioesphomeapi import ClimateMode
+from aioesphomeapi import (
+    ClimateMode,
+    EntityInfo,
+    NumberInfo,
+    SelectInfo,
+    SwitchInfo,
+)
 
 from homey_esphomedriver.entities.commands.base import AbstractEntityCommandHandler
 
@@ -18,6 +24,9 @@ if TYPE_CHECKING:
 class WritableDomain:
     """An ESPHome entity domain Homey writes values to."""
 
+    info: type[EntityInfo]
+    """Entity info type that identifies an entity of this domain."""
+
     command: str
     """Native API client method that writes an entity of this domain."""
 
@@ -26,9 +35,9 @@ class WritableDomain:
 
 
 WRITABLE_DOMAINS: Mapping[str, WritableDomain] = {
-    "number": WritableDomain(command="number_command", coerce=float),
-    "select": WritableDomain(command="select_command", coerce=str),
-    "switch": WritableDomain(command="switch_command", coerce=bool),
+    "number": WritableDomain(info=NumberInfo, command="number_command", coerce=float),
+    "select": WritableDomain(info=SelectInfo, command="select_command", coerce=str),
+    "switch": WritableDomain(info=SwitchInfo, command="switch_command", coerce=bool),
 }
 """The entity domains Homey writes, by domain name.
 
