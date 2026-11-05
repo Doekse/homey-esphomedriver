@@ -93,7 +93,11 @@
       "not_ready": "Das Gerät ist noch nicht bereit für die Wi-Fi-Einrichtung.",
       "ssid_too_long": "SSID oder Passwort ist zu lang",
       "invalid_value": "Improv-Gerät hat einen ungültigen Wert gesendet"
-    }
+    },
+    "setting_invalid": "Dieser Wert ist für das Gerät nicht gültig."
+  },
+  "settings": {
+    "applied_on_wake": "Gespeichert. Das Gerät schläft und erhält die neue Einstellung, sobald es das nächste Mal aufwacht."
   },
   "warnings": {
     "project_mismatch": "Das ESPHome-Projekt __project__ wird von dieser Homey-App nicht unterstützt."

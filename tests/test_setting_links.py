@@ -107,7 +107,12 @@ def test_missing_or_mistyped_entity_is_left_unbound() -> None:
         "reading": SettingEntity("reading", "number"),
     }
     reading = SensorInfo(object_id="reading", key=14, name="Reading")
-    assert bind_setting_entities([OFFSET, reading], links) == {}
+    # None records that each link was checked, so it is not looked up again.
+    assert bind_setting_entities([OFFSET, reading], links) == {
+        "offset": None,
+        "gone": None,
+        "reading": None,
+    }
 
 
 def test_pairing_stores_bindings_and_hides_the_entity() -> None:

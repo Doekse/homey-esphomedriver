@@ -93,7 +93,11 @@
       "not_ready": "Urządzenie nie jest jeszcze gotowe do konfiguracji Wi-Fi.",
       "ssid_too_long": "SSID lub hasło jest za długie",
       "invalid_value": "Urządzenie Improv wysłało nieprawidłową wartość"
-    }
+    },
+    "setting_invalid": "Ta wartość jest nieprawidłowa dla urządzenia."
+  },
+  "settings": {
+    "applied_on_wake": "Zapisano. Urządzenie jest uśpione i otrzyma nowe ustawienie, gdy się następnym razem wybudzi."
   },
   "warnings": {
     "project_mismatch": "Projekt ESPHome __project__ nie jest obsługiwany przez tę aplikację Homey."

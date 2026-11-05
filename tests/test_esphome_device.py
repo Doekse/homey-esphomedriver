@@ -9,7 +9,13 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aioesphomeapi import APIConnectionError, DeviceInfo, EntityInfo, SwitchInfo
+from aioesphomeapi import (
+    APIConnectionError,
+    DeviceInfo,
+    EntityInfo,
+    NumberInfo,
+    SwitchInfo,
+)
 
 from homey_esphomedriver.capabilities import DeviceCapabilityHandler, EntitySyncResult
 from homey_esphomedriver.entities.mapping import DeviceEntityMapper
@@ -17,6 +23,8 @@ from homey_esphomedriver.esphome_client import EspHomeClient, SessionState
 from homey_esphomedriver.esphome_device import EspHomeDevice, _notification_tasks
 from homey_esphomedriver.esphome_util import device_info_settings
 from homey_esphomedriver.profile import DEFAULT_BRAND_PROFILE, BrandProfile
+from homey_esphomedriver.settings import SettingEntitySync
+from homey_esphomedriver.settings.links import SettingEntity
 
 
 def _mapped(*entities: EntityInfo) -> tuple[list[str], dict[str, Any]]:
@@ -85,6 +93,7 @@ def _device(
     device.get_setting = lambda key: device._settings.get(key)  # type: ignore[method-assign]
     device.set_store_value = set_store_value  # type: ignore[method-assign]
     device.set_settings = set_settings  # type: ignore[method-assign]
+    device._setting_sync = SettingEntitySync(device)
     return device
 
 
@@ -107,7 +116,7 @@ async def _login(
         "192.0.2.1",
         on_connected=on_connected,
         on_disconnected=device._on_disconnected,
-        on_ready=device._sync_if_rebuilt,
+        on_ready=device._on_ready,
     )
     device._client = client
     client._on_state = AsyncMock()
@@ -348,3 +357,54 @@ def test_sync_if_rebuilt_skips_notification_when_disabled() -> None:
     asyncio.run(_finish_sync(device))
 
     device.homey.notifications.create_notification.assert_not_awaited()
+
+
+def test_rejected_linked_setting_applies_nothing_else() -> None:
+    """Homey keeps the old values of a rejected save, so nothing may change."""
+    device = _device(
+        store={"setting_entities": {"offset": {"key": 11, "domain": "number"}}},
+        profile=BrandProfile(
+            setting_entities={"offset": SettingEntity("temp_offset", "number")}
+        ),
+    )
+    device._capability_handler = SimpleNamespace(apply_category=AsyncMock())  # type: ignore[assignment]
+
+    with pytest.raises(ValueError, match="errors.setting_invalid"):
+        asyncio.run(
+            device.on_settings(
+                {},
+                {"offset": "abc", "show_diagnostics": True},
+                ("offset", "show_diagnostics"),
+            )
+        )
+
+    device._capability_handler.apply_category.assert_not_awaited()
+
+
+def test_ready_writes_settings_queued_while_the_node_slept() -> None:
+    """A deep-sleep node gets the settings saved while it slept as it wakes."""
+    offset = NumberInfo(object_id="temp_offset", key=11, name="Offset")
+    info = _info("build-1")
+    device = _device(
+        store={
+            "entities_build": "build-1",
+            "setting_entities": {"offset": {"key": 11, "domain": "number"}},
+            "pending_settings": {"offset": 1.5},
+        },
+        settings=dict(device_info_settings(info, host="192.0.2.1", encrypted=False)),
+        profile=BrandProfile(
+            setting_entities={"offset": SettingEntity("temp_offset", "number")}
+        ),
+    )
+
+    async def entities() -> tuple[list[EntityInfo], list[object]]:
+        return [offset], []
+
+    async def run() -> None:
+        client, _events = await _login(device, info, entities)
+        for _ in range(3):
+            await asyncio.sleep(0)
+        client.api.number_command.assert_called_once_with(11, 1.5)
+        assert device._store["pending_settings"] == {}
+
+    asyncio.run(run())

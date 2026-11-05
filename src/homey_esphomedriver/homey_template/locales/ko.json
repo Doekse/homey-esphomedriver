@@ -93,7 +93,11 @@
       "not_ready": "기기가 아직 Wi-Fi 설정을 할 준비가 되지 않았어요.",
       "ssid_too_long": "SSID 또는 비밀번호가 너무 길어요",
       "invalid_value": "Improv 기기가 잘못된 값을 보냈어요"
-    }
+    },
+    "setting_invalid": "이 값은 기기에 유효하지 않습니다."
+  },
+  "settings": {
+    "applied_on_wake": "저장되었습니다. 기기가 절전 상태이며 다음에 깨어날 때 새 설정이 적용됩니다."
   },
   "warnings": {
     "project_mismatch": "ESPHome 프로젝트 __project__는 이 Homey 앱에서 지원되지 않아요."

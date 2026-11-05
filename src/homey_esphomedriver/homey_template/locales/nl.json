@@ -93,7 +93,11 @@
       "not_ready": "Het apparaat is nog niet klaar voor de wifi-installatie.",
       "ssid_too_long": "SSID of wachtwoord is te lang",
       "invalid_value": "Improv-apparaat stuurde een ongeldige waarde"
-    }
+    },
+    "setting_invalid": "Deze waarde is niet geldig voor het apparaat."
+  },
+  "settings": {
+    "applied_on_wake": "Opgeslagen. Het apparaat slaapt en krijgt de nieuwe instelling zodra het weer wakker wordt."
   },
   "warnings": {
     "project_mismatch": "ESPHome-project __project__ wordt niet ondersteund door deze Homey-app."

@@ -32,6 +32,7 @@ from homey_esphomedriver.entities.commands import DeviceEntityCommandHandler
 from homey_esphomedriver.entities.mapping import DeviceEntityMapper
 from homey_esphomedriver.entities.state import DeviceEntityStateHandler
 from homey_esphomedriver.profile import DEFAULT_BRAND_PROFILE
+from homey_esphomedriver.settings import SettingEntitySync
 
 
 def test_capability_base() -> None:
@@ -320,6 +321,7 @@ def _handler(
         set_class=AsyncMock(),
         _require_client=lambda: client,
     )
+    device._setting_sync = SettingEntitySync(device)
     return DeviceCapabilityHandler(device), device, saved, writes
 
 

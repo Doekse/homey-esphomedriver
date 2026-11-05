@@ -111,7 +111,7 @@ def writable_domain(entity: EntityInfo) -> str | None:
 def bind_setting_entities(
     entities: Iterable[EntityInfo],
     setting_entities: Mapping[str, SettingEntity],
-) -> dict[str, dict[str, Any]]:
+) -> dict[str, dict[str, Any] | None]:
     """Resolve each linked setting to the entity key and domain on this node.
 
     Keys are stored once and reused, like capability options store theirs, so
@@ -122,13 +122,17 @@ def bind_setting_entities(
 
     Returns:
         Setting id to ``{"key": int, "domain": str}``, ready for the store.
+        An unbound setting maps to ``None``, recording that it was checked
+        against these entities, so it is not looked up again until they are
+        listed anew.
     """
     by_object_id: dict[str, EntityInfo] = {}
     for entity in entities:
         by_object_id.setdefault(entity.object_id, entity)
 
-    bindings: dict[str, dict[str, Any]] = {}
+    bindings: dict[str, dict[str, Any] | None] = {}
     for setting_id, target in setting_entities.items():
+        bindings[setting_id] = None
         entity = by_object_id.get(target.object_id)
         if entity is None:
             _LOGGER.warning(

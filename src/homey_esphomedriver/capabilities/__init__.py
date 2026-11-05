@@ -64,6 +64,9 @@ class DeviceCapabilityHandler:
                 device._capabilities_options, scratch["capabilitiesOptions"]
             )
             await self._apply_capability_refresh(entities, to_remove, to_add, to_update)
+            await device._setting_sync.update_bindings(
+                scratch["store"].get("setting_entities")
+            )
             mapped_class = scratch.get("class")
             if mapped_class and device.get_setting("device_class") == "auto":
                 await device.set_store_value("auto_class", mapped_class)
@@ -88,6 +91,9 @@ class DeviceCapabilityHandler:
                 for capability_id in to_remove
             ]
             await self._apply_capability_refresh(entities, to_remove, to_add, to_update)
+            await device._setting_sync.update_bindings(
+                scratch["store"].get("setting_entities")
+            )
             await self._store_entities_build(build)
             return EntitySyncResult(
                 added=[capability_id for capability_id, _options in to_add],

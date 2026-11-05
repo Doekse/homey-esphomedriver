@@ -93,7 +93,11 @@
       "not_ready": "Enheten er ikke klar for Wi-Fi-oppsett ennå.",
       "ssid_too_long": "SSID eller passord er for langt",
       "invalid_value": "Improv-enheten sendte en ugyldig verdi"
-    }
+    },
+    "setting_invalid": "Denne verdien er ikke gyldig for enheten."
+  },
+  "settings": {
+    "applied_on_wake": "Lagret. Enheten sover og får den nye innstillingen neste gang den våkner."
   },
   "warnings": {
     "project_mismatch": "ESPHome-prosjektet __project__ støttes ikke av denne Homey-appen."

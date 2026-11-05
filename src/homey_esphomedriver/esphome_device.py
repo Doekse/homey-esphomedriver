@@ -8,7 +8,7 @@ persist + reconnect; entity I/O lives on the handlers.
 from __future__ import annotations
 
 import asyncio
-from typing import cast
+from typing import Any, cast
 
 from aioesphomeapi import (
     DeviceInfo,
@@ -34,6 +34,7 @@ from homey_esphomedriver.esphome_util import (
 )
 from homey_esphomedriver.notifications import notify_entities_changed
 from homey_esphomedriver.profile import BrandProfile
+from homey_esphomedriver.settings import SettingEntitySync
 
 # The event loop keeps only a weak reference to scheduled tasks.
 _notification_tasks: set[asyncio.Task[None]] = set()
@@ -59,6 +60,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
     _mac: str
     _capability_handler: DeviceCapabilityHandler
     _commands: DeviceEntityCommandHandler
+    _setting_sync: SettingEntitySync
     _state_handler: DeviceEntityStateHandler
 
     @property
@@ -85,6 +87,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
         self._state_handler = DeviceEntityStateHandler(self)
         self._commands = DeviceEntityCommandHandler(self)
         self._capability_handler = DeviceCapabilityHandler(self)
+        self._setting_sync = SettingEntitySync(self)
 
         device_class = self.get_setting("device_class")
         if device_class != "auto":
@@ -119,6 +122,19 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
         Do not override :meth:`on_uninit`.
         """
+
+    def setting_to_entity(self, setting_id: str, value: Any) -> Any:
+        """Brand hook converting a saved setting into its entity's value.
+
+        Override for unit scaling, or for dropdown ids that differ from the
+        select's option strings.
+
+        Args:
+            setting_id: Setting linked through ``settings[].esphome.entity``.
+            value: Value Homey saved.
+        """
+        del setting_id
+        return value
 
     async def on_uninit(self) -> None:
         """Stop the API session and release state handlers.
@@ -175,9 +191,16 @@ class EspHomeDevice(Device[EspHomeDriver]):
         new_settings: dict[str, bool | float | str | None],
         changed_keys: tuple[str, ...],
     ) -> str | None:
-        """Apply device-class override and diagnostic/configuration toggles."""
+        """Apply device-class override, category toggles and linked settings.
+
+        Settings linked to an entity are written to the node. An invalid value,
+        or a node that is offline and not a deep-sleep node, rejects the save.
+        """
         del old_settings
 
+        # Linked settings first: they can reject the save, and Homey then keeps
+        # the old values, so nothing else may have been applied yet.
+        message = await self._setting_sync.on_settings(new_settings, changed_keys)
         if "device_class" in changed_keys:
             await self._apply_device_class_setting(str(new_settings["device_class"]))
         if "show_diagnostics" in changed_keys:
@@ -192,7 +215,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
                 EntityCategory.CONFIG,
                 "configuration_capabilities",
             )
-        return None
+        return message
 
     async def apply_connection(
         self,
@@ -239,7 +262,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
             on_connected=self._on_connected,
             on_disconnected=self._on_disconnected,
             on_connect_error=self._on_connect_error,
-            on_ready=self._sync_if_rebuilt,
+            on_ready=self._on_ready,
         )
         await self._client.start(self._state_handler.handle_state)
 
@@ -302,6 +325,15 @@ class EspHomeDevice(Device[EspHomeDriver]):
         await self.set_available()
         self._schedule_project_warning(device_info, accepted=accepted)
         await self.on_esphome_connected(client)
+
+    async def _on_ready(self) -> None:
+        """The session accepts commands: send queued settings, then sync."""
+        # Queued settings first: a deep-sleep node may not stay awake for long.
+        await self._setting_sync.flush_pending()
+        await self._sync_if_rebuilt()
+        client = self._client
+        if client is not None and client.available:
+            await self._setting_sync.ensure_bindings(client)
 
     async def _sync_if_rebuilt(self) -> None:
         build = self._pending_build
