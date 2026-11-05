@@ -9,6 +9,7 @@ from aioesphomeapi import Event, SwitchState
 
 from homey_esphomedriver.entities.state.climate import ClimateEntityStateUpdateHandler
 from homey_esphomedriver.entities.state.event import EventEntityStateUpdateHandler
+from homey_esphomedriver.entities.state.sensor import SensorEntityStateUpdateHandler
 from homey_esphomedriver.entities.state.switch import SwitchEntityStateUpdateHandler
 from homey_esphomedriver.entities.state.water_heater import (
     WaterHeaterEntityStateUpdateHandler,
@@ -97,6 +98,39 @@ def test_event_triggers_flow_then_schedules_idle() -> None:
             ("set", "event_button.front", "single_press"),
             ("trigger", "event_button.front", "Single Press"),
             ("idle", 1000),
+        ]
+
+    asyncio.run(run())
+
+
+def test_missing_state_writes_unknown_without_flow_trigger() -> None:
+    """Going unknown (None) is written but fires no sub-capability Flow card."""
+    calls: list[tuple[object, ...]] = []
+
+    class _Flow:
+        async def trigger_subcapability(
+            self, device: object, capability: str, value: object
+        ) -> None:
+            calls.append(("trigger", capability, value))
+
+    class _SubDevice:
+        driver = SimpleNamespace(_flow=_Flow())
+
+        async def set_capability_value(self, capability: str, value: object) -> None:
+            calls.append(("set", capability, value))
+
+    async def run() -> None:
+        handler = SensorEntityStateUpdateHandler(_SubDevice())
+        await handler._set_capability_value_and_trigger(
+            "esphome_number.humidex", None, 21.5
+        )
+        await handler._set_capability_value_and_trigger(
+            "esphome_number.humidex", 22.0, None
+        )
+        assert calls == [
+            ("set", "esphome_number.humidex", None),
+            ("set", "esphome_number.humidex", 22.0),
+            ("trigger", "esphome_number.humidex", 22.0),
         ]
 
     asyncio.run(run())

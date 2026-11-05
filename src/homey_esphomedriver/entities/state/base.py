@@ -68,7 +68,8 @@ class AbstractEntityStateUpdateHandler:
         previous: Any,
     ) -> None:
         await self.device.set_capability_value(capability_id, value)
-        if previous == value:
+        # None is a missing state (no reading yet, or NaN): unknown, not a change.
+        if value is None or previous == value:
             return
         await self._flow.trigger_subcapability(self.device, capability_id, value)
 
