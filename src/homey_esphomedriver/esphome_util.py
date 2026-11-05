@@ -5,6 +5,7 @@ from __future__ import annotations
 import functools
 import json
 import logging
+import math
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from datetime import datetime
 from pathlib import Path
@@ -90,6 +91,11 @@ def is_debug_enabled() -> bool:
 
     value = Homey.env.get("DEBUG")
     return isinstance(value, str) and value.strip().lower() in _DEBUG_TRUE
+
+
+def is_missing_number(value: float) -> bool:
+    """ESPHome may leave NaN (or a filter may yield Infinity) for no value."""
+    return not math.isfinite(value)
 
 
 def debug_log(log: Callable[..., None], *args: object) -> None:

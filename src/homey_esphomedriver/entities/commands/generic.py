@@ -2,11 +2,52 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
 from aioesphomeapi import ClimateMode
 
 from homey_esphomedriver.entities.commands.base import AbstractEntityCommandHandler
+
+if TYPE_CHECKING:
+    from homey_esphomedriver.esphome_client import EspHomeClient
+
+
+@dataclass(frozen=True, slots=True)
+class WritableDomain:
+    """An ESPHome entity domain Homey writes values to."""
+
+    command: str
+    """Native API client method that writes an entity of this domain."""
+
+    coerce: Callable[[Any], Any]
+    """Turns a Homey value into what :attr:`command` takes."""
+
+
+WRITABLE_DOMAINS: Mapping[str, WritableDomain] = {
+    "number": WritableDomain(command="number_command", coerce=float),
+    "select": WritableDomain(command="select_command", coerce=str),
+    "switch": WritableDomain(command="switch_command", coerce=bool),
+}
+"""The entity domains Homey writes, by domain name.
+
+The one table for these domains: the capability listeners and settings-page
+fields backed by an entity both write through it, so they cannot drift.
+"""
+
+
+def write_entity_value(
+    client: EspHomeClient, domain: str, key: int, value: Any
+) -> None:
+    """Send ``value`` to the entity ``key`` of ``domain``.
+
+    Raises:
+        KeyError: If Homey does not write entities of ``domain``.
+        TypeError, ValueError: If the value cannot be coerced for the domain.
+    """
+    writable = WRITABLE_DOMAINS[domain]
+    client.command(writable.command, key, writable.coerce(value))
 
 
 class GenericEntityCommandHandler(AbstractEntityCommandHandler):
@@ -55,7 +96,7 @@ class GenericEntityCommandHandler(AbstractEntityCommandHandler):
             client.command("siren_command", key, state=bool(value))
             return
         if entity_type == "switch":
-            client.command("switch_command", key, bool(value))
+            write_entity_value(client, "switch", key, value)
             return
 
         raise ValueError(f"Unsupported entity type for onoff: {entity_type}")
@@ -72,10 +113,11 @@ class GenericEntityCommandHandler(AbstractEntityCommandHandler):
         capability_id: str,
         **_kwargs: Any,
     ) -> None:
-        self._require_client().command(
-            "number_command",
+        write_entity_value(
+            self._require_client(),
+            "number",
             self._get_entity_key(capability_id),
-            float(value),
+            value,
         )
 
     async def select(
@@ -85,8 +127,9 @@ class GenericEntityCommandHandler(AbstractEntityCommandHandler):
         capability_id: str,
         **_kwargs: Any,
     ) -> None:
-        self._require_client().command(
-            "select_command",
+        write_entity_value(
+            self._require_client(),
+            "select",
             self._get_entity_key(capability_id),
-            str(value),
+            value,
         )

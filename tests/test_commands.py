@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 from homey_esphomedriver.entities.commands import DeviceEntityCommandHandler
+from homey_esphomedriver.entities.commands.generic import (
+    WRITABLE_DOMAINS,
+    write_entity_value,
+)
 
 
 class _Device:
@@ -55,3 +61,15 @@ def test_hue_saturation_multi_listener_registers_once_when_added() -> None:
     commands.register_multi_listeners(added)
 
     assert device.multi == [["light_hue", "light_saturation"]]
+
+
+def test_each_writable_domain_has_its_own_command() -> None:
+    """Writing every entity as a number sends a dropdown a float it rejects."""
+    assert {domain: spec.command for domain, spec in WRITABLE_DOMAINS.items()} == {
+        "number": "number_command",
+        "select": "select_command",
+        "switch": "switch_command",
+    }
+    client = MagicMock()
+    write_entity_value(client, "number", 7, "21.5")
+    client.command.assert_called_once_with("number_command", 7, 21.5)
