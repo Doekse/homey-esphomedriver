@@ -13,7 +13,7 @@ from homey_esphomedriver.esphome_util import format_date, format_timestamp
 
 
 class TextSensorEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         capability = capabilities[0]
         text = cast(TextSensorState, state)
         if text.missing_state:

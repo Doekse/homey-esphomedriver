@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Only write the Device Information settings on login when a value changed, instead of a Homey settings round-trip on every reconnect and deep-sleep wake.
 - Only write the address, port and hostname to the device store and settings when discovery reports a different value, instead of four Homey round-trips per device on every app start.
 - Feed newly discovered IPs into the running Native API client instead of tearing down the session on every mDNS address change.
+- Apply each ESPHome entity state inline instead of scheduling an asyncio task per state, so states for hidden entities cost a dict lookup and mapped states skip a task hop. Entity state handlers' `handle()` is now synchronous; start a task for any awaited work.
 - Require aioesphomeapi 46.25.0. Each device no longer starts its own zeroconf (mDNS) stack after a failed connect; Homey's discovery events now kick a pending connect via `notify_device_seen()`, which also stops each sighting from resetting the reconnect backoff.
 
 ### Fixed

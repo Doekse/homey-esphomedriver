@@ -16,7 +16,7 @@ from homey_esphomedriver.entities.state.base import (
 
 
 class AlarmControlPanelEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         panel = cast(AlarmControlPanelEntityState, state)
 
         new_state: str | None = None

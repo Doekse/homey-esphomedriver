@@ -13,7 +13,7 @@ from homey_esphomedriver.entities.state.base import (
 
 
 class NumberEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         capability = capabilities[0]
         number = cast(NumberState, state)
         if number.missing_state or _is_missing_number(number.state):

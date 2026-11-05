@@ -20,7 +20,7 @@ _INVERTED_CAPABILITIES = [
 
 
 class BinarySensorEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         capability = capabilities[0]
         binary = cast(BinarySensorState, state)
         if binary.missing_state:

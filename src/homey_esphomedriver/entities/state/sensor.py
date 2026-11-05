@@ -15,7 +15,7 @@ from homey_esphomedriver.units import convert_units
 
 
 class SensorEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         capability = capabilities[0]
         sensor = cast(SensorState, state)
         if sensor.missing_state or _is_missing_number(sensor.state):

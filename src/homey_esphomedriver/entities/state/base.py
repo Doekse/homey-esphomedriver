@@ -21,8 +21,11 @@ class AbstractEntityStateUpdateHandler:
     def __init__(self, device: Device) -> None:
         self.device = device
 
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         """Apply ``state`` to the Homey capabilities bound to this entity.
+
+        Runs inside the Native API read callback, so it must not block. Start
+        a task for any awaited work.
 
         Args:
             state: Latest Native API entity state.

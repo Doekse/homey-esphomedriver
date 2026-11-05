@@ -12,7 +12,7 @@ from homey_esphomedriver.entities.state.base import (
 
 
 class SelectEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         capability = capabilities[0]
         select = cast(SelectState, state)
         if select.missing_state:

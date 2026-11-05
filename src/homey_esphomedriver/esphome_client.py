@@ -43,7 +43,7 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_API_PORT = 6053
 """ESPHome native API port used when discovery omits it."""
 
-StateCallback = Callable[[EntityState], Awaitable[None]]
+StateCallback = Callable[[EntityState], None]
 DebugCallback = Callable[..., None]
 
 
@@ -155,7 +155,8 @@ class EspHomeClient:
         """Start ReconnectLogic and keep the node connected at runtime.
 
         Args:
-            on_state: Async callback for subscribed entity states.
+            on_state: Sync callback for subscribed entity states. It runs in
+                the Native API read callback, so it must not block.
         """
         if self._reconnect is not None:
             return
@@ -261,16 +262,12 @@ class EspHomeClient:
             _LOGGER.exception("Error handling ESPHome session ready")
 
     def _dispatch_state(self, state: EntityState) -> None:
-        """``subscribe_states`` is sync; hop so Homey capability writes can await."""
+        """Call ``on_state`` inline; handlers start their own Homey write tasks."""
         on_state = self._on_state
         if on_state is None:
             return
-        asyncio.ensure_future(self._emit_state(on_state, state))
-
-    async def _emit_state(self, on_state: StateCallback, state: EntityState) -> None:
-        """Log ``on_state`` failures so they are not unretrieved task exceptions."""
         try:
-            await on_state(state)
+            on_state(state)
         except Exception:
             _LOGGER.exception("Error handling ESPHome entity state")
 

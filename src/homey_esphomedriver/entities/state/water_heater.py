@@ -28,7 +28,7 @@ _MODE_TO_HOMEY = {
 
 
 class WaterHeaterEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         heater = cast(WaterHeaterState, state)
         if getattr(heater, "missing_state", False):
             for capability in capabilities:

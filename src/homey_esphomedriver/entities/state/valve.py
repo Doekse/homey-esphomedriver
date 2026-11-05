@@ -12,7 +12,7 @@ from homey_esphomedriver.entities.state.base import (
 
 
 class ValveEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         valve = cast(ValveState, state)
 
         onoff_id = self.find_capability(capabilities, "onoff")

@@ -12,7 +12,7 @@ from homey_esphomedriver.entities.state.base import (
 
 
 class LockEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         lock = cast(LockEntityState, state)
 
         locked_id = self.find_capability(capabilities, "locked")

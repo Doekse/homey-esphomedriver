@@ -5,9 +5,10 @@ from __future__ import annotations
 import asyncio
 from types import SimpleNamespace
 
-from aioesphomeapi import SwitchState
+from aioesphomeapi import Event, SwitchState
 
 from homey_esphomedriver.entities.state.climate import ClimateEntityStateUpdateHandler
+from homey_esphomedriver.entities.state.event import EventEntityStateUpdateHandler
 from homey_esphomedriver.entities.state.switch import SwitchEntityStateUpdateHandler
 from homey_esphomedriver.entities.state.water_heater import (
     WaterHeaterEntityStateUpdateHandler,
@@ -23,7 +24,7 @@ async def _writes(
 ) -> list[tuple[str, object]]:
     writes: list[tuple[str, object]] = []
     handler.set_capability_value = lambda cap, val: writes.append((cap, val))  # type: ignore[attr-defined]
-    await handler.handle(state, capabilities)  # type: ignore[attr-defined]
+    handler.handle(state, capabilities)  # type: ignore[attr-defined]
     return writes
 
 
@@ -57,5 +58,45 @@ def test_missing_state_clears_switch_climate_water_heater() -> None:
             SwitchState(key=1, state=True),
             ["onoff"],
         ) == [("onoff", True)]
+
+    asyncio.run(run())
+
+
+def test_event_triggers_flow_then_schedules_idle() -> None:
+    """Event handling stays sync; the Flow trigger runs before the idle timer."""
+    calls: list[tuple[object, ...]] = []
+
+    class _Flow:
+        async def trigger_event(
+            self, device: object, capability: str, value: object = None
+        ) -> None:
+            calls.append(("trigger", capability, value))
+
+    class _Homey:
+        def set_timeout(self, callback: object, ms: int) -> int:
+            calls.append(("idle", ms))
+            return 1
+
+        def clear_timeout(self, timeout_id: int) -> None:
+            pass
+
+    class _EventDevice:
+        driver = SimpleNamespace(_flow=_Flow())
+        homey = _Homey()
+
+        async def set_capability_value(self, capability: str, value: object) -> None:
+            calls.append(("set", capability, value))
+
+    async def run() -> None:
+        handler = EventEntityStateUpdateHandler(_EventDevice())
+        handler.handle(Event(key=1, event_type="single_press"), ["event_button.front"])
+        assert calls == []
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
+        assert calls == [
+            ("set", "event_button.front", "single_press"),
+            ("trigger", "event_button.front", "Single Press"),
+            ("idle", 1000),
+        ]
 
     asyncio.run(run())

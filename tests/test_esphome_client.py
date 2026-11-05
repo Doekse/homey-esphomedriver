@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import logging
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -439,19 +440,25 @@ def test_stop_cancels_on_ready() -> None:
     asyncio.run(run())
 
 
-def test_async_on_state_is_invoked() -> None:
-    """The sync ``subscribe_states`` hop invokes the async ``on_state`` callback."""
+def test_on_state_is_invoked_inline() -> None:
+    """``subscribe_states`` delivers to ``on_state`` without a task hop."""
     received: list[EntityState] = []
+    client = _client()
+    client._on_state = received.append
+    client._dispatch_state(EntityState(key=7))
+    assert [state.key for state in received] == [7]
 
-    async def on_state(state: EntityState) -> None:
-        received.append(state)
 
-    async def run() -> None:
-        client = _client()
-        client._on_state = on_state
+def test_on_state_error_is_logged_not_raised(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A handler bug must not propagate into aioesphomeapi's read callback."""
+
+    def on_state(state: EntityState) -> None:
+        raise ValueError("boom")
+
+    client = _client()
+    client._on_state = on_state
+    with caplog.at_level(logging.ERROR):
         client._dispatch_state(EntityState(key=7))
-        await asyncio.sleep(0)
-        assert len(received) == 1
-        assert received[0].key == 7
-
-    asyncio.run(run())
+    assert "Error handling ESPHome entity state" in caplog.text

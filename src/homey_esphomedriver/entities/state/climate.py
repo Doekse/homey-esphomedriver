@@ -54,7 +54,7 @@ _PRESET = {
 
 
 class ClimateEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         climate = cast(ClimateState, state)
         if getattr(climate, "missing_state", False):
             for capability in capabilities:
