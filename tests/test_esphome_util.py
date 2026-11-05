@@ -32,6 +32,7 @@ from aioesphomeapi.core import APIConnectionError, TimeoutAPIError
 import homey_esphomedriver.esphome_util as esphome_util
 from homey_esphomedriver.esphome_util import (
     attach_library_logs,
+    changed_values,
     debug_log,
     device_info_settings,
     error_key,
@@ -191,6 +192,17 @@ def test_device_info_settings_blanks_webserver_when_not_exposed() -> None:
     settings = device_info_settings(DeviceInfo(), host="10.0.0.5", encrypted=False)
     assert settings["webserver"] == ""
     assert settings["deep_sleep"] == "No"
+
+
+def test_changed_values_keeps_only_differing_entries() -> None:
+    current = {"model": "ESP32", "deep_sleep": "No", "port": 6053}
+    values = {"model": "ESP32", "deep_sleep": "Yes", "port": 6053, "mac": "aa"}
+    assert changed_values(current, values) == {"deep_sleep": "Yes", "mac": "aa"}
+
+
+def test_changed_values_empty_when_nothing_changed() -> None:
+    values = {"host": "10.0.0.5", "port": "6053"}
+    assert changed_values(dict(values), values) == {}
 
 
 @pytest.mark.parametrize(

@@ -27,6 +27,7 @@ from homey_esphomedriver.esphome_client import (
 )
 from homey_esphomedriver.esphome_driver import EspHomeDriver
 from homey_esphomedriver.esphome_util import (
+    changed_values,
     device_info_settings,
     error_key,
     normalize_mac,
@@ -267,13 +268,16 @@ class EspHomeDevice(Device[EspHomeDriver]):
     async def _on_connected(self, device_info: DeviceInfo) -> None:
         client = cast(EspHomeClient, self._client)
         has_encryption = bool(str(self.get_store().get("noise_psk") or "").strip())
-        await self.set_settings(
+        settings = changed_values(
+            self.get_settings(),
             device_info_settings(
                 device_info,
                 host=client.host,
                 encrypted=has_encryption,
-            )
+            ),
         )
+        if settings:
+            await self.set_settings(settings)
         await self.set_available()
 
         native_app_suggestion = self.brand_profile.native_app_suggestion(

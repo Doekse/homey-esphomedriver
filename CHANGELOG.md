@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Only write the Device Information settings on login when a value changed, instead of a Homey settings round-trip on every reconnect and deep-sleep wake.
 - Feed newly discovered IPs into the running Native API client instead of tearing down the session on every mDNS address change.
 - Require aioesphomeapi 46.25.0. Each device no longer starts its own zeroconf (mDNS) stack after a failed connect; Homey's discovery events now kick a pending connect via `notify_device_seen()`, which also stops each sighting from resetting the reconnect backoff.
 
