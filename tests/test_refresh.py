@@ -344,6 +344,7 @@ def test_sync_entities_keeps_base_change_and_records_build() -> None:
 
     assert result.added == []
     assert result.removed == []
+    assert result.removed_titles == []
     assert "onoff" in device._capabilities
     assert not any(
         capability.startswith("measure_temperature")
@@ -352,6 +353,38 @@ def test_sync_entities_keeps_base_change_and_records_build() -> None:
     device.set_class.assert_not_awaited()
     assert saved["entities_build"] == "new"
     assert writes[-1] == ("entities_build", "new")
+
+
+def test_sync_entities_captures_removed_titles_before_removal() -> None:
+    """Titles are read before removal deletes the capability options."""
+    options = {
+        "onoff.relay": {"key": 1, "title": "Relay"},
+        "measure_temperature": {"key": 2},
+        "sensor.localized": {
+            "key": 3,
+            "title": {"en": "Localized", "nl": "Gelokaliseerd"},
+        },
+        "onoff.nl_only": {"key": 4, "title": {"nl": "Alleen"}},
+        "onoff.blank": {"key": 5, "title": ""},
+    }
+    handler, device, _saved, _writes = _handler(
+        [],
+        capabilities=list(options),
+        options=options,
+        store={"entities_build": "old"},
+    )
+
+    result = asyncio.run(handler.sync_entities("new"))
+
+    assert result.removed == list(options)
+    assert result.removed_titles == [
+        "Relay",
+        "measure_temperature",
+        "Localized",
+        "onoff.nl_only",
+        "onoff.blank",
+    ]
+    assert device._capabilities_options == {}
 
 
 def test_sync_entities_leaves_build_when_listing_fails() -> None:

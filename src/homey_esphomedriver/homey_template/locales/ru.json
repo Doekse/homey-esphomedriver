@@ -98,5 +98,9 @@
   "warnings": {
     "project_mismatch": "Проект ESPHome __project__ не поддерживается этим приложением Homey."
   },
+  "notifications": {
+    "entities_changed": "У __device__ новые сущности: __added__.",
+    "entities_changed_removed": "На __device__ добавлено __added__ и удалено __removed__. Возможно, стоит проверить свои Flows."
+  },
   "nativeAppSuggestion": "Хорошие новости! У этого устройства есть своё приложение! Ищите в Homey App Store __appName__."
 }

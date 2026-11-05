@@ -98,5 +98,9 @@
   "warnings": {
     "project_mismatch": "ESPHome-projektet __project__ stöds inte av den här Homey-appen."
   },
+  "notifications": {
+    "entities_changed": "__device__ har __added__ nya entiteter.",
+    "entities_changed_removed": "__device__ lade till __added__ entiteter och tog bort __removed__. Du kanske vill kolla dina Flows."
+  },
   "nativeAppSuggestion": "Goda nyheter! Denna enhet har en egen app! Sök i Homey App Store efter __appName__."
 }

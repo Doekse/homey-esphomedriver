@@ -11,10 +11,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aioesphomeapi import DeviceInfo, EntityInfo, SwitchInfo
 
-from homey_esphomedriver.capabilities import DeviceCapabilityHandler
+from homey_esphomedriver.capabilities import DeviceCapabilityHandler, EntitySyncResult
 from homey_esphomedriver.entities.mapping import DeviceEntityMapper
 from homey_esphomedriver.esphome_client import EspHomeClient, SessionState
-from homey_esphomedriver.esphome_device import EspHomeDevice
+from homey_esphomedriver.esphome_device import EspHomeDevice, _notification_tasks
 from homey_esphomedriver.esphome_util import device_info_settings
 from homey_esphomedriver.profile import DEFAULT_BRAND_PROFILE, BrandProfile
 
@@ -47,12 +47,14 @@ def _device(
     device._state_handler = SimpleNamespace(init=AsyncMock())
     device._capability_handler = DeviceCapabilityHandler(device)
     device.driver = SimpleNamespace(brand_profile=profile or DEFAULT_BRAND_PROFILE)
+    device._name = "node"
     device.timeouts: list[Any] = []
     device.warnings: list[str] = []
     device.store_writes: list[tuple[str, Any]] = []
     device.homey = SimpleNamespace(
         translate=lambda key, **tags: f"{key}:{next(iter(tags.values()), '')}",
         set_timeout=lambda callback, _ms: device.timeouts.append(callback),
+        notifications=SimpleNamespace(create_notification=AsyncMock()),
     )
     device.set_warning = AsyncMock(
         side_effect=lambda message: device.warnings.append(message)
@@ -274,3 +276,56 @@ def test_project_mismatch_keeps_native_app_warning() -> None:
         assert device.warnings == ["nativeAppSuggestion:Native App"]
 
     asyncio.run(run())
+
+
+def _arm_entity_sync(device: EspHomeDevice) -> None:
+    device._pending_build = "new"
+    device._capability_handler.sync_entities = AsyncMock(  # type: ignore[method-assign]
+        return_value=EntitySyncResult(
+            added=["onoff.pump"],
+            removed=["onoff.relay"],
+            removed_titles=["Relay"],
+        )
+    )
+
+
+async def _finish_sync(device: EspHomeDevice) -> None:
+    await device._sync_if_rebuilt()
+    await asyncio.gather(*tuple(_notification_tasks))
+
+
+def test_sync_if_rebuilt_logs_notification_failure() -> None:
+    """A timeline failure is logged and does not fail the firmware sync."""
+    device = _device()
+    error = RuntimeError("boom")
+    device.homey.notifications.create_notification = AsyncMock(side_effect=error)
+    _arm_entity_sync(device)
+
+    asyncio.run(_finish_sync(device))
+
+    device.error.assert_called_once_with(
+        "Failed to create entities changed notification:",
+        error,
+    )
+
+
+def test_sync_if_rebuilt_notifies_when_setting_missing() -> None:
+    """Devices paired before the checkbox existed stay opted in."""
+    device = _device()
+    assert device.get_setting("notify_entities_changed") is None
+    _arm_entity_sync(device)
+
+    asyncio.run(_finish_sync(device))
+
+    device.homey.notifications.create_notification.assert_awaited_once_with(
+        "notifications.entities_changed_removed:**node**"
+    )
+
+
+def test_sync_if_rebuilt_skips_notification_when_disabled() -> None:
+    device = _device(settings={"notify_entities_changed": False})
+    _arm_entity_sync(device)
+
+    asyncio.run(_finish_sync(device))
+
+    device.homey.notifications.create_notification.assert_not_awaited()

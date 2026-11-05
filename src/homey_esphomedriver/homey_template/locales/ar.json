@@ -98,5 +98,9 @@
   "warnings": {
     "project_mismatch": "مشروع ESPHome __project__ غير مدعوم في تطبيق Homey هذا."
   },
+  "notifications": {
+    "entities_changed": "لدى __device__ كيانات جديدة: __added__.",
+    "entities_changed_removed": "تغيّرت كيانات __device__: أُضيف __added__ وحُذف __removed__. ربما تود مراجعة Flows."
+  },
   "nativeAppSuggestion": "أخبار سارة! لهذا الجهاز تطبيق خاص به! ابحث في Homey App Store عن __appName__."
 }

@@ -32,7 +32,11 @@ from homey_esphomedriver.esphome_util import (
     error_key,
     normalize_mac,
 )
+from homey_esphomedriver.notifications import notify_entities_changed
 from homey_esphomedriver.profile import BrandProfile
+
+# The event loop keeps only a weak reference to scheduled tasks.
+_notification_tasks: set[asyncio.Task[None]] = set()
 
 
 class EspHomeDevice(Device[EspHomeDriver]):
@@ -309,6 +313,22 @@ class EspHomeDevice(Device[EspHomeDriver]):
             f"Synced capabilities for firmware {build}: "
             f"added {result.added}, removed {result.removed}"
         )
+
+        async def post() -> None:
+            try:
+                await notify_entities_changed(
+                    homey=self.homey,
+                    device_name=self.get_name(),
+                    added=result.added,
+                    removed=result.removed_titles,
+                    enabled=self.get_setting("notify_entities_changed") is not False,
+                )
+            except Exception as error:
+                self.error("Failed to create entities changed notification:", error)
+
+        task = asyncio.create_task(post())
+        _notification_tasks.add(task)
+        task.add_done_callback(_notification_tasks.discard)
 
     async def _ensure_entities_build(self, build: str) -> str:
         """Return the stored build, seeding a missing key from the old setting.

@@ -30,10 +30,11 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True, slots=True)
 class EntitySyncResult:
-    """Capability ids added and removed for entities that appeared or vanished."""
+    """Capability ids added and removed, plus titles captured before removal."""
 
     added: list[str]
     removed: list[str]
+    removed_titles: list[str]
 
 
 class DeviceCapabilityHandler:
@@ -55,6 +56,7 @@ class DeviceCapabilityHandler:
 
     async def refresh(self, _value: Any = True, **_kwargs: Any) -> None:
         """Add/remove capabilities from a live remap; keep unchanged Homey ids."""
+        # No timeline notification: the user pressed Refresh themselves.
         async with self._lock:
             device = self._device
             entities, scratch = await self._list_mapped_entities()
@@ -80,11 +82,17 @@ class DeviceCapabilityHandler:
             to_remove, to_add, to_update = plan_appeared_and_gone(
                 current, {entity.key for entity in entities}, plan
             )
+            # Removal deletes the options, and the title with them.
+            removed_titles = [
+                _removed_title(current.get(capability_id), capability_id)
+                for capability_id in to_remove
+            ]
             await self._apply_capability_refresh(entities, to_remove, to_add, to_update)
             await self._store_entities_build(build)
             return EntitySyncResult(
                 added=[capability_id for capability_id, _options in to_add],
                 removed=list(to_remove),
+                removed_titles=removed_titles,
             )
 
     async def apply_category(
@@ -241,3 +249,15 @@ class DeviceCapabilityHandler:
         device = self._device
         if device.get_store().get("entities_build") != build:
             await device.set_store_value("entities_build", build)
+
+
+def _removed_title(stored: Any, capability_id: str) -> str:
+    """Return the stored title, or the capability id when it has none."""
+    title = stored.get("title") if isinstance(stored, dict) else None
+    if isinstance(title, str) and title:
+        return title
+    if isinstance(title, dict):
+        english = title.get("en")
+        if isinstance(english, str) and english:
+            return english
+    return capability_id

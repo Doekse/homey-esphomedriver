@@ -22,7 +22,8 @@ def _install_homey_stub() -> None:
         return
 
     class Device(Generic[_DriverT]):
-        pass
+        def get_name(self) -> str:
+            return self._name
 
     class Driver:
         pass

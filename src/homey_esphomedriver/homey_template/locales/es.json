@@ -98,5 +98,9 @@
   "warnings": {
     "project_mismatch": "El proyecto de ESPHome __project__ no es compatible con esta app de Homey."
   },
+  "notifications": {
+    "entities_changed": "__device__ tiene __added__ entidades nuevas.",
+    "entities_changed_removed": "__device__ añadió __added__ entidades y eliminó __removed__. Quizá quieras revisar tus Flows."
+  },
   "nativeAppSuggestion": "¡Buenas noticias! ¡Este dispositivo tiene su propia app! Busca en la Homey App Store por __appName__."
 }
