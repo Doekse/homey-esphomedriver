@@ -81,7 +81,7 @@ Product identity lives on the Homey driver like Zigbee `productId`: an `esphome`
 | `projects`             | `projects`                  | Exact ESPHome `project.name` this driver accepts |
 | `projectPrefix`        | `project_prefix`            | Prefix match such as `Brand.`                    |
 | `clientInfo`           | `client_info`               | Name shown on the node for this Homey client     |
-| `hiddenEntities`       | `hidden_entities`           | Hide extra entities (status LED, OTA helpers)    |
+| `hiddenEntities`       | `hidden_entities`           | Hide extra entities; `*`/`?`/`[` make a pattern  |
 | `deviceEntities`       | `device_entities`           | Remap an entity to a Homey capability            |
 | `deviceClassOverrides` | `device_class_overrides`    | Force Homey class from an entity id              |
 
