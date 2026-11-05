@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-05
+
 ### Added
 
 - Post a timeline notification when an automatic firmware sync adds or removes entities, so you can check your Flows. Devices paired before the checkbox existed stay opted in, and a manual Refresh does not notify.
@@ -22,12 +24,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Only write the address, port and hostname to the device store and settings when discovery reports a different value, instead of four Homey round-trips per device on every app start.
 - Feed newly discovered IPs into the running Native API client instead of tearing down the session on every mDNS address change.
 - Apply each ESPHome entity state inline instead of scheduling an asyncio task per state, so states for hidden entities cost a dict lookup and mapped states skip a task hop. Entity state handlers' `handle()` is now synchronous; start a task for any awaited work.
+- After a failed dial or an unexpected drop, wait for Homey discovery to see the node again instead of retrying the last stored IP, and log the failure as one line.
 - Require aioesphomeapi 46.25.0. Each device no longer starts its own zeroconf (mDNS) stack after a failed connect; Homey's discovery events now kick a pending connect via `notify_device_seen()`, which also stops each sighting from resetting the reconnect backoff.
+
+### Removed
+
+- `bootstrap.profile_constant()`, which nothing called.
 
 ### Fixed
 
 - Drop and reconnect the Native API session right away when Homey rediscovers a node that rebooted without a goodbye, instead of showing it available until the keepalive times out.
-- Treat unpublished ESPHome switch, climate, and water-heater state (and NaN readings) as unknown Homey values instead of off / 0 °C.
+- Treat unpublished ESPHome switch, climate, and water-heater state as unknown Homey values instead of off / 0 °C.
+- Write NaN and Infinity as unknown for every capability instead of sending them to Homey, where a climate entity reporting NaN before its first reading could crash the Homey SHS main process (#15).
+- Skip Flow triggers when an entity state goes unknown, instead of firing "turned false", sending "None", or raising on `float(None)`.
+- Mark a deep-sleep node unavailable after a failed dial or an unexpected drop; only a goodbye before sleep keeps it available.
 
 ## [0.4.1] - 2026-08-28
 
@@ -103,7 +113,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Brand product filters via the driver compose `esphome` object.
 - `esphome-homey sync` to copy Homey Compose templates into the app.
 
-[unreleased]: https://github.com/Doekse/homey-esphomedriver/compare/v0.4.1...HEAD
+[unreleased]: https://github.com/Doekse/homey-esphomedriver/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.5.0
 [0.4.1]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.4.1
 [0.4.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.3.0
