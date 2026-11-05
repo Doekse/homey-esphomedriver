@@ -29,9 +29,28 @@
     }
   },
   "repair": {
+    "maintenance": {
+      "title": "Wartung",
+      "subtitle": "Repariere das Gerät oder zeige den Verschlüsselungsschlüssel.",
+      "repair": "Gerät reparieren",
+      "repair_hint": "Ändere die IP-Adresse oder den Verschlüsselungsschlüssel",
+      "show_key": "Schlüssel anzeigen",
+      "show_key_hint": "Sieh dir den Verschlüsselungsschlüssel an oder kopiere ihn"
+    },
     "configure_manual": {
       "title": "Gerät reparieren",
       "subtitle": "Gib die IP-Adresse oder den Hostnamen dieses Geräts ein."
+    },
+    "show_key": {
+      "title": "Verschlüsselungsschlüssel",
+      "subtitle": "Kopiere diesen Schlüssel, wenn du das Gerät in einer anderen App hinzufügen möchtest.",
+      "label": "Verschlüsselungsschlüssel",
+      "not_set": "Nicht gesetzt",
+      "copy": "Schlüssel kopieren",
+      "copied": "Kopiert",
+      "show": "Schlüssel anzeigen",
+      "hide": "Schlüssel ausblenden",
+      "back": "Zurück"
     }
   },
   "errors": {
@@ -75,6 +94,14 @@
       "ssid_too_long": "SSID oder Passwort ist zu lang",
       "invalid_value": "Improv-Gerät hat einen ungültigen Wert gesendet"
     }
+  },
+  "warnings": {
+    "project_mismatch": "Das ESPHome-Projekt __project__ wird von dieser Homey-App nicht unterstützt."
+  },
+  "notifications": {
+    "entities_changed": "__device__ hat __added__ neue Entitäten.",
+    "entities_changed_removed": "__device__ hat __added__ Entitäten hinzugefügt und __removed__ entfernt. Vielleicht solltest du deine Flows prüfen.",
+    "entities_removed": "Von __device__ wurden __removed__ Entitäten entfernt. Vielleicht solltest du deine Flows prüfen."
   },
   "nativeAppSuggestion": "Gute Nachrichten! Dieses Gerät hat eine eigene App! Suche im Homey App Store nach __appName__."
 }

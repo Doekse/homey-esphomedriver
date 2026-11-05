@@ -19,7 +19,7 @@ _PLAYING_STATES = frozenset(
 
 
 class MediaPlayerEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         media = cast(MediaPlayerEntityState, state)
 
         playing_id = self.find_capability(capabilities, "speaker_playing")

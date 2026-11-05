@@ -9,7 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Accept shell-style patterns in ``hiddenEntities``, so a family of entities can be hidden by ``debug_*`` rather than enumerated.
+- Post a timeline notification when an automatic firmware sync adds or removes entities, so you can check your Flows. Devices paired before the checkbox existed stay opted in, and a manual Refresh does not notify.
+- Sync Homey capabilities when a node reconnects with different firmware: add capabilities for new entities and remove capabilities for entities that are gone, without pressing Refresh. A reconnect with the same firmware does not list entities.
+- Provision a Noise encryption key over the zero-PSK handshake during pair/repair when the node is unprovisioned, instead of asking the user to paste one.
+- Repair starts on a Maintenance page: Repair Device (existing IP/key flow) or Show Key (copy the stored Noise PSK).
+- Accept shell-style patterns in `hiddenEntities`, so a family of entities can be hidden by `debug_*` rather than enumerated.
+
+### Changed
+
+- Fetch only DeviceInfo when the Native API session connects, instead of also listing every entity on each reconnect and deep-sleep wake; initial states arrive sooner because the firmware no longer finishes a listing first.
+- Only write the Device Information settings on login when a value changed, instead of a Homey settings round-trip on every reconnect and deep-sleep wake.
+- Only write the address, port and hostname to the device store and settings when discovery reports a different value, instead of four Homey round-trips per device on every app start.
+- Feed newly discovered IPs into the running Native API client instead of tearing down the session on every mDNS address change.
+- Apply each ESPHome entity state inline instead of scheduling an asyncio task per state, so states for hidden entities cost a dict lookup and mapped states skip a task hop. Entity state handlers' `handle()` is now synchronous; start a task for any awaited work.
+- Require aioesphomeapi 46.25.0. Each device no longer starts its own zeroconf (mDNS) stack after a failed connect; Homey's discovery events now kick a pending connect via `notify_device_seen()`, which also stops each sighting from resetting the reconnect backoff.
+
+### Fixed
+
+- Drop and reconnect the Native API session right away when Homey rediscovers a node that rebooted without a goodbye, instead of showing it available until the keepalive times out.
+- Treat unpublished ESPHome switch, climate, and water-heater state (and NaN readings) as unknown Homey values instead of off / 0 °C.
 
 ## [0.4.1] - 2026-08-28
 

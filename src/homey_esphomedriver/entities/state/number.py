@@ -13,7 +13,7 @@ from homey_esphomedriver.entities.state.base import (
 
 
 class NumberEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         capability = capabilities[0]
         number = cast(NumberState, state)
         if number.missing_state or _is_missing_number(number.state):
@@ -24,5 +24,5 @@ class NumberEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
 
 
 def _is_missing_number(value: float) -> bool:
-    """ESPHome may leave NaN when a value is not yet available."""
-    return math.isnan(value)
+    """ESPHome may leave NaN (or a filter may yield Infinity) for no value."""
+    return not math.isfinite(value)

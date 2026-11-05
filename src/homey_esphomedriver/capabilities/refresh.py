@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import Any
+
+CapabilityPlan = tuple[
+    list[str],
+    list[tuple[str, dict[str, Any]]],
+    list[tuple[str, dict[str, Any]]],
+]
 
 
 def capability_base(capability_id: str) -> str:
@@ -13,11 +20,7 @@ def capability_base(capability_id: str) -> str:
 def plan_capability_refresh(
     current_options: dict[str, dict[str, Any]],
     desired_options: dict[str, dict[str, Any]],
-) -> tuple[
-    list[str],
-    list[tuple[str, dict[str, Any]]],
-    list[tuple[str, dict[str, Any]]],
-]:
+) -> CapabilityPlan:
     """Diff current vs the pair-time payload, keeping sticky Homey ids.
 
     Entity-backed caps keep the current Homey id when ``(key, capability
@@ -84,3 +87,36 @@ def plan_capability_refresh(
         to_add.append((new_id, options))
 
     return to_remove, to_add, to_update
+
+
+def plan_appeared_and_gone(
+    current_options: dict[str, dict[str, Any]],
+    entity_keys: Collection[int],
+    plan: CapabilityPlan,
+) -> CapabilityPlan:
+    """Keep adds and removes for entities that appeared or disappeared.
+
+    A new capability base for an entity that is still present is left in
+    place, so Flow cards bound to the current Homey id keep working.
+    Capabilities without a key are never added or removed.
+    """
+    to_remove, to_add, to_update = plan
+    present = {int(key) for key in entity_keys}
+    owned: set[int] = set()
+    for stored in current_options.values():
+        key = (stored or {}).get("key")
+        if key is not None:
+            owned.add(int(key))
+
+    kept_remove: list[str] = []
+    for capability_id in to_remove:
+        key = (current_options.get(capability_id) or {}).get("key")
+        if key is not None and int(key) not in present:
+            kept_remove.append(capability_id)
+
+    kept_add: list[tuple[str, dict[str, Any]]] = []
+    for capability_id, options in to_add:
+        key = (options or {}).get("key")
+        if key is not None and int(key) not in owned:
+            kept_add.append((capability_id, options))
+    return kept_remove, kept_add, to_update

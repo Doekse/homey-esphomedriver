@@ -29,9 +29,28 @@
     }
   },
   "repair": {
+    "maintenance": {
+      "title": "Underhåll",
+      "subtitle": "Reparera enheten eller visa krypteringsnyckeln.",
+      "repair": "Reparera enhet",
+      "repair_hint": "Ändra IP-adressen eller krypteringsnyckeln",
+      "show_key": "Visa nyckel",
+      "show_key_hint": "Visa eller kopiera krypteringsnyckeln"
+    },
     "configure_manual": {
       "title": "Reparera enheten",
       "subtitle": "Ange IP-adressen eller värdnamnet för den här enheten."
+    },
+    "show_key": {
+      "title": "Krypteringsnyckel",
+      "subtitle": "Kopiera den här nyckeln om du vill lägga till enheten i en annan app.",
+      "label": "Krypteringsnyckel",
+      "not_set": "Inte angiven",
+      "copy": "Kopiera nyckel",
+      "copied": "Kopierad",
+      "show": "Visa nyckel",
+      "hide": "Dölj nyckel",
+      "back": "Tillbaka"
     }
   },
   "errors": {
@@ -75,6 +94,14 @@
       "ssid_too_long": "SSID eller lösenord är för långt",
       "invalid_value": "Improv-enheten skickade ett ogiltigt värde"
     }
+  },
+  "warnings": {
+    "project_mismatch": "ESPHome-projektet __project__ stöds inte av den här Homey-appen."
+  },
+  "notifications": {
+    "entities_changed": "__device__ har __added__ nya entiteter.",
+    "entities_changed_removed": "__device__ lade till __added__ entiteter och tog bort __removed__. Du kanske vill kolla dina Flows.",
+    "entities_removed": "__device__ tog bort __removed__ entiteter. Du kanske vill kolla dina Flows."
   },
   "nativeAppSuggestion": "Goda nyheter! Denna enhet har en egen app! Sök i Homey App Store efter __appName__."
 }

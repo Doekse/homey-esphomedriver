@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import functools
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime
+from typing import Any
 
 from aioesphomeapi import (
     BadMACAddressAPIError,
@@ -72,10 +74,12 @@ def normalize_mac(mac: str) -> str:
     return mac.replace(":", "").replace("-", "").lower()
 
 
+@functools.cache
 def is_debug_enabled() -> bool:
     """Return whether ``env.json`` ``DEBUG`` is ``true`` or ``1``.
 
     Homey env values are strings, so this does not treat a boolean ``True``.
+    Cached: the SDK sets ``Homey.env`` once before app code runs.
     """
     from homey.homey import Homey
 
@@ -131,6 +135,17 @@ def device_info_settings(
         "webserver": format_webserver(host, device_info.webserver_port),
         "deep_sleep": "Yes" if device_info.has_deep_sleep else "No",
     }
+
+
+def changed_values(
+    current: Mapping[str, Any], values: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Return the entries of ``values`` that differ from ``current``.
+
+    Homey's ``set_settings`` / ``set_store_value`` round-trip to Homey even when
+    nothing changed, so callers skip the write when this is empty.
+    """
+    return {key: value for key, value in values.items() if current.get(key) != value}
 
 
 def requires_encryption(error: BaseException) -> bool:

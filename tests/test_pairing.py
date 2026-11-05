@@ -10,6 +10,7 @@ import pytest
 from aioesphomeapi import (
     DeviceInfo,
     EncryptionPlaintextAPIError,
+    InvalidEncryptionKeyAPIError,
     RequiresEncryptionAPIError,
 )
 
@@ -172,6 +173,30 @@ def test_repair_enter_key_returns_none_without_closing_the_session() -> None:
     assert session.done_calls == 0
 
 
+def test_repair_get_key_returns_store_psk() -> None:
+    """Show Key reads the stored Noise PSK, stripped."""
+    handler = _handler(noise_psk=None)
+    device = MagicMock()
+    device.get_store.return_value = {"noise_psk": "  generated-psk  "}
+    handler._device = device
+
+    result = asyncio.run(handler._repair_encryption_key())
+
+    assert result == {"noise_psk": "generated-psk"}
+
+
+def test_repair_get_key_empty_when_plaintext() -> None:
+    """Show Key returns an empty string when Homey has no PSK."""
+    handler = _handler(noise_psk=None)
+    device = MagicMock()
+    device.get_store.return_value = {"noise_psk": ""}
+    handler._device = device
+
+    result = asyncio.run(handler._repair_encryption_key())
+
+    assert result == {"noise_psk": ""}
+
+
 def test_list_discovery_devices_does_not_need_runtime_strategy_type() -> None:
     """Listing mDNS results must not evaluate TYPE_CHECKING-only DiscoveryStrategy."""
     result = MagicMock()
@@ -204,7 +229,14 @@ def test_loading_prompts_for_key_without_error(
     async def probe(*_args: Any, **_kwargs: Any) -> Any:
         raise RequiresEncryptionAPIError("need key")
 
+    async def provision(*_args: Any, **_kwargs: Any) -> str:
+        raise InvalidEncryptionKeyAPIError("already keyed")
+
     monkeypatch.setattr("homey_esphomedriver.pairing.probe_esphome_device", probe)
+    monkeypatch.setattr(
+        "homey_esphomedriver.pairing.provision_noise_encryption_key",
+        provision,
+    )
     handler = _handler(noise_psk=None)
     handler.selected = {"data": {"id": "aa:bb:cc:dd:ee:ff"}}
     session = handler._session
@@ -213,3 +245,67 @@ def test_loading_prompts_for_key_without_error(
     asyncio.run(handler._on_pair_show_view("loading"))
 
     assert session.views == ["enter_key"]
+
+
+def test_probe_provisions_key_when_encryption_required(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unprovisioned Noise nodes get a generated PSK instead of enter_key."""
+    info = DeviceInfo(name="node", mac_address="AA:BB:CC:DD:EE:FF")
+    calls: list[str | None] = []
+
+    async def probe(
+        host: str,
+        port: int,
+        *,
+        noise_psk: str | None = None,
+        **_kwargs: Any,
+    ) -> tuple[DeviceInfo, list[Any], list[Any]]:
+        calls.append(noise_psk)
+        if noise_psk is None:
+            raise RequiresEncryptionAPIError("need key")
+        return info, ["entity"], []
+
+    async def provision(*_args: Any, **_kwargs: Any) -> str:
+        return "generated-psk"
+
+    monkeypatch.setattr("homey_esphomedriver.pairing.probe_esphome_device", probe)
+    monkeypatch.setattr(
+        "homey_esphomedriver.pairing.provision_noise_encryption_key",
+        provision,
+    )
+    handler = _handler(noise_psk=None)
+
+    device_info, entities, used_psk = asyncio.run(handler._probe())
+
+    assert calls == [None, "generated-psk"]
+    assert device_info is info
+    assert entities == ["entity"]
+    assert used_psk == "generated-psk"
+
+
+def test_probe_does_not_provision_when_user_psk_is_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A user-supplied PSK is not overwritten on RequiresEncryption."""
+    provisioned = False
+
+    async def probe(*_args: Any, **_kwargs: Any) -> Any:
+        raise RequiresEncryptionAPIError("need key")
+
+    async def provision(*_args: Any, **_kwargs: Any) -> str:
+        nonlocal provisioned
+        provisioned = True
+        return "generated-psk"
+
+    monkeypatch.setattr("homey_esphomedriver.pairing.probe_esphome_device", probe)
+    monkeypatch.setattr(
+        "homey_esphomedriver.pairing.provision_noise_encryption_key",
+        provision,
+    )
+    handler = _handler(noise_psk="user-key")
+
+    with pytest.raises(RequiresEncryptionAPIError):
+        asyncio.run(handler._probe())
+
+    assert provisioned is False

@@ -15,7 +15,7 @@ from homey_esphomedriver.entities.state.base import (
 
 
 class SirenEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         siren = cast(SirenState, state)
         onoff_id = self.find_capability(capabilities, "onoff")
         if onoff_id is not None:

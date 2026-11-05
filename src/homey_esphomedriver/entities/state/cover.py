@@ -12,7 +12,7 @@ from homey_esphomedriver.entities.state.base import (
 
 
 class CoverEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         cover = cast(CoverState, state)
 
         state_id = self.find_capability(capabilities, "windowcoverings_state")

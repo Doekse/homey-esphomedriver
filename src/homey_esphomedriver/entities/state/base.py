@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import math
 from typing import TYPE_CHECKING, Any
 
 from aioesphomeapi import EntityState
-
-from homey_esphomedriver.esphome_util import debug_log
 
 if TYPE_CHECKING:
     from homey.device import Device
@@ -21,8 +20,11 @@ class AbstractEntityStateUpdateHandler:
     def __init__(self, device: Device) -> None:
         self.device = device
 
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         """Apply ``state`` to the Homey capabilities bound to this entity.
+
+        Runs inside the Native API read callback, so it must not block. Start
+        a task for any awaited work.
 
         Args:
             state: Latest Native API entity state.
@@ -49,7 +51,12 @@ class AbstractEntityStateUpdateHandler:
         Also fires base ``esphome_*`` Flow cards for sub-capabilities. Homey only
         auto-triggers ``<full_id>_changed`` (e.g. ``esphome_number.foo_changed``),
         which cannot be declared for dynamic object IDs at compose time.
+
+        Non-finite floats (NaN, Infinity) are written as ``None`` (unknown):
+        Homey's IPC parses strict JSON, which has no literal for them.
         """
+        if isinstance(value, float) and not math.isfinite(value):
+            value = None
         if not self.has_capability(capability_id):
             self.error(f"Unavailable capability requested: {capability_id}")
             return
@@ -67,7 +74,8 @@ class AbstractEntityStateUpdateHandler:
         previous: Any,
     ) -> None:
         await self.device.set_capability_value(capability_id, value)
-        if previous == value:
+        # None is a missing state (no reading yet, or NaN): unknown, not a change.
+        if value is None or previous == value:
             return
         await self._flow.trigger_subcapability(self.device, capability_id, value)
 
@@ -86,9 +94,6 @@ class AbstractEntityStateUpdateHandler:
 
     def log(self, *args: object) -> None:
         self.device.log(*args)
-
-    def debug(self, *args: object) -> None:
-        debug_log(self.device.log, *args)
 
     def error(self, *args: object) -> None:
         self.device.error(*args)

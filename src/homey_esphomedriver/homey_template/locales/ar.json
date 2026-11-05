@@ -29,9 +29,28 @@
     }
   },
   "repair": {
+    "maintenance": {
+      "title": "الصيانة",
+      "subtitle": "أصلح الجهاز أو اعرض مفتاح التشفير.",
+      "repair": "إصلاح الجهاز",
+      "repair_hint": "غيّر عنوان IP أو مفتاح التشفير",
+      "show_key": "عرض المفتاح",
+      "show_key_hint": "اعرض مفتاح التشفير أو انسخه"
+    },
     "configure_manual": {
       "title": "إصلاح الجهاز",
       "subtitle": "أدخل عنوان IP أو اسم المضيف لهذا الجهاز."
+    },
+    "show_key": {
+      "title": "مفتاح التشفير",
+      "subtitle": "انسخ هذا المفتاح إذا أردت إضافة الجهاز في تطبيق آخر.",
+      "label": "مفتاح التشفير",
+      "not_set": "غير معيّن",
+      "copy": "نسخ المفتاح",
+      "copied": "تم النسخ",
+      "show": "عرض المفتاح",
+      "hide": "إخفاء المفتاح",
+      "back": "رجوع"
     }
   },
   "errors": {
@@ -75,6 +94,14 @@
       "ssid_too_long": "SSID أو كلمة المرور طويلة جداً",
       "invalid_value": "أرسل جهاز Improv قيمة غير صالحة"
     }
+  },
+  "warnings": {
+    "project_mismatch": "مشروع ESPHome __project__ غير مدعوم في تطبيق Homey هذا."
+  },
+  "notifications": {
+    "entities_changed": "لدى __device__ كيانات جديدة: __added__.",
+    "entities_changed_removed": "تغيّرت كيانات __device__: أُضيف __added__ وحُذف __removed__. ربما تود مراجعة Flows.",
+    "entities_removed": "حُذفت كيانات من __device__: __removed__. ربما تود مراجعة Flows."
   },
   "nativeAppSuggestion": "أخبار سارة! لهذا الجهاز تطبيق خاص به! ابحث في Homey App Store عن __appName__."
 }

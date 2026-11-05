@@ -27,11 +27,16 @@ from homey_esphomedriver.esphome_client import (
 )
 from homey_esphomedriver.esphome_driver import EspHomeDriver
 from homey_esphomedriver.esphome_util import (
+    changed_values,
     device_info_settings,
     error_key,
     normalize_mac,
 )
+from homey_esphomedriver.notifications import notify_entities_changed
 from homey_esphomedriver.profile import BrandProfile
+
+# The event loop keeps only a weak reference to scheduled tasks.
+_notification_tasks: set[asyncio.Task[None]] = set()
 
 
 class EspHomeDevice(Device[EspHomeDriver]):
@@ -51,6 +56,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
     """
 
     _client: EspHomeClient | None
+    _mac: str
     _capability_handler: DeviceCapabilityHandler
     _commands: DeviceEntityCommandHandler
     _state_handler: DeviceEntityStateHandler
@@ -73,6 +79,9 @@ class EspHomeDevice(Device[EspHomeDriver]):
         await super().on_init()
 
         self._client = None
+        # Device data never changes, and Homey only matches discovery after on_init.
+        self._mac = normalize_mac(str(self.get_data()["id"]))
+        self._pending_build: str | None = None
         self._state_handler = DeviceEntityStateHandler(self)
         self._commands = DeviceEntityCommandHandler(self)
         self._capability_handler = DeviceCapabilityHandler(self)
@@ -125,9 +134,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
     async def on_discovery_result(self, discovery_result: DiscoveryResult) -> bool:
         """Match discovery results by MAC even when separator/casing differs."""
-        return normalize_mac(discovery_result.id) == normalize_mac(
-            str(self.get_data()["id"])
-        )
+        return normalize_mac(discovery_result.id) == self._mac
 
     async def on_discovery_available(self, discovery_result: DiscoveryResult) -> None:
         """Refresh address from discovery and ensure the API session is running."""
@@ -219,7 +226,6 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
         port = int(self.get_setting("port") or store.get("port") or DEFAULT_API_PORT)
         noise_psk = str(store.get("noise_psk") or "").strip() or None
-        expected_mac = str(self.get_data()["id"])
 
         name = str(self.get_setting("hostname") or "").strip() or None
         self._client = EspHomeClient(
@@ -227,12 +233,13 @@ class EspHomeDevice(Device[EspHomeDriver]):
             port,
             name=name,
             noise_psk=noise_psk,
-            expected_mac=expected_mac,
+            expected_mac=self._mac,
             client_info=self.brand_profile.client_info,
             deep_sleep=self.get_setting("deep_sleep") == "Yes",
             on_connected=self._on_connected,
             on_disconnected=self._on_disconnected,
             on_connect_error=self._on_connect_error,
+            on_ready=self._sync_if_rebuilt,
         )
         await self._client.start(self._state_handler.handle_state)
 
@@ -244,14 +251,22 @@ class EspHomeDevice(Device[EspHomeDriver]):
         hostname: str | None = None,
         noise_psk: str | None = None,
     ) -> None:
-        """Write endpoint into store and settings (shared by discovery and repair)."""
-        await self.set_store_value("address", host)
-        await self.set_store_value("port", port)
-        if hostname is not None:
-            await self.set_store_value("host", hostname)
-        if noise_psk is not None:
-            await self.set_store_value("noise_psk", noise_psk)
-        await self.set_settings({"host": host, "port": str(port)})
+        """Write endpoint into store and settings (shared by discovery and repair).
+
+        Only changed values are written; discovery repeats the same endpoint.
+        """
+        store = changed_values(
+            self.get_store(),
+            {"address": host, "port": port, "host": hostname, "noise_psk": noise_psk},
+        )
+        for key, value in store.items():
+            if value is not None:
+                await self.set_store_value(key, value)
+        settings = changed_values(
+            self.get_settings(), {"host": host, "port": str(port)}
+        )
+        if settings:
+            await self.set_settings(settings)
 
     async def _apply_discovery_endpoint(self, result: DiscoveryResultMDNSSD) -> None:
         """Persist discovery address and update the live client when it changed."""
@@ -266,51 +281,111 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
     async def _on_connected(self, device_info: DeviceInfo) -> None:
         client = cast(EspHomeClient, self._client)
+        build = device_info.compilation_time
+        entities_build = await self._ensure_entities_build(build)
+        accepted = self.brand_profile.accepts_project(device_info.project_name)
+        self._pending_build = (
+            build if accepted and build and build != entities_build else None
+        )
+
         has_encryption = bool(str(self.get_store().get("noise_psk") or "").strip())
-        await self.set_settings(
+        settings = changed_values(
+            self.get_settings(),
             device_info_settings(
                 device_info,
                 host=client.host,
                 encrypted=has_encryption,
-            )
+            ),
         )
+        if settings:
+            await self.set_settings(settings)
         await self.set_available()
-
-        native_app_suggestion = self.brand_profile.native_app_suggestion(
-            device_info.project_name
-        )
-        if native_app_suggestion:
-            message = self.homey.translate(
-                "nativeAppSuggestion",
-                appName=native_app_suggestion,
-            )
-
-            async def show_warning() -> None:
-                try:
-                    await self.set_warning(message)
-                except Exception as error:
-                    self.error(error)
-
-            self.homey.set_timeout(
-                lambda: asyncio.ensure_future(show_warning()),
-                1000,
-            )
-
+        self._schedule_project_warning(device_info, accepted=accepted)
         await self.on_esphome_connected(client)
 
-    async def _on_disconnected(self, expected: bool) -> None:
-        if expected:
+    async def _sync_if_rebuilt(self) -> None:
+        build = self._pending_build
+        if not build:
             return
-        client = self._client
-        if client is not None and client.deep_sleep:
+        self._pending_build = None
+        result = await self._capability_handler.sync_entities(build)
+        self.log(
+            f"Synced capabilities for firmware {build}: "
+            f"added {result.added}, removed {result.removed}"
+        )
+
+        async def post() -> None:
+            try:
+                await notify_entities_changed(
+                    homey=self.homey,
+                    device_name=self.get_name(),
+                    added=result.added,
+                    removed=result.removed_titles,
+                    enabled=self.get_setting("notify_entities_changed") is not False,
+                )
+            except Exception as error:
+                self.error("Failed to create entities changed notification:", error)
+
+        task = asyncio.create_task(post())
+        _notification_tasks.add(task)
+        task.add_done_callback(_notification_tasks.discard)
+
+    async def _ensure_entities_build(self, build: str) -> str:
+        """Return the stored build, seeding a missing key from the old setting.
+
+        This login overwrites the compilation_time setting, so the seed has to
+        happen first. Seeding is not itself a firmware change.
+        """
+        store = self.get_store()
+        if "entities_build" in store:
+            return str(store.get("entities_build") or "")
+        seeded = str(self.get_setting("compilation_time") or build)
+        await self.set_store_value("entities_build", seeded)
+        return seeded
+
+    def _schedule_project_warning(
+        self, device_info: DeviceInfo, *, accepted: bool
+    ) -> None:
+        """Warn when this app should not drive the node.
+
+        A native-app suggestion wins when the project is also rejected.
+        """
+        project_name = device_info.project_name
+        native_app = self.brand_profile.native_app_suggestion(project_name)
+        if native_app:
+            message = self.homey.translate("nativeAppSuggestion", appName=native_app)
+        elif not accepted:
+            message = self.homey.translate(
+                "warnings.project_mismatch", project=project_name
+            )
+        else:
+            return
+        self._schedule_warning(message)
+
+    def _schedule_warning(self, message: str | None) -> None:
+        if not message:
+            return
+
+        async def show_warning() -> None:
+            try:
+                await self.set_warning(message)
+            except Exception as error:
+                self.error(error)
+
+        self.homey.set_timeout(
+            lambda: asyncio.ensure_future(show_warning()),
+            1000,
+        )
+
+    async def _on_disconnected(self, expected: bool) -> None:
+        """A clean sleep goodbye keeps the last state; a drop does not."""
+        if expected:
             return
         await self.set_unavailable(self.homey.translate("errors.connection_lost"))
 
     async def _on_connect_error(self, error: Exception) -> None:
-        self.error("ESPHome connect error", error)
-        client = self._client
-        if client is not None and client.deep_sleep:
-            return
+        """A dial that never logs in is unavailable, including deep sleep."""
+        self.error(f"ESPHome connect error: {error}")
         await self.set_unavailable(self.homey.translate(error_key(error)))
 
     def _require_client(self) -> EspHomeClient:

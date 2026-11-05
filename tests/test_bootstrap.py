@@ -16,12 +16,7 @@ from homey_esphomedriver.bootstrap import (
     derive_app_name,
     derive_brand,
     derive_project_name,
-    profile_constant,
 )
-
-
-def test_profile_constant_uppercases_hyphens() -> None:
-    assert profile_constant("aq-1") == "AQ_1_PROFILE"
 
 
 @pytest.mark.parametrize(

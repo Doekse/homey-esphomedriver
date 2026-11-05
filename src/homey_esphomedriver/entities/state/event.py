@@ -27,7 +27,7 @@ class EventEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
             self.device.homey.clear_timeout(timeout_id)
         self._idle_timeouts.clear()
 
-    async def handle(self, state: EntityState, capabilities: list[str]) -> None:
+    def handle(self, state: EntityState, capabilities: list[str]) -> None:
         capability = capabilities[0]
         event = cast(Event, state)
         event_type = str(event.event_type)
@@ -35,15 +35,39 @@ class EventEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
 
         if capability.startswith("alarm_doorbell."):
             self._set_capability_value_only(capability, True)
-            await self._flow.trigger_event(self.device, capability)
-            self._schedule_idle(capability, False, _DOORBELL_IDLE_DELAY_MS)
+            self._trigger_then_idle(capability, None, False, _DOORBELL_IDLE_DELAY_MS)
             return
 
         self._set_capability_value_only(capability, event_type)
-        await self._flow.trigger_event(
-            self.device, capability, format_event_type(event_type)
+        self._trigger_then_idle(
+            capability,
+            format_event_type(event_type),
+            _IDLE,
+            _BUTTON_IDLE_DELAY_MS,
         )
-        self._schedule_idle(capability, _IDLE, _BUTTON_IDLE_DELAY_MS)
+
+    def _trigger_then_idle(
+        self,
+        capability_id: str,
+        value: Any,
+        idle_value: Any,
+        delay_ms: int,
+    ) -> None:
+        """Fire the Flow card, then start the idle timer once it has run."""
+        task = asyncio.ensure_future(
+            self._async_trigger_then_idle(capability_id, value, idle_value, delay_ms)
+        )
+        task.add_done_callback(self._on_set_capability_done)
+
+    async def _async_trigger_then_idle(
+        self,
+        capability_id: str,
+        value: Any,
+        idle_value: Any,
+        delay_ms: int,
+    ) -> None:
+        await self._flow.trigger_event(self.device, capability_id, value)
+        self._schedule_idle(capability_id, idle_value, delay_ms)
 
     def _set_capability_value_only(self, capability_id: str, value: Any) -> None:
         """Write capability state without firing Flow cards."""

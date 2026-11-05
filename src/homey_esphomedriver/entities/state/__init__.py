@@ -81,7 +81,7 @@ from homey_esphomedriver.entities.state.valve import (
 from homey_esphomedriver.entities.state.water_heater import (
     WaterHeaterEntityStateUpdateHandler,
 )
-from homey_esphomedriver.esphome_util import debug_log
+from homey_esphomedriver.esphome_util import debug_log, is_debug_enabled
 
 if TYPE_CHECKING:
     from homey.device import Device
@@ -142,7 +142,7 @@ class DeviceEntityStateHandler:
             self._key_to_capabilities.setdefault(int(key), []).append(capability)
 
         for state in list(self._last_states.values()):
-            await self._apply_state(state)
+            self._apply_state(state)
 
     def uninit(self) -> None:
         """Release per-handler timers and other resources."""
@@ -150,24 +150,26 @@ class DeviceEntityStateHandler:
         for handler in self._handlers_by_type.values():
             handler.uninit()
 
-    async def handle_state(self, state: EntityState) -> None:
+    def handle_state(self, state: EntityState) -> None:
         """Route one ESPHome state update to the matching Homey capabilities."""
-        await self._apply_state(state)
+        self._apply_state(state)
 
-    async def _apply_state(self, state: EntityState) -> None:
+    def _apply_state(self, state: EntityState) -> None:
         capabilities = self._key_to_capabilities.get(state.key, [])
         if not capabilities:
             if type(state) in self._handlers_by_type:
                 self._last_states[state.key] = state
             return
         self._last_states.pop(state.key, None)
-        self._debug(
-            f"Handling entity state key={state.key} caps={capabilities}: {state}"
-        )
+        if is_debug_enabled():
+            # Guarded: repr(state) runs on every update otherwise.
+            self._debug(
+                f"Handling entity state key={state.key} caps={capabilities}: {state}"
+            )
         handler = self._handlers_by_type.get(type(state))
         if handler is None:
             return
-        await handler.handle(state, capabilities)
+        handler.handle(state, capabilities)
 
     def _debug(self, *args: object) -> None:
         debug_log(self._device.log, *args)
