@@ -263,7 +263,7 @@ class EspHomeClient:
         """Re-subscribe and refresh device info whenever ReconnectLogic logs in."""
         cli = self.api
         try:
-            device_info, _, _ = await cli.device_info_and_list_entities()
+            device_info = await cli.device_info()
             self._device_info = device_info
             self._name = device_info.name
             self._deep_sleep = device_info.has_deep_sleep

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Fetch only DeviceInfo when the Native API session connects, instead of also listing every entity on each reconnect and deep-sleep wake; initial states arrive sooner because the firmware no longer finishes a listing first.
 - Only write the Device Information settings on login when a value changed, instead of a Homey settings round-trip on every reconnect and deep-sleep wake.
 - Only write the address, port and hostname to the device store and settings when discovery reports a different value, instead of four Homey round-trips per device on every app start.
 - Feed newly discovered IPs into the running Native API client instead of tearing down the session on every mDNS address change.
