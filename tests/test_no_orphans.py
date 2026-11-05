@@ -20,11 +20,8 @@ from collections import Counter
 
 SRC = pathlib.Path(__file__).resolve().parent.parent / "src" / "homey_esphomedriver"
 
-KNOWN_ORPHANS = {
-    # Defined in bootstrap.py and reached only from tests/test_bootstrap.py.
-    # Drop this entry once it gains a caller in src/ or is removed.
-    "profile_constant",
-}
+# Names allowed to stay orphaned, each with a comment saying why. Keep it empty.
+KNOWN_ORPHANS: set[str] = set()
 
 
 def _definitions() -> dict[str, str]:

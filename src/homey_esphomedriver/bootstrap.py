@@ -59,11 +59,6 @@ def template_root() -> Path:
     return TEMPLATE_ROOT
 
 
-def profile_constant(driver_id: str) -> str:
-    """Return the ``BrandProfile`` constant name for a Homey driver id."""
-    return f"{driver_id.replace('-', '_').upper()}_PROFILE"
-
-
 def derive_app_id(app_dir: Path) -> str:
     """Guess a reverse-domain Homey id from a ``{brand}-homey`` directory name."""
     stem = app_dir.resolve().name.removesuffix("-homey")
