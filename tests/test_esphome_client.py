@@ -208,6 +208,73 @@ def test_request_connect_without_reconnect_is_noop() -> None:
     asyncio.run(run())
 
 
+def test_connect_error_pauses_until_sighting() -> None:
+    """A failed dial does not schedule another attempt at the stored address."""
+
+    async def run() -> None:
+        client = _client()
+        client._on_state = AsyncMock()
+        reconnect = MagicMock()
+        client._reconnect = reconnect
+
+        await client._handle_connect_error(APIConnectionError("refused"))
+
+        assert client._paused is True
+        assert reconnect._is_stopped is True
+
+    asyncio.run(run())
+
+
+def test_disconnect_pauses_until_sighting() -> None:
+    """A drop waits for the next Homey sighting instead of redialing."""
+
+    async def run() -> None:
+        client = _client()
+        client._on_state = AsyncMock()
+        reconnect = MagicMock()
+        client._reconnect = reconnect
+        client._state = SessionState.READY
+
+        await client._handle_disconnect(False)
+
+        assert client._paused is True
+        assert reconnect._is_stopped is True
+
+    asyncio.run(run())
+
+
+def test_request_connect_restarts_paused_session(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A sighting after a pause dials once."""
+    created = MagicMock()
+    created.start = AsyncMock()
+    monkeypatch.setattr(
+        "homey_esphomedriver.esphome_client.ReconnectLogic",
+        lambda **_kwargs: created,
+    )
+
+    async def run() -> None:
+        client = _client()
+        on_state = AsyncMock()
+        client._on_state = on_state
+        client._paused = True
+        old = MagicMock()
+        old.stop = AsyncMock()
+        client._reconnect = old
+        client._cli = MagicMock()
+        client._cli.disconnect = AsyncMock()
+
+        await client.request_connect()
+
+        old.stop.assert_awaited()
+        created.start.assert_awaited()
+        assert client._paused is False
+        assert client._reconnect is created
+
+    asyncio.run(run())
+
+
 def _provision_client(
     *,
     provisionable: bool = True,

@@ -1,9 +1,9 @@
 """Per-device Native API session used by pairing and runtime.
 
 Homey keeps one ESPHome node per device. Pairing uses the free function
-:func:`probe_esphome_device`; runtime devices keep
-:class:`~aioesphomeapi.ReconnectLogic` so drops recover and state
-subscriptions re-arm on each connect.
+:func:`probe_esphome_device`. A runtime device dials once; a failure or
+drop waits for the next Homey discovery sighting instead of redialing
+the stored address.
 
 Commands are gated on :attr:`SessionState.READY` so Homey defaults cannot
 reach the node before the initial state dump has been applied.
@@ -58,9 +58,10 @@ class SessionState(Enum):
 class EspHomeClient:
     """Native API session for one ESPHome node.
 
-    Runtime devices call :meth:`start` so drops recover via ReconnectLogic.
-    Commands stay gated until ``on_connected`` returns so Homey
-    ``set_settings`` / ``set_available`` cannot race native API writes.
+    Runtime devices call :meth:`start` for one dial. A failure or drop
+    waits for :meth:`request_connect`. Commands stay gated until
+    ``on_connected`` returns so Homey ``set_settings`` / ``set_available``
+    cannot race native API writes.
     """
 
     def __init__(
@@ -108,6 +109,7 @@ class EspHomeClient:
         self._on_state: StateCallback | None = None
         self._cli: APIClient | None = None
         self._reconnect: ReconnectLogic | None = None
+        self._paused = False
         self._device_info: DeviceInfo | None = None
         self._state = SessionState.DISCONNECTED
 
@@ -158,6 +160,7 @@ class EspHomeClient:
         if self._reconnect is not None:
             return
 
+        self._paused = False
         await self._ensure_stopped()
         self._on_state = on_state
         self._cli = self._create_client()
@@ -196,7 +199,14 @@ class EspHomeClient:
             await self.start(on_state)
 
     async def request_connect(self) -> None:
-        """Homey saw the node: kick a pending connect, or ping the live session."""
+        """Homey saw the node: dial once, kick a pending connect, or ping."""
+        if self._paused:
+            if self._on_state is None:
+                return
+            on_state = self._on_state
+            await self._ensure_stopped()
+            await self.start(on_state)
+            return
         if self._reconnect is None:
             return
         self._reconnect.notify_device_seen()
@@ -316,6 +326,7 @@ class EspHomeClient:
         # Stopping the session closes the socket; that is not a Homey unavailable.
         if self._on_state is None:
             return
+        self._wait_for_sighting()
         if self._on_disconnected is not None:
             await self._on_disconnected(expected_disconnect)
 
@@ -335,6 +346,15 @@ class EspHomeClient:
             # Keep _on_state so a later discovery address change can restart.
             await self._reconnect.stop()
             self._reconnect = None
+        else:
+            self._wait_for_sighting()
+
+    def _wait_for_sighting(self) -> None:
+        """Stop ReconnectLogic from dialing the stored address again."""
+        if self._reconnect is None or self._paused:
+            return
+        self._paused = True
+        self._reconnect._is_stopped = True
 
 
 async def probe_esphome_device(

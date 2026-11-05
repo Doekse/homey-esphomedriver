@@ -386,7 +386,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
         await self.set_unavailable(self.homey.translate("errors.connection_lost"))
 
     async def _on_connect_error(self, error: Exception) -> None:
-        self.error("ESPHome connect error", error)
+        self.error(f"ESPHome connect error: {error}")
         client = self._client
         if client is not None and client.deep_sleep:
             return
