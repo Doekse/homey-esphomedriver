@@ -95,5 +95,8 @@
       "invalid_value": "L’appareil Improv a envoyé une valeur invalide"
     }
   },
+  "warnings": {
+    "project_mismatch": "Le projet ESPHome __project__ n’est pas pris en charge par cette application Homey."
+  },
   "nativeAppSuggestion": "Bonne nouvelle ! Cet appareil a sa propre app ! Cherchez __appName__ dans le Homey App Store."
 }

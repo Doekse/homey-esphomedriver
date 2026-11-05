@@ -7,12 +7,17 @@ lifecycle and session wiring.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from aioesphomeapi import EntityCategory, EntityInfo
 
-from homey_esphomedriver.capabilities.refresh import plan_capability_refresh
+from homey_esphomedriver.capabilities.refresh import (
+    plan_appeared_and_gone,
+    plan_capability_refresh,
+)
 from homey_esphomedriver.entities.mapping import (
     REFRESH_CAPABILITY,
     REFRESH_CAPABILITY_OPTIONS,
@@ -23,11 +28,20 @@ if TYPE_CHECKING:
     from homey_esphomedriver.esphome_device import EspHomeDevice
 
 
+@dataclass(frozen=True, slots=True)
+class EntitySyncResult:
+    """Capability ids added and removed for entities that appeared or vanished."""
+
+    added: list[str]
+    removed: list[str]
+
+
 class DeviceCapabilityHandler:
     """Add, remove, and refresh Homey capabilities on a live device."""
 
     def __init__(self, device: EspHomeDevice) -> None:
         self._device = device
+        self._lock = asyncio.Lock()
 
     async def ensure(self) -> None:
         """Register refresh and command listeners; add refresh on older pairings."""
@@ -41,37 +55,37 @@ class DeviceCapabilityHandler:
 
     async def refresh(self, _value: Any = True, **_kwargs: Any) -> None:
         """Add/remove capabilities from a live remap; keep unchanged Homey ids."""
-        device = self._device
-        entities, _services = await device._require_client().list_entities_services()
-        scratch = DeviceEntityMapper.empty_option()
-        DeviceEntityMapper.map_device(
-            entities,
-            scratch,
-            profile=device.brand_profile,
-            diagnostics=device.get_setting("show_diagnostics"),
-            configuration=device.get_setting("show_configuration"),
-        )
+        async with self._lock:
+            device = self._device
+            entities, scratch = await self._list_mapped_entities()
+            to_remove, to_add, to_update = plan_capability_refresh(
+                device._capabilities_options, scratch["capabilitiesOptions"]
+            )
+            await self._apply_capability_refresh(entities, to_remove, to_add, to_update)
+            mapped_class = scratch.get("class")
+            if mapped_class and device.get_setting("device_class") == "auto":
+                await device.set_store_value("auto_class", mapped_class)
+                await device.set_class(mapped_class)
+            device_info = device._require_client().device_info
+            if device_info is not None:
+                await self._store_entities_build(device_info.compilation_time)
 
-        to_remove, to_add, to_update = plan_capability_refresh(
-            device._capabilities_options, scratch["capabilitiesOptions"]
-        )
-        added = dict(to_add)
-        await self._remove_capabilities(to_remove)
-        await self._add_capabilities(list(added), added)
-        for capability_id, options in to_update:
-            await device.set_capability_options(capability_id, options)
-
-        mapped_class = scratch.get("class")
-        if mapped_class and device.get_setting("device_class") == "auto":
-            await device.set_store_value("auto_class", mapped_class)
-            await device.set_class(mapped_class)
-
-        diagnostic, configuration = self._capabilities_by_category(entities)
-        await device.set_store_value("diagnostic_capabilities", diagnostic)
-        await device.set_store_value("configuration_capabilities", configuration)
-
-        if to_remove or added or to_update:
-            await device._state_handler.init()
+    async def sync_entities(self, build: str) -> EntitySyncResult:
+        """Add and remove capabilities for entities that appeared or vanished."""
+        async with self._lock:
+            device = self._device
+            entities, scratch = await self._list_mapped_entities()
+            current = device._capabilities_options
+            plan = plan_capability_refresh(current, scratch["capabilitiesOptions"])
+            to_remove, to_add, to_update = plan_appeared_and_gone(
+                current, {entity.key for entity in entities}, plan
+            )
+            await self._apply_capability_refresh(entities, to_remove, to_add, to_update)
+            await self._store_entities_build(build)
+            return EntitySyncResult(
+                added=[capability_id for capability_id, _options in to_add],
+                removed=list(to_remove),
+            )
 
     async def apply_category(
         self,
@@ -80,42 +94,46 @@ class DeviceCapabilityHandler:
         store_key: str,
     ) -> None:
         """Add or remove capabilities for one entity category from the live device."""
-        device = self._device
-        if not enabled:
-            # Batch — per-cap removeCapability reinitializes and times out
-            # on entity-heavy nodes inside on_settings ACK.
-            removed = device.get_store().get(store_key) or []
-            await self._remove_capabilities(removed)
-            await device.set_store_value(store_key, [])
-            if removed:
-                await device._state_handler.init()
-            return
+        async with self._lock:
+            device = self._device
+            if not enabled:
+                # Batch — per-cap removeCapability reinitializes and times out
+                # on entity-heavy nodes inside on_settings ACK.
+                removed = device.get_store().get(store_key) or []
+                await self._remove_capabilities(removed)
+                await device.set_store_value(store_key, [])
+                if removed:
+                    await device._state_handler.init()
+                return
 
-        entities, _services = await device._require_client().list_entities_services()
-        existing = device.get_capabilities()
-        scratch = DeviceEntityMapper.empty_option(list(existing))
-        DeviceEntityMapper.map(
-            entities,
-            scratch,
-            category_only=category,
-            profile=device.brand_profile,
-        )
-        present = set(existing)
-        added = [
-            capability_id
-            for capability_id in scratch["capabilities"]
-            if capability_id not in present
-        ]
-        await self._add_capabilities(
-            added,
-            {
-                capability_id: scratch["capabilitiesOptions"][capability_id]
-                for capability_id in added
-            },
-        )
-        await device.set_store_value(store_key, added)
-        if added:
-            await device._state_handler.init()
+            (
+                entities,
+                _services,
+            ) = await device._require_client().list_entities_services()
+            existing = device.get_capabilities()
+            scratch = DeviceEntityMapper.empty_option(list(existing))
+            DeviceEntityMapper.map(
+                entities,
+                scratch,
+                category_only=category,
+                profile=device.brand_profile,
+            )
+            present = set(existing)
+            added = [
+                capability_id
+                for capability_id in scratch["capabilities"]
+                if capability_id not in present
+            ]
+            await self._add_capabilities(
+                added,
+                {
+                    capability_id: scratch["capabilitiesOptions"][capability_id]
+                    for capability_id in added
+                },
+            )
+            await device.set_store_value(store_key, added)
+            if added:
+                await device._state_handler.init()
 
     async def _add_capabilities(
         self,
@@ -180,3 +198,46 @@ class DeviceCapabilityHandler:
             elif key in configuration_keys:
                 configuration.append(capability_id)
         return diagnostic, configuration
+
+    async def _list_mapped_entities(
+        self,
+    ) -> tuple[list[EntityInfo], dict[str, Any]]:
+        """List entities and map them with the device's category settings."""
+        device = self._device
+        entities, _services = await device._require_client().list_entities_services()
+        scratch = DeviceEntityMapper.empty_option()
+        DeviceEntityMapper.map_device(
+            entities,
+            scratch,
+            profile=device.brand_profile,
+            diagnostics=device.get_setting("show_diagnostics"),
+            configuration=device.get_setting("show_configuration"),
+        )
+        return entities, scratch
+
+    async def _apply_capability_refresh(
+        self,
+        entities: list[EntityInfo],
+        to_remove: list[str],
+        to_add: list[tuple[str, dict[str, Any]]],
+        to_update: list[tuple[str, dict[str, Any]]],
+    ) -> None:
+        """Apply a capability plan and rewrite the category indexes."""
+        device = self._device
+        added = dict(to_add)
+        await self._remove_capabilities(to_remove)
+        await self._add_capabilities(list(added), added)
+        for capability_id, options in to_update:
+            await device.set_capability_options(capability_id, options)
+
+        diagnostic, configuration = self._capabilities_by_category(entities)
+        await device.set_store_value("diagnostic_capabilities", diagnostic)
+        await device.set_store_value("configuration_capabilities", configuration)
+        if to_remove or added or to_update:
+            await device._state_handler.init()
+
+    async def _store_entities_build(self, build: str) -> None:
+        """Record the build the current capabilities were mapped from."""
+        device = self._device
+        if device.get_store().get("entities_build") != build:
+            await device.set_store_value("entities_build", build)

@@ -95,5 +95,8 @@
       "invalid_value": "Improv-apparaat stuurde een ongeldige waarde"
     }
   },
+  "warnings": {
+    "project_mismatch": "ESPHome-project __project__ wordt niet ondersteund door deze Homey-app."
+  },
   "nativeAppSuggestion": "Goed nieuws! Dit apparaat heeft een eigen app! Zoek in de Homey App Store naar __appName__."
 }

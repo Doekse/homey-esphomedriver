@@ -95,5 +95,8 @@
       "invalid_value": "Improv-enheden sendte en ugyldig værdi"
     }
   },
+  "warnings": {
+    "project_mismatch": "ESPHome-projektet __project__ understøttes ikke af denne Homey-app."
+  },
   "nativeAppSuggestion": "Gode nyheder! Denne enhed har sin egen app! Søg i Homey App Store efter __appName__."
 }

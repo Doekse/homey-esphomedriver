@@ -74,6 +74,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
         await super().on_init()
 
         self._client = None
+        self._pending_build: str | None = None
         self._state_handler = DeviceEntityStateHandler(self)
         self._commands = DeviceEntityCommandHandler(self)
         self._capability_handler = DeviceCapabilityHandler(self)
@@ -234,6 +235,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
             on_connected=self._on_connected,
             on_disconnected=self._on_disconnected,
             on_connect_error=self._on_connect_error,
+            on_ready=self._sync_if_rebuilt,
         )
         await self._client.start(self._state_handler.handle_state)
 
@@ -275,6 +277,13 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
     async def _on_connected(self, device_info: DeviceInfo) -> None:
         client = cast(EspHomeClient, self._client)
+        build = device_info.compilation_time
+        entities_build = await self._ensure_entities_build(build)
+        accepted = self.brand_profile.accepts_project(device_info.project_name)
+        self._pending_build = (
+            build if accepted and build and build != entities_build else None
+        )
+
         has_encryption = bool(str(self.get_store().get("noise_psk") or "").strip())
         settings = changed_values(
             self.get_settings(),
@@ -287,28 +296,66 @@ class EspHomeDevice(Device[EspHomeDriver]):
         if settings:
             await self.set_settings(settings)
         await self.set_available()
-
-        native_app_suggestion = self.brand_profile.native_app_suggestion(
-            device_info.project_name
-        )
-        if native_app_suggestion:
-            message = self.homey.translate(
-                "nativeAppSuggestion",
-                appName=native_app_suggestion,
-            )
-
-            async def show_warning() -> None:
-                try:
-                    await self.set_warning(message)
-                except Exception as error:
-                    self.error(error)
-
-            self.homey.set_timeout(
-                lambda: asyncio.ensure_future(show_warning()),
-                1000,
-            )
-
+        self._schedule_project_warning(device_info, accepted=accepted)
         await self.on_esphome_connected(client)
+
+    async def _sync_if_rebuilt(self) -> None:
+        build = self._pending_build
+        if not build:
+            return
+        self._pending_build = None
+        result = await self._capability_handler.sync_entities(build)
+        self.log(
+            f"Synced capabilities for firmware {build}: "
+            f"added {result.added}, removed {result.removed}"
+        )
+
+    async def _ensure_entities_build(self, build: str) -> str:
+        """Return the stored build, seeding a missing key from the old setting.
+
+        This login overwrites the compilation_time setting, so the seed has to
+        happen first. Seeding is not itself a firmware change.
+        """
+        store = self.get_store()
+        if "entities_build" in store:
+            return str(store.get("entities_build") or "")
+        seeded = str(self.get_setting("compilation_time") or build)
+        await self.set_store_value("entities_build", seeded)
+        return seeded
+
+    def _schedule_project_warning(
+        self, device_info: DeviceInfo, *, accepted: bool
+    ) -> None:
+        """Warn when this app should not drive the node.
+
+        A native-app suggestion wins when the project is also rejected.
+        """
+        project_name = device_info.project_name
+        native_app = self.brand_profile.native_app_suggestion(project_name)
+        if native_app:
+            message = self.homey.translate("nativeAppSuggestion", appName=native_app)
+        elif not accepted:
+            message = self.homey.translate(
+                "warnings.project_mismatch", project=project_name
+            )
+        else:
+            return
+        self._schedule_warning(message)
+
+    def _schedule_warning(self, message: str | None) -> None:
+        if not message:
+            return
+
+        async def show_warning() -> None:
+            try:
+                await self.set_warning(message)
+            except Exception as error:
+                self.error(error)
+
+        self.homey.set_timeout(
+            lambda: asyncio.ensure_future(show_warning()),
+            1000,
+        )
 
     async def _on_disconnected(self, expected: bool) -> None:
         if expected:

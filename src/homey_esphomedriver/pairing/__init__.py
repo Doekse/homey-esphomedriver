@@ -431,6 +431,7 @@ class DriverPairHandler:
             # Homey requires a class; mapping leaves it unset when no entity claims one.
             homey_device["class"] = "other"
         homey_device["store"]["auto_class"] = homey_device["class"]
+        homey_device["store"]["entities_build"] = device_info.compilation_time
 
         self._driver.debug(
             f"Mapped {homey_device['name']} ({data_id}) to "

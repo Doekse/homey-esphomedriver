@@ -279,6 +279,99 @@ def test_provision_noise_encryption_key_rejects_failed_set(
     cli.disconnect.assert_awaited_once_with(force=True)
 
 
+def test_on_ready_runs_after_connected_returns() -> None:
+    """``on_ready`` starts only once the session is READY."""
+    events: list[tuple[str, SessionState]] = []
+
+    async def on_connected(_info: DeviceInfo) -> None:
+        events.append(("connected", client.state))
+
+    async def on_ready() -> None:
+        events.append(("ready", client.state))
+
+    async def run() -> None:
+        client._on_state = AsyncMock()
+        client._reconnect = MagicMock()
+        api = MagicMock()
+        api.device_info = AsyncMock(return_value=DeviceInfo(name="node"))
+        client._cli = api
+
+        await client._handle_connect()
+        await asyncio.sleep(0)
+
+        assert events == [
+            ("connected", SessionState.CONNECTED),
+            ("ready", SessionState.READY),
+        ]
+        assert client._ready_task is not None
+        assert client._ready_task.done()
+
+    client = _client(on_connected=on_connected, on_ready=on_ready)
+    asyncio.run(run())
+
+
+def test_disconnect_cancels_on_ready() -> None:
+    """A disconnect cancels ``on_ready`` without waiting for it inside the lock."""
+
+    async def run() -> None:
+        started = asyncio.Event()
+
+        async def on_ready() -> None:
+            started.set()
+            await asyncio.Event().wait()
+
+        client = _client(on_ready=on_ready)
+        client._on_state = AsyncMock()
+        client._reconnect = MagicMock()
+        api = MagicMock()
+        api.device_info = AsyncMock(return_value=DeviceInfo(name="node"))
+        client._cli = api
+
+        await client._handle_connect()
+        await started.wait()
+        task = client._ready_task
+        assert task is not None
+
+        await client._handle_disconnect(expected_disconnect=True)
+
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert task.cancelled()
+
+    asyncio.run(run())
+
+
+def test_stop_cancels_on_ready() -> None:
+    """Stopping the session cancels an in-flight ``on_ready`` task."""
+
+    async def run() -> None:
+        started = asyncio.Event()
+
+        async def on_ready() -> None:
+            started.set()
+            await asyncio.Event().wait()
+
+        client = _client(on_ready=on_ready)
+        client._on_state = AsyncMock()
+        client._reconnect = MagicMock()
+        client._reconnect.stop = AsyncMock()
+        api = MagicMock()
+        api.device_info = AsyncMock(return_value=DeviceInfo(name="node"))
+        api.disconnect = AsyncMock()
+        client._cli = api
+
+        await client._handle_connect()
+        await started.wait()
+        task = client._ready_task
+        assert task is not None
+
+        await client.stop()
+
+        assert task.cancelled()
+
+    asyncio.run(run())
+
+
 def test_async_on_state_is_invoked() -> None:
     """The sync ``subscribe_states`` hop invokes the async ``on_state`` callback."""
     received: list[EntityState] = []

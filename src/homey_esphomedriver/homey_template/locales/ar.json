@@ -95,5 +95,8 @@
       "invalid_value": "أرسل جهاز Improv قيمة غير صالحة"
     }
   },
+  "warnings": {
+    "project_mismatch": "مشروع ESPHome __project__ غير مدعوم في تطبيق Homey هذا."
+  },
   "nativeAppSuggestion": "أخبار سارة! لهذا الجهاز تطبيق خاص به! ابحث في Homey App Store عن __appName__."
 }

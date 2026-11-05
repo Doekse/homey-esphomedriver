@@ -95,5 +95,8 @@
       "invalid_value": "Устройство Improv отправило недопустимое значение"
     }
   },
+  "warnings": {
+    "project_mismatch": "Проект ESPHome __project__ не поддерживается этим приложением Homey."
+  },
   "nativeAppSuggestion": "Хорошие новости! У этого устройства есть своё приложение! Ищите в Homey App Store __appName__."
 }

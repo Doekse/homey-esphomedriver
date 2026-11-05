@@ -76,6 +76,7 @@ class EspHomeClient:
         on_connected: Callable[[DeviceInfo], Awaitable[None]] | None = None,
         on_disconnected: Callable[[bool], Awaitable[None]] | None = None,
         on_connect_error: Callable[[Exception], Awaitable[None]] | None = None,
+        on_ready: Callable[[], Awaitable[None]] | None = None,
     ) -> None:
         """Create a session for one ESPHome node.
 
@@ -101,6 +102,8 @@ class EspHomeClient:
         self._on_connected = on_connected
         self._on_disconnected = on_disconnected
         self._on_connect_error = on_connect_error
+        self._on_ready = on_ready
+        self._ready_task: asyncio.Task[None] | None = None
 
         self._on_state: StateCallback | None = None
         self._cli: APIClient | None = None
@@ -229,8 +232,23 @@ class EspHomeClient:
 
     def _mark_ready(self) -> None:
         """Leave commands blocked if the session dropped during ``on_connected``."""
-        if self._state is SessionState.CONNECTED:
-            self._state = SessionState.READY
+        if self._state is not SessionState.CONNECTED:
+            return
+        self._state = SessionState.READY
+        on_ready = self._on_ready
+        if on_ready is None:
+            return
+        task = self._ready_task
+        if task is not None and not task.done():
+            task.cancel()
+        self._ready_task = asyncio.create_task(self._emit_ready(on_ready))
+
+    async def _emit_ready(self, on_ready: Callable[[], Awaitable[None]]) -> None:
+        """Log ``on_ready`` failures so they are not unretrieved task exceptions."""
+        try:
+            await on_ready()
+        except Exception:
+            _LOGGER.exception("Error handling ESPHome session ready")
 
     def _dispatch_state(self, state: EntityState) -> None:
         """``subscribe_states`` is sync; hop so Homey capability writes can await."""
@@ -251,9 +269,15 @@ class EspHomeClient:
         reconnect = self._reconnect
         self._reconnect = None
         self._state = SessionState.DISCONNECTED
+        ready = self._ready_task
+        self._ready_task = None
+        if ready is not None and not ready.done():
+            ready.cancel()
 
         if reconnect is not None:
             await reconnect.stop()
+        if ready is not None:
+            await asyncio.gather(ready, return_exceptions=True)
 
         if self._cli is not None:
             await self._cli.disconnect(force=True)
@@ -286,6 +310,9 @@ class EspHomeClient:
 
     async def _handle_disconnect(self, expected_disconnect: bool) -> None:
         self._state = SessionState.DISCONNECTED
+        task = self._ready_task
+        if task is not None and not task.done():
+            task.cancel()
         # Stopping the session closes the socket; that is not a Homey unavailable.
         if self._on_state is None:
             return

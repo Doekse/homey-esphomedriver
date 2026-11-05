@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Sync Homey capabilities when a node reconnects with different firmware: add capabilities for new entities and remove capabilities for entities that are gone, without pressing Refresh. A reconnect with the same firmware does not list entities.
 - Provision a Noise encryption key over the zero-PSK handshake during pair/repair when the node is unprovisioned, instead of asking the user to paste one.
 - Repair starts on a Maintenance page: Repair Device (existing IP/key flow) or Show Key (copy the stored Noise PSK).
 

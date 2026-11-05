@@ -95,5 +95,8 @@
       "invalid_value": "Improv device sent an invalid value"
     }
   },
+  "warnings": {
+    "project_mismatch": "This ESPHome project (__project__) is not supported by this Homey app."
+  },
   "nativeAppSuggestion": "Good news! This device has its own app! Search in the Homey App Store for __appName__."
 }
