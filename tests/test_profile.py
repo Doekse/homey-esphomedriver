@@ -202,7 +202,7 @@ def test_after_map_default_is_a_noop() -> None:
 def test_hidden_entities_accepts_patterns(object_id: str, hidden: bool) -> None:
     """A family of entities can be named once instead of enumerated.
 
-    Object ids are slugified to ``[a-z0-9_]``, so ``*``/``?``/``[`` cannot occur
+    Object ids are slugified to ``[a-z0-9_-]``, so ``*``/``?``/``[`` cannot occur
     in a literal id and are unambiguous as wildcards.
     """
     profile = BrandProfile.from_compose({"hiddenEntities": ["debug_*", "wifi_signal"]})

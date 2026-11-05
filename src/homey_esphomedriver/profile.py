@@ -26,7 +26,7 @@ from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 def _is_pattern(entry: str) -> bool:
     """Whether a ``hiddenEntities`` entry is a pattern rather than an id.
 
-    ESPHome object ids are slugified to ``[a-z0-9_]``, so these characters
+    ESPHome object ids are slugified to ``[a-z0-9_-]``, so these characters
     cannot appear in a literal id and are unambiguous as wildcards.
     """
     return any(ch in entry for ch in "*?[")

@@ -75,7 +75,7 @@ Normally there is one Homey driver per product SKU. Product filters go on that d
 | `deviceClassOverrides`   | Force a Homey device class such as socket, sensor or speaker                                                      |
 
 
-`hiddenEntities` entries are object ids, except that an entry containing `*`, `?` or `[` is matched as a shell-style pattern. ESPHome slugifies object ids to `[a-z0-9_]`, so those characters cannot appear in a literal id and are unambiguous. A node that exposes a family of helpers — `debug_uptime`, `debug_free_heap`, and whatever the next firmware adds — is then hidden by `"debug_*"` once, rather than by a list that has to be revisited every time the node changes.
+`hiddenEntities` entries are object ids, except that an entry containing `*`, `?` or `[` is matched as a shell-style pattern. ESPHome slugifies object ids to `[a-z0-9_-]`, so those characters cannot appear in a literal id and are unambiguous. A node that exposes a family of helpers — `debug_uptime`, `debug_free_heap`, and whatever the next firmware adds — is then hidden by `"debug_*"` once, rather than by a list that has to be revisited every time the node changes.
 
 If both `projects` and `projectPrefix` are configured, a match on either is enough.
 
