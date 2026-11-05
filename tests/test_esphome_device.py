@@ -9,7 +9,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aioesphomeapi import DeviceInfo, EntityInfo, SwitchInfo
+from aioesphomeapi import APIConnectionError, DeviceInfo, EntityInfo, SwitchInfo
 
 from homey_esphomedriver.capabilities import DeviceCapabilityHandler, EntitySyncResult
 from homey_esphomedriver.entities.mapping import DeviceEntityMapper
@@ -126,6 +126,25 @@ async def _login(
     await client._handle_connect()
     await asyncio.sleep(0)
     return client, events
+
+
+def test_deep_sleep_stays_available_only_after_a_clean_goodbye() -> None:
+    """Last state after a clean sleep; unavailable on a drop or failed dial."""
+    device = _device()
+    device._client = EspHomeClient("192.0.2.1", deep_sleep=True)
+
+    async def run() -> None:
+        await device._on_disconnected(True)
+        device.set_unavailable.assert_not_awaited()
+
+        await device._on_disconnected(False)
+        device.set_unavailable.assert_awaited_with("errors.connection_lost:")
+
+        device.set_unavailable.reset_mock()
+        await device._on_connect_error(APIConnectionError("refused"))
+        device.set_unavailable.assert_awaited_with("errors.cannot_connect:")
+
+    asyncio.run(run())
 
 
 def test_unchanged_build_does_not_list_or_write_store() -> None:
