@@ -2,12 +2,15 @@
 
 A brand driver links a setting to an entity on the setting itself
 (``settings[].esphome.entity``), the way Z-Wave drivers put ``zwave`` on each
-setting. These tests pin how a manifest link is parsed and how it is bound to
-an entity key on the node.
+setting. These tests pin how a manifest link is parsed, how it is bound to an
+entity key on the node, and when two values count as the same setting value.
 """
 
 from __future__ import annotations
 
+from typing import Any
+
+import pytest
 from aioesphomeapi import NumberInfo, SelectInfo, SensorInfo, SwitchInfo
 
 from homey_esphomedriver.entities.mapping import DeviceEntityMapper
@@ -16,6 +19,7 @@ from homey_esphomedriver.settings.links import (
     SettingEntity,
     bind_setting_entities,
     parse_setting_entities,
+    setting_matches,
 )
 
 OFFSET = NumberInfo(object_id="temp_offset", key=11, name="Offset")
@@ -124,3 +128,22 @@ def test_pairing_stores_bindings_and_hides_the_entity() -> None:
     keys = {options.get("key") for options in scratch["capabilitiesOptions"].values()}
     assert 11 not in keys and 12 not in keys
     assert 13 in keys
+
+
+# --- values -----------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("wanted", "reported"),
+    [(21.0, 21.0), (0.1, 0.10000000149011612), (0, 0.0), ("eco", "eco"), (True, True)],
+)
+def test_matching_values(wanted: Any, reported: Any) -> None:
+    assert setting_matches(wanted, reported) is True
+
+
+@pytest.mark.parametrize(
+    ("wanted", "reported"),
+    [(21.0, 21.1), ("eco", "boost"), (True, False), ("1", "1.0"), (21.0, None)],
+)
+def test_differing_values(wanted: Any, reported: Any) -> None:
+    assert setting_matches(wanted, reported) is False

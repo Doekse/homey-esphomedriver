@@ -13,6 +13,7 @@ from typing import Any, cast
 from aioesphomeapi import (
     DeviceInfo,
     EntityCategory,
+    EntityState,
 )
 from homey.device import Device
 from homey.discovery_result import DiscoveryResult
@@ -127,11 +128,23 @@ class EspHomeDevice(Device[EspHomeDriver]):
         """Brand hook converting a saved setting into its entity's value.
 
         Override for unit scaling, or for dropdown ids that differ from the
-        select's option strings.
+        select's option strings. Pair with :meth:`entity_to_setting`.
 
         Args:
             setting_id: Setting linked through ``settings[].esphome.entity``.
             value: Value Homey saved.
+        """
+        del setting_id
+        return value
+
+    def entity_to_setting(self, setting_id: str, value: Any) -> Any:
+        """Brand hook converting a reported entity value into its setting.
+
+        The inverse of :meth:`setting_to_entity`.
+
+        Args:
+            setting_id: Setting linked through ``settings[].esphome.entity``.
+            value: State the node reported.
         """
         del setting_id
         return value
@@ -145,6 +158,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
         if self._client is not None:
             await self._client.stop()
             self._client = None
+        self._setting_sync.uninit()
         self._state_handler.uninit()
         await super().on_uninit()
 
@@ -264,7 +278,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
             on_connect_error=self._on_connect_error,
             on_ready=self._on_ready,
         )
-        await self._client.start(self._state_handler.handle_state)
+        await self._client.start(self._on_state)
 
     async def _persist_endpoint(
         self,
@@ -325,6 +339,11 @@ class EspHomeDevice(Device[EspHomeDriver]):
         await self.set_available()
         self._schedule_project_warning(device_info, accepted=accepted)
         await self.on_esphome_connected(client)
+
+    def _on_state(self, state: EntityState) -> None:
+        """Mirror settings linked to an entity, then update capabilities."""
+        self._setting_sync.on_state(state)
+        self._state_handler.handle_state(state)
 
     async def _on_ready(self) -> None:
         """The session accepts commands: send queued settings, then sync."""

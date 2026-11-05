@@ -14,6 +14,7 @@ from aioesphomeapi import (
     DeviceInfo,
     EntityInfo,
     NumberInfo,
+    NumberState,
     SwitchInfo,
 )
 
@@ -406,5 +407,43 @@ def test_ready_writes_settings_queued_while_the_node_slept() -> None:
             await asyncio.sleep(0)
         client.api.number_command.assert_called_once_with(11, 1.5)
         assert device._store["pending_settings"] == {}
+
+    asyncio.run(run())
+
+
+def test_driver_update_link_seeds_the_setting_from_the_connect_dump() -> None:
+    """The entity still has its tile capability until Refresh; the setting
+    the driver update linked to it starts from the value the node reported."""
+    offset = NumberInfo(object_id="temp_offset", key=11, name="Offset")
+    capabilities, options = _mapped(offset)
+    info = _info("build-1")
+    device = _device(
+        store={"entities_build": "build-1"},
+        settings={
+            **device_info_settings(info, host="192.0.2.1", encrypted=False),
+            "offset": 0.0,
+        },
+        profile=BrandProfile(
+            setting_entities={"offset": SettingEntity("temp_offset", "number")}
+        ),
+        capabilities=capabilities,
+        options=options,
+    )
+    device._state_handler = SimpleNamespace(handle_state=MagicMock())  # type: ignore[assignment]
+
+    async def entities() -> tuple[list[EntityInfo], list[object]]:
+        return [offset], []
+
+    async def run() -> None:
+        # The connect dump reaches the tile before the link is bound.
+        device._on_state(NumberState(key=11, state=3.0))
+        await _login(device, info, entities)
+        for _ in range(5):
+            await asyncio.sleep(0)
+        assert device._store["setting_entities"] == {
+            "offset": {"key": 11, "domain": "number"}
+        }
+        assert device._settings["offset"] == 3.0
+        device._state_handler.handle_state.assert_called_once()
 
     asyncio.run(run())

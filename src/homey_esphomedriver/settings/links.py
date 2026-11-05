@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from math import isclose
 from typing import Any
 
 from aioesphomeapi import EntityInfo
@@ -155,3 +156,21 @@ def bind_setting_entities(
             continue
         bindings[setting_id] = {"key": entity.key, "domain": domain}
     return bindings
+
+
+def setting_matches(wanted: Any, reported: Any) -> bool:
+    """Whether two values are the same setting value.
+
+    Floats compare with a tolerance, because a value that round-trips through
+    the node's float32 can differ in the last bits without being a different
+    value. Anything else compares exactly, so a select option that only looks
+    numeric is not forced through ``float``.
+    """
+    if isinstance(wanted, float) or isinstance(reported, float):
+        if isinstance(wanted, bool) or isinstance(reported, bool):
+            return False
+        try:
+            return isclose(float(wanted), float(reported), rel_tol=1e-6, abs_tol=1e-6)
+        except TypeError, ValueError:
+            return False
+    return bool(wanted == reported)

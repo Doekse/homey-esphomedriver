@@ -9,9 +9,13 @@ from typing import TYPE_CHECKING, Any
 from aioesphomeapi import (
     ClimateMode,
     EntityInfo,
+    EntityState,
     NumberInfo,
+    NumberState,
     SelectInfo,
+    SelectState,
     SwitchInfo,
+    SwitchState,
 )
 
 from homey_esphomedriver.entities.commands.base import AbstractEntityCommandHandler
@@ -27,6 +31,9 @@ class WritableDomain:
     info: type[EntityInfo]
     """Entity info type that identifies an entity of this domain."""
 
+    state: type[EntityState]
+    """State type an entity of this domain reports."""
+
     command: str
     """Native API client method that writes an entity of this domain."""
 
@@ -35,9 +42,15 @@ class WritableDomain:
 
 
 WRITABLE_DOMAINS: Mapping[str, WritableDomain] = {
-    "number": WritableDomain(info=NumberInfo, command="number_command", coerce=float),
-    "select": WritableDomain(info=SelectInfo, command="select_command", coerce=str),
-    "switch": WritableDomain(info=SwitchInfo, command="switch_command", coerce=bool),
+    "number": WritableDomain(
+        info=NumberInfo, state=NumberState, command="number_command", coerce=float
+    ),
+    "select": WritableDomain(
+        info=SelectInfo, state=SelectState, command="select_command", coerce=str
+    ),
+    "switch": WritableDomain(
+        info=SwitchInfo, state=SwitchState, command="switch_command", coerce=bool
+    ),
 }
 """The entity domains Homey writes, by domain name.
 
