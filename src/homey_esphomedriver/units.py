@@ -30,10 +30,10 @@ def convert_units(device: Device, capability_id: str, value: Any) -> Any:
         value: Raw ESPHome state value.
 
     Returns:
-        Converted value, ``None`` when ``value`` is NaN, or ``value`` unchanged
-        when it is not numeric or has no stored unit.
+        Converted value, ``None`` when ``value`` is NaN or infinite, or
+        ``value`` unchanged when it is not numeric or has no stored unit.
     """
-    if isinstance(value, float) and math.isnan(value):
+    if isinstance(value, float) and not math.isfinite(value):
         return None
     if not isinstance(value, (int, float)):
         return value

@@ -44,5 +44,5 @@ class SensorEntityStateUpdateHandler(AbstractEntityStateUpdateHandler):
 
 
 def _is_missing_number(value: float) -> bool:
-    """ESPHome may leave NaN when a reading is not yet available."""
-    return math.isnan(value)
+    """ESPHome may leave NaN (or a filter may yield Infinity) for no reading."""
+    return not math.isfinite(value)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 from typing import TYPE_CHECKING, Any
 
 from aioesphomeapi import EntityState
@@ -50,7 +51,12 @@ class AbstractEntityStateUpdateHandler:
         Also fires base ``esphome_*`` Flow cards for sub-capabilities. Homey only
         auto-triggers ``<full_id>_changed`` (e.g. ``esphome_number.foo_changed``),
         which cannot be declared for dynamic object IDs at compose time.
+
+        Non-finite floats (NaN, Infinity) are written as ``None`` (unknown):
+        Homey's IPC parses strict JSON, which has no literal for them.
         """
+        if isinstance(value, float) and not math.isfinite(value):
+            value = None
         if not self.has_capability(capability_id):
             self.error(f"Unavailable capability requested: {capability_id}")
             return

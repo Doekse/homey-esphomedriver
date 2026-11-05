@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import math
 from types import SimpleNamespace
 
-from aioesphomeapi import Event, SwitchState
+import pytest
+from aioesphomeapi import ClimateState, Event, SensorState, SwitchState
 
+from homey_esphomedriver.entities.state.base import AbstractEntityStateUpdateHandler
 from homey_esphomedriver.entities.state.climate import ClimateEntityStateUpdateHandler
 from homey_esphomedriver.entities.state.event import EventEntityStateUpdateHandler
 from homey_esphomedriver.entities.state.sensor import SensorEntityStateUpdateHandler
@@ -132,5 +135,95 @@ def test_missing_state_writes_unknown_without_flow_trigger() -> None:
             ("set", "esphome_number.humidex", 22.0),
             ("trigger", "esphome_number.humidex", 22.0),
         ]
+
+    asyncio.run(run())
+
+
+class _CapabilityDevice:
+    """Records awaited capability writes; every capability exists."""
+
+    def __init__(self) -> None:
+        self.written: list[tuple[str, object]] = []
+
+        class _Flow:
+            async def trigger_subcapability(self, *args: object) -> None:
+                pass
+
+        self.driver = SimpleNamespace(_flow=_Flow())
+
+    def has_capability(self, capability_id: str) -> bool:
+        return True
+
+    def get_capability_value(self, capability_id: str) -> object:
+        return None
+
+    def get_capability_options(self, capability_id: str) -> dict[str, object]:
+        return {}
+
+    async def set_capability_value(self, capability_id: str, value: object) -> None:
+        self.written.append((capability_id, value))
+
+
+async def _flush(
+    device: _CapabilityDevice, handler: object, state: object, caps: list[str]
+) -> None:
+    handler.handle(state, caps)  # type: ignore[attr-defined]
+    for _ in range(3):
+        await asyncio.sleep(0)
+
+
+@pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf])
+def test_set_capability_value_writes_non_finite_as_unknown(value: float) -> None:
+    """Homey IPC is strict JSON: NaN/Infinity must never reach a capability write."""
+
+    async def run() -> None:
+        device = _CapabilityDevice()
+        handler = AbstractEntityStateUpdateHandler(device)  # type: ignore[arg-type]
+        handler.set_capability_value("dim", value)
+        handler.set_capability_value("measure_power", 12.5)
+        for _ in range(3):
+            await asyncio.sleep(0)
+        assert device.written == [("dim", None), ("measure_power", 12.5)]
+
+    asyncio.run(run())
+
+
+def test_climate_nan_before_first_reading_is_unknown() -> None:
+    """Issue #15: a climate entity reports NaN temperatures until it has a reading."""
+
+    async def run() -> None:
+        device = _CapabilityDevice()
+        state = ClimateState(
+            key=1,
+            current_temperature=math.nan,
+            target_temperature=math.inf,
+            current_humidity=math.nan,
+        )
+        await _flush(
+            device,
+            ClimateEntityStateUpdateHandler(device),  # type: ignore[arg-type]
+            state,
+            ["measure_temperature", "target_temperature", "measure_humidity"],
+        )
+        assert device.written == [
+            ("measure_temperature", None),
+            ("target_temperature", None),
+            ("measure_humidity", None),
+        ]
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("value", [math.inf, -math.inf])
+def test_sensor_infinity_is_unknown(value: float) -> None:
+    """Infinity is treated like NaN, including for uptime (int(inf) would raise)."""
+
+    async def run() -> None:
+        device = _CapabilityDevice()
+        handler = SensorEntityStateUpdateHandler(device)  # type: ignore[arg-type]
+        await _flush(
+            device, handler, SensorState(key=1, state=value), ["measure_uptime"]
+        )
+        assert device.written == [("measure_uptime", None)]
 
     asyncio.run(run())
