@@ -82,7 +82,7 @@ class EspHomeClient:
         Args:
             host: Node address from discovery or settings.
             port: Native API port.
-            name: Hostname used by ReconnectLogic logs and zeroconf.
+            name: Hostname used by ReconnectLogic logs.
             noise_psk: Noise encryption key, or ``None`` for plaintext.
             expected_mac: Paired MAC; a mismatch stops reconnect at that address.
             client_info: Name shown on the node for this Homey client.
@@ -164,6 +164,8 @@ class EspHomeClient:
             on_disconnect=self._handle_disconnect,
             name=self._name,
             on_connect_error=self._handle_connect_error,
+            # Homey runs mDNS discovery; its sightings reach request_connect().
+            zeroconf_wake=False,
         )
         self._reconnect.deep_sleep = self._deep_sleep
         await self._reconnect.start()
@@ -188,10 +190,10 @@ class EspHomeClient:
             await self.start(on_state)
 
     async def request_connect(self) -> None:
-        """Retry now if ReconnectLogic is waiting (Homey saw the node on mDNS)."""
+        """Kick a pending connect now because Homey saw the node on mDNS."""
         if self._reconnect is None:
             return
-        await self._reconnect.start()
+        self._reconnect.notify_device_seen()
 
     def command(self, name: str, *args: Any, **kwargs: Any) -> None:
         """Forward a native API command.

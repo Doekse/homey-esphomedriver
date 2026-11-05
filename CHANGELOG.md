@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Feed newly discovered IPs into the running Native API client instead of tearing down the session on every mDNS address change.
+- Require aioesphomeapi 46.23.0. Each device no longer starts its own zeroconf (mDNS) stack after a failed connect; Homey's discovery events now kick a pending connect via `notify_device_seen()`, which also stops each sighting from resetting the reconnect backoff.
 
 ### Fixed
 

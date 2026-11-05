@@ -153,6 +153,60 @@ def test_update_endpoint_restarts_without_reconnect() -> None:
     asyncio.run(run())
 
 
+def test_start_disables_reconnect_zeroconf_wake(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ReconnectLogic never starts its own mDNS listener; Homey discovery does that."""
+    kwargs: dict[str, Any] = {}
+    reconnect = MagicMock()
+    reconnect.start = AsyncMock()
+
+    def factory(**passed: Any) -> MagicMock:
+        kwargs.update(passed)
+        return reconnect
+
+    monkeypatch.setattr("homey_esphomedriver.esphome_client.ReconnectLogic", factory)
+
+    async def run() -> None:
+        client = _client(name="node")
+        await client.start(AsyncMock())
+
+        assert kwargs["zeroconf_wake"] is False
+        assert kwargs["name"] == "node"
+        reconnect.start.assert_awaited_once()
+
+    asyncio.run(run())
+
+
+def test_request_connect_notifies_device_seen() -> None:
+    """A Homey sighting kicks the pending connect without restarting ReconnectLogic."""
+
+    async def run() -> None:
+        client = _client()
+        reconnect = MagicMock()
+        reconnect.start = AsyncMock()
+        client._reconnect = reconnect
+
+        await client.request_connect()
+
+        reconnect.notify_device_seen.assert_called_once_with()
+        reconnect.start.assert_not_awaited()
+
+    asyncio.run(run())
+
+
+def test_request_connect_without_reconnect_is_noop() -> None:
+    """No running ReconnectLogic (stopped on auth or MAC mismatch) means no kick."""
+
+    async def run() -> None:
+        client = _client()
+        client._reconnect = None
+
+        await client.request_connect()
+
+    asyncio.run(run())
+
+
 def _provision_client(
     *,
     provisionable: bool = True,
