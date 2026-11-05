@@ -22,11 +22,13 @@ async def notify_entities_changed(
     if not enabled or not (added or removed):
         return
     # A removal can break Flows, so that notification asks the user to check them.
-    key = (
-        "notifications.entities_changed_removed"
-        if removed
-        else "notifications.entities_changed"
-    )
+    # A zero count is left out; "added 0" is not something to say.
+    if removed and added:
+        key = "notifications.entities_changed_removed"
+    elif removed:
+        key = "notifications.entities_removed"
+    else:
+        key = "notifications.entities_changed"
     # Timeline excerpts render **double asterisks** as bold.
     excerpt = homey.translate(
         key,

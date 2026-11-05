@@ -100,7 +100,8 @@
   },
   "notifications": {
     "entities_changed": "Op __device__ zijn __added__ nieuwe entities bijgekomen.",
-    "entities_changed_removed": "Op __device__ zijn __added__ entities toegevoegd en __removed__ verwijderd. Misschien moet je je Flows even nalopen."
+    "entities_changed_removed": "Op __device__ zijn __added__ entities toegevoegd en __removed__ verwijderd. Misschien moet je je Flows even nalopen.",
+    "entities_removed": "Op __device__ zijn __removed__ entities verwijderd. Misschien moet je je Flows even nalopen."
   },
   "nativeAppSuggestion": "Goed nieuws! Dit apparaat heeft een eigen app! Zoek in de Homey App Store naar __appName__."
 }

@@ -100,7 +100,8 @@
   },
   "notifications": {
     "entities_changed": "__device__ har __added__ nye entiteter.",
-    "entities_changed_removed": "__device__ tilføjede __added__ entiteter og fjernede __removed__. Du vil måske tjekke dine Flows."
+    "entities_changed_removed": "__device__ tilføjede __added__ entiteter og fjernede __removed__. Du vil måske tjekke dine Flows.",
+    "entities_removed": "__device__ fjernede __removed__ entiteter. Du vil måske tjekke dine Flows."
   },
   "nativeAppSuggestion": "Gode nyheder! Denne enhed har sin egen app! Søg i Homey App Store efter __appName__."
 }

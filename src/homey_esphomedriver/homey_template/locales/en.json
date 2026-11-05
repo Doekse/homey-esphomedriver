@@ -100,7 +100,8 @@
   },
   "notifications": {
     "entities_changed": "__device__ has __added__ new entities.",
-    "entities_changed_removed": "__device__ added __added__ entities and removed __removed__. You might want to check your Flows."
+    "entities_changed_removed": "__device__ added __added__ entities and removed __removed__. You might want to check your Flows.",
+    "entities_removed": "__device__ removed __removed__ entities. You might want to check your Flows."
   },
   "nativeAppSuggestion": "Good news! This device has its own app! Search in the Homey App Store for __appName__."
 }

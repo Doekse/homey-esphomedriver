@@ -86,6 +86,21 @@ def test_additions_use_the_count() -> None:
     )
 
 
+def test_removals_only_skip_a_zero_add_count() -> None:
+    homey = _notify(added=[], removed=["Relay", "Pump"])
+
+    assert homey.calls == [
+        (
+            "notifications.entities_removed",
+            {
+                "device": "**Kitchen**",
+                "added": "0",
+                "removed": "2",
+            },
+        )
+    ]
+
+
 def test_removals_use_the_count() -> None:
     homey = _notify(added=["onoff.new"], removed=["Relay", "Pump"])
 
@@ -111,12 +126,17 @@ def test_notification_copy_is_translated() -> None:
         notes = data["notifications"]
         added = notes["entities_changed"]
         removed = notes["entities_changed_removed"]
+        removed_only = notes["entities_removed"]
         assert "__device__" in added
         assert "__added__" in added
+        assert "__removed__" not in added
         assert "__device__" in removed
         assert "__added__" in removed
         assert "__removed__" in removed
         assert "Flow" in removed
+        assert "__removed__" in removed_only
+        assert "__added__" not in removed_only
+        assert "Flow" in removed_only
 
     settings = json.loads(
         (
