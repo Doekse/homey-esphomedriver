@@ -90,6 +90,22 @@ Omit `projects` / `projectPrefix` to accept every project (`io.esphome`). If bot
 
 A class-level `brand_profile = BrandProfile(...)` on the driver still overrides compose. Use that for `after_map`.
 
+### Settings
+
+`esphome-defaults` brings the standard settings page, which the library reads and writes. A driver that declares its own `settings` replaces that list (Homey Compose does not merge it), so it keeps every default group through its setting template and adds its own around them:
+
+```json
+"settings": [
+  { "$extends": "esphome-device" },
+  { "$extends": "esphome-device-capabilities" },
+  { "type": "group", "label": { "en": "Calibration" }, "children": [ ... ] },
+  { "$extends": "esphome-device-notifications" },
+  { "$extends": "esphome-device-information" }
+]
+```
+
+A driver that leaves one out fails on init with an error naming the `$extends` to add.
+
 ### Driver
 
 ```python

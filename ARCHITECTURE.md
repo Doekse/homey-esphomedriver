@@ -96,6 +96,10 @@ If neither is configured, every ESPHome project is accepted. This is how `io.esp
 
 Everything else, including pairing, mapping and reconnect logic, stays inside the package.
 
+### Settings page
+
+The library owns the default settings page: it reads `device_class`, the category toggles, `notify_entities_changed` and the connection fields, and writes the Device Information labels on every connect. Homey Compose cannot append to an `$extends` template's `settings`; a driver that declares `settings` replaces the whole list. So each default group is also a setting template (`esphome-device`, `esphome-device-capabilities`, `esphome-device-notifications`, `esphome-device-information`), and a brand driver that adds its own settings keeps all four with `{"$extends": "<template>"}`. The driver checks this on init and fails with the missing template ids rather than letting a device run without settings the library relies on.
+
 ### Lifecycle hooks
 
 `EspHomeDriver` and `EspHomeDevice` seal `on_init` / `on_uninit`. Brand apps extend `on_esphome_init`, `on_esphome_connected`, and `on_esphome_uninit` instead (mirrors `homey-oauth2app`). Brand `app.py` exports Homey's `App`.
