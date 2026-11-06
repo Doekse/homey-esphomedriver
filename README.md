@@ -152,7 +152,7 @@ A configuration entity, such as a calibration offset, can be shown on the device
 - A deep-sleep node that is asleep gets the write when it next wakes, and the user sees a message saying so.
 - The linked entity is left off the device tile.
 
-Override `setting_to_entity` / `entity_to_setting` on the device to convert values, for example to scale units or to map dropdown ids to select options. Python-only drivers can set `BrandProfile(setting_entities={"temp_offset": SettingEntity("temperature_offset", "number")})`.
+Override `setting_to_entity` / `entity_to_setting` on the device to convert values, for example to scale units or to map dropdown ids to select options.
 
 ### Driver
 

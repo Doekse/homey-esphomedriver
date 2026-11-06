@@ -8,6 +8,7 @@ entity key on the node, and when two values count as the same setting value.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import pytest
@@ -95,6 +96,40 @@ def test_mapped_entity_leaves_the_tile() -> None:
     profile = BrandProfile(setting_entities=LINKS)
     assert profile.skip_entity(OFFSET) is True
     assert profile.skip_entity(BEEP) is False
+
+
+def test_linked_entity_leaves_the_tile_after_replace() -> None:
+    """``from_manifest`` adds links with ``replace``; the tile filter follows."""
+    profile = BrandProfile().replace(setting_entities=LINKS)
+    assert profile.skip_entity(OFFSET) is True
+
+
+@pytest.mark.parametrize(
+    "esphome",
+    [
+        {"deviceEntities": {"temp_offset": "measure_temperature"}},
+        {"capabilityOverrides": {"temp_offset": {"number": "esphome_number.x"}}},
+    ],
+)
+def test_linked_entity_that_is_also_remapped_is_logged(
+    esphome: dict[str, Any], caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.WARNING, logger="homey_esphomedriver.profile"):
+        profile = BrandProfile.from_manifest(
+            {
+                "esphome": esphome,
+                "settings": [
+                    {
+                        "id": "offset",
+                        "type": "number",
+                        "esphome": {"entity": "temp_offset"},
+                    }
+                ],
+            }
+        )
+    assert profile.skip_entity(OFFSET) is True
+    assert "'offset'" in caplog.text
+    assert "'temp_offset'" in caplog.text
 
 
 # --- binding ----------------------------------------------------------------

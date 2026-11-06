@@ -100,11 +100,21 @@ class BrandProfile:
     setting_entities: Mapping[str, SettingEntity] = field(default_factory=dict)
     """Homey setting id to the entity backing it.
 
-    Read from ``settings[].esphome.entity`` in the driver manifest rather than
-    the ``esphome`` object, so the link sits on the setting it configures. The
-    entity is written when the user saves the setting, and the setting follows
-    what the node reports. A mapped entity is left off the device tile.
+    Filled by :meth:`from_manifest` from ``settings[].esphome.entity``, so the
+    link sits on the setting it configures. The entity is written when the
+    user saves the setting, and the setting follows what the node reports. A
+    linked entity is left off the device tile.
     """
+
+    _setting_object_ids: frozenset[str] = field(init=False, repr=False, compare=False)
+    """Object ids of :attr:`setting_entities`, for :meth:`skip_entity`."""
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "_setting_object_ids",
+            frozenset(target.object_id for target in self.setting_entities.values()),
+        )
 
     @classmethod
     def from_manifest(cls, manifest: Mapping[str, Any] | None) -> BrandProfile:
@@ -125,6 +135,7 @@ class BrandProfile:
         )
         if not setting_entities:
             return profile
+        _warn_remapped_setting_entities(profile, setting_entities)
         return profile.replace(setting_entities=setting_entities)
 
     @classmethod
@@ -192,9 +203,7 @@ class BrandProfile:
             return True
         # The settings page is a mapped entity's one writer; a tile control
         # beside it would be a second path to the same value.
-        if any(
-            target.object_id == object_id for target in self.setting_entities.values()
-        ):
+        if object_id in self._setting_object_ids:
             return True
         return any(
             _is_pattern(entry) and fnmatchcase(object_id, entry)
@@ -243,6 +252,28 @@ class BrandProfile:
 
 DEFAULT_BRAND_PROFILE = BrandProfile()
 """Profile that accepts every project and applies no remaps."""
+
+
+def _warn_remapped_setting_entities(
+    profile: BrandProfile, setting_entities: Mapping[str, SettingEntity]
+) -> None:
+    """Log a linked entity that the ``esphome`` object also remaps.
+
+    The setting wins and the entity stays off the tile, so the remap does
+    nothing; saying so beats letting the author wonder why.
+    """
+    remapped = set(profile.device_entities) | {
+        object_id for object_id, _default in profile.capability_overrides
+    }
+    for setting_id, target in setting_entities.items():
+        if target.object_id in remapped:
+            _LOGGER.warning(
+                "Setting %r is linked to entity %r, which deviceEntities or "
+                "capabilityOverrides also remaps; the setting wins and the "
+                "entity stays off the device tile",
+                setting_id,
+                target.object_id,
+            )
 
 
 def _string_list(value: object) -> list[str]:

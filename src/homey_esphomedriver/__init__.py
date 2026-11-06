@@ -13,7 +13,6 @@ from __future__ import annotations
 from typing import Any
 
 from homey_esphomedriver.profile import DEFAULT_BRAND_PROFILE, BrandProfile
-from homey_esphomedriver.settings.links import SettingEntity
 
 __version__ = "0.5.0"
 
@@ -23,7 +22,6 @@ __all__ = [
     "EspHomeClient",
     "EspHomeDevice",
     "EspHomeDriver",
-    "SettingEntity",
     "__version__",
 ]
 
