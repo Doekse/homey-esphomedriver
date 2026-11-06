@@ -13,7 +13,7 @@ imported and tested without a live device, the same way
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from math import isclose
 from typing import Any
@@ -21,6 +21,7 @@ from typing import Any
 from aioesphomeapi import EntityInfo
 
 from homey_esphomedriver.entities.commands.generic import WRITABLE_DOMAINS
+from homey_esphomedriver.esphome_util import walk_settings
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ def parse_setting_entities(settings: object) -> dict[str, SettingEntity]:
     """
     found: dict[str, SettingEntity] = {}
     claimed: dict[str, str] = {}
-    for setting in _walk_settings(settings):
+    for setting in walk_settings(settings):
         link = setting.get("esphome")
         if not isinstance(link, Mapping) or not link.get("entity"):
             continue
@@ -87,18 +88,6 @@ def parse_setting_entities(settings: object) -> dict[str, SettingEntity]:
         claimed[object_id] = setting_id
         found[setting_id] = SettingEntity(object_id, setting_type)
     return found
-
-
-def _walk_settings(settings: object) -> Iterable[Mapping[str, Any]]:
-    if not isinstance(settings, Sequence) or isinstance(settings, (str, bytes)):
-        return
-    for setting in settings:
-        if not isinstance(setting, Mapping):
-            continue
-        if setting.get("type") == "group":
-            yield from _walk_settings(setting.get("children"))
-        else:
-            yield setting
 
 
 def writable_domain(entity: EntityInfo) -> str | None:
