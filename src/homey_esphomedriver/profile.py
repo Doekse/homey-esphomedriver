@@ -1,9 +1,9 @@
 """Brand-specific filters and remaps for a Homey ESPHome driver.
 
 Brand apps declare an ``esphome`` object in ``driver.compose.json``.
-:class:`EspHomeDriver` reads it from ``self.manifest``. A class-level
-``brand_profile`` on the driver still wins when set — use that for
-``after_map`` or a Python-only table.
+:class:`EspHomeDriver` reads it from ``self.manifest``; compose is the only
+source of profile data. For a Python hook such as ``after_map``, subclass
+:class:`BrandProfile` and set it as the driver's ``brand_profile_class``.
 
 The generic esphome-homey app (``io.esphome``) omits ``projects`` so every
 project is accepted. Brand apps that ship one driver per SKU set ``projects``
@@ -13,6 +13,7 @@ project is accepted. Brand apps that ship one driver per SKU set ``projects``
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from fnmatch import fnmatchcase
@@ -32,6 +33,22 @@ def _is_pattern(entry: str) -> bool:
     return any(ch in entry for ch in "*?[")
 
 
+_LOGGER = logging.getLogger(__name__)
+
+COMPOSE_KEYS = frozenset(
+    {
+        "clientInfo",
+        "projects",
+        "projectPrefix",
+        "hiddenEntities",
+        "deviceEntities",
+        "deviceClassOverrides",
+        "nativeApps",
+        "capabilityOverrides",
+    }
+)
+"""Keys of the ``driver.compose.json`` ``esphome`` object."""
+
 DEFAULT_CLIENT_INFO = "Homey ESPHome"
 """Identifies the generic Homey ESPHome app on the node's API hello."""
 
@@ -41,8 +58,9 @@ class BrandProfile:
     """
     Override surface consulted at pair, map, and connect time.
 
-    Built from the driver manifest ``esphome`` object, or assigned as a
-    class-level ``brand_profile`` when ``after_map`` needs Python.
+    Built from the driver manifest ``esphome`` object. Subclass it and set
+    the subclass as the driver's ``brand_profile_class`` to override
+    :meth:`after_map` or :meth:`device_class_for`.
     """
 
     client_info: str = DEFAULT_CLIENT_INFO
@@ -76,7 +94,7 @@ class BrandProfile:
     """ESPHome ``project.name`` to Homey App Store name (``io.esphome`` only)."""
 
     capability_overrides: Mapping[tuple[str, str], str] = field(default_factory=dict)
-    """``(object_id, default_capability_id)`` to capability id. Python-only."""
+    """``(object_id, default_capability_id)`` to capability id."""
 
     @classmethod
     def from_manifest(cls, manifest: Mapping[str, Any] | None) -> BrandProfile:
@@ -86,13 +104,12 @@ class BrandProfile:
             manifest: Driver manifest, typically ``self.manifest``.
 
         Returns:
-            :data:`DEFAULT_BRAND_PROFILE` when ``esphome`` is missing.
+            A profile of this class; one with no filters or remaps when
+            ``esphome`` is missing, so a subclass keeps its hooks.
         """
-        if not manifest:
-            return DEFAULT_BRAND_PROFILE
-        raw = manifest.get("esphome")
+        raw = manifest.get("esphome") if manifest else None
         if not isinstance(raw, Mapping):
-            return DEFAULT_BRAND_PROFILE
+            return cls()
         return cls.from_compose(raw)
 
     @classmethod
@@ -100,50 +117,25 @@ class BrandProfile:
         """Build a profile from a ``driver.compose.json`` ``esphome`` object.
 
         Args:
-            data: The ``esphome`` object. CamelCase compose keys are preferred;
-                snake_case and a few legacy aliases are also accepted.
+            data: The ``esphome`` object. Keys are listed in
+                :data:`COMPOSE_KEYS`; any other key is logged and ignored.
         """
+        unknown = sorted(set(data) - COMPOSE_KEYS)
+        if unknown:
+            _LOGGER.warning(
+                "Ignoring unknown esphome compose key(s) %s; expected one of %s",
+                ", ".join(map(str, unknown)),
+                ", ".join(sorted(COMPOSE_KEYS)),
+            )
         return cls(
-            client_info=str(
-                _pick(data, "clientInfo", "client_info") or DEFAULT_CLIENT_INFO
-            ),
-            projects=_optional_names(data, "projects", "projectNames", "project_names"),
-            project_prefix=_optional_tuple(
-                data,
-                "projectPrefix",
-                "projectPrefixes",
-                "project_prefix",
-                "project_prefixes",
-            ),
-            hidden_entities=frozenset(
-                _string_list(
-                    _pick(
-                        data,
-                        "hiddenEntities",
-                        "hidden_entities",
-                        "skipObjectIds",
-                        "skip_object_ids",
-                    )
-                    or ()
-                )
-            ),
-            device_entities=_string_map(
-                _pick(
-                    data,
-                    "deviceEntities",
-                    "device_entities",
-                    "capabilityByObjectId",
-                    "capability_by_object_id",
-                )
-                or {}
-            ),
-            device_class_overrides=_string_map(
-                _pick(data, "deviceClassOverrides", "device_class_overrides") or {}
-            ),
-            native_apps=_string_map(_pick(data, "nativeApps", "native_apps") or {}),
-            capability_overrides=_capability_overrides(
-                _pick(data, "capabilityOverrides", "capability_overrides")
-            ),
+            client_info=str(data.get("clientInfo") or DEFAULT_CLIENT_INFO),
+            projects=_optional_names(data.get("projects")),
+            project_prefix=_optional_tuple(data.get("projectPrefix")),
+            hidden_entities=frozenset(_string_list(data.get("hiddenEntities"))),
+            device_entities=_string_map(data.get("deviceEntities")),
+            device_class_overrides=_string_map(data.get("deviceClassOverrides")),
+            native_apps=_string_map(data.get("nativeApps")),
+            capability_overrides=_capability_overrides(data.get("capabilityOverrides")),
         )
 
     def replace(self, **kwargs: object) -> BrandProfile:
@@ -222,21 +214,14 @@ class BrandProfile:
     ) -> None:
         """Hook after all entities are mapped.
 
-        Override on a class-level ``brand_profile`` for brand-specific
-        post-processing. The default implementation is a no-op.
+        Override on a subclass set as the driver's ``brand_profile_class``
+        for brand-specific post-processing. The default is a no-op.
         """
         del entities, homey_device
 
 
 DEFAULT_BRAND_PROFILE = BrandProfile()
 """Profile that accepts every project and applies no remaps."""
-
-
-def _pick(data: Mapping[str, Any], *keys: str) -> Any:
-    for key in keys:
-        if key in data:
-            return data[key]
-    return None
 
 
 def _string_list(value: object) -> list[str]:
@@ -247,15 +232,13 @@ def _string_list(value: object) -> list[str]:
     return []
 
 
-def _optional_names(data: Mapping[str, Any], *keys: str) -> frozenset[str] | None:
-    raw = _pick(data, *keys)
+def _optional_names(raw: object) -> frozenset[str] | None:
     if raw is None:
         return None
     return frozenset(_string_list(raw))
 
 
-def _optional_tuple(data: Mapping[str, Any], *keys: str) -> tuple[str, ...] | None:
-    raw = _pick(data, *keys)
+def _optional_tuple(raw: object) -> tuple[str, ...] | None:
     if raw is None:
         return None
     return tuple(_string_list(raw))

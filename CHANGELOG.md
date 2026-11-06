@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking
+
+- Compose is the only source of profile data. A class-level `brand_profile = BrandProfile(...)` on a driver now raises `TypeError` on init: move its data to the `esphome` object in `driver.compose.json`, and for `after_map` or `device_class_for` subclass `BrandProfile` and set `brand_profile_class = MyProfile` on the driver.
+- The `esphome` compose object accepts only its camelCase keys. The aliases `client_info`, `projectNames` / `project_names`, `projectPrefixes` / `project_prefix(es)`, `hidden_entities` / `skipObjectIds` / `skip_object_ids`, `device_entities` / `capabilityByObjectId` / `capability_by_object_id`, `device_class_overrides`, `native_apps` and `capability_overrides` are gone; unknown keys are logged and ignored.
+- `BrandProfile.from_manifest` returns a new profile of the calling class, never `DEFAULT_BRAND_PROFILE` itself.
+
 ### Added
 
 - Setting templates for each default settings group (`esphome-device`, `esphome-device-capabilities`, `esphome-device-notifications`, `esphome-device-information`), so a driver can declare its own `settings` and keep the defaults with `$extends`. `esphome-homey sync` copies them to `.homeycompose/drivers/settings/`.

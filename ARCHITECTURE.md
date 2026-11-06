@@ -72,7 +72,9 @@ Normally there is one Homey driver per product SKU. Product filters go on that d
 | `clientInfo`             | Name shown on the ESPHome device for the connected client, for example `Homey Brand`                              |
 | `hiddenEntities`         | Hide things like status LEDs, OTA helpers or duplicate sensors; an entry with `*`/`?`/`[` is a pattern             |
 | `deviceEntities`         | Map VOC, NOx, PM and similar entities to proper Homey capabilities instead of generic gauges                      |
+| `capabilityOverrides`    | Remap one default capability of an entity, for example only its `onoff` to `onoff.pump`                           |
 | `deviceClassOverrides`   | Force a Homey device class such as socket, sensor or speaker                                                      |
+| `nativeApps`             | `io.esphome` only: suggest the dedicated Homey app for a project                                                  |
 
 
 `hiddenEntities` entries are object ids, except that an entry containing `*`, `?` or `[` is matched as a shell-style pattern. ESPHome slugifies object ids to `[a-z0-9_-]`, so those characters cannot appear in a literal id and are unambiguous. A node that exposes a family of helpers — `debug_uptime`, `debug_free_heap`, and whatever the next firmware adds — is then hidden by `"debug_*"` once, rather than by a list that has to be revisited every time the node changes.
@@ -81,7 +83,7 @@ If both `projects` and `projectPrefix` are configured, a match on either is enou
 
 If neither is configured, every ESPHome project is accepted. This is how `io.esphome` works.
 
-`after_map` cannot live in JSON. Set a class-level `brand_profile` on the driver when a Python hook is needed; that overrides compose.
+Compose is the only source of profile data; an unknown key is logged and ignored. `after_map` and `device_class_for` cannot live in JSON, so a brand that needs one subclasses `BrandProfile` and sets it as the driver's `brand_profile_class`. The library builds that subclass from the same manifest, so data and hooks never come from two places.
 
 ```json
 {

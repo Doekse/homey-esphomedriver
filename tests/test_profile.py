@@ -1,12 +1,14 @@
 """BrandProfile parsing and filtering tests.
 
 Brand apps declare an ``esphome`` object in ``driver.compose.json``. These tests
-pin the compose key aliases, the project-acceptance rules that decide which
-driver claims a node, and the capability override precedence.
+pin the compose keys, the project-acceptance rules that decide which driver
+claims a node, and the capability override precedence.
 """
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Sequence
 from typing import Any
 
 import pytest
@@ -23,13 +25,28 @@ def entity(object_id: str, key: int = 1) -> EntityInfo:
     return EntityInfo(object_id=object_id, key=key, name=object_id)
 
 
-def test_from_manifest_without_esphome_key_returns_default() -> None:
-    assert BrandProfile.from_manifest({"id": "my-driver"}) is DEFAULT_BRAND_PROFILE
+@pytest.mark.parametrize(
+    "manifest", [None, {}, {"id": "my-driver"}, {"esphome": "not-a-mapping"}]
+)
+def test_from_manifest_without_esphome_object_is_the_default(manifest: Any) -> None:
+    assert BrandProfile.from_manifest(manifest) == DEFAULT_BRAND_PROFILE
 
 
-@pytest.mark.parametrize("manifest", [None, {}, {"esphome": "not-a-mapping"}])
-def test_from_manifest_falls_back_to_default(manifest: Any) -> None:
-    assert BrandProfile.from_manifest(manifest) is DEFAULT_BRAND_PROFILE
+class _HookedProfile(BrandProfile):
+    def after_map(self, entities: Sequence[EntityInfo], homey_device: Any) -> None:
+        homey_device["tagged"] = [entity.object_id for entity in entities]
+
+
+@pytest.mark.parametrize(
+    "manifest", [{}, {"esphome": {"hiddenEntities": ["status_led"]}}]
+)
+def test_from_manifest_keeps_the_subclass(manifest: dict[str, Any]) -> None:
+    """A brand subclass keeps its hooks with or without an esphome object."""
+    profile = _HookedProfile.from_manifest(manifest)
+    assert type(profile) is _HookedProfile
+    device: dict[str, Any] = {}
+    profile.after_map([entity("relay")], device)  # type: ignore[arg-type]
+    assert device == {"tagged": ["relay"]}
 
 
 def test_from_manifest_reads_nested_esphome_object() -> None:
@@ -48,37 +65,40 @@ def test_default_profile_accepts_every_project() -> None:
     ("keys", "expected"),
     [
         ({"clientInfo": "Brand App"}, "Brand App"),
-        ({"client_info": "Brand App"}, "Brand App"),
         ({}, DEFAULT_CLIENT_INFO),
     ],
 )
-def test_client_info_aliases(keys: dict[str, Any], expected: str) -> None:
+def test_client_info(keys: dict[str, Any], expected: str) -> None:
     assert BrandProfile.from_compose(keys).client_info == expected
 
 
-@pytest.mark.parametrize("key", ["projects", "projectNames", "project_names"])
-def test_projects_aliases(key: str) -> None:
-    profile = BrandProfile.from_compose({key: ["Brand.AQ-1", "Brand.AQ-2"]})
+def test_projects() -> None:
+    profile = BrandProfile.from_compose({"projects": ["Brand.AQ-1", "Brand.AQ-2"]})
     assert profile.projects == frozenset({"Brand.AQ-1", "Brand.AQ-2"})
 
 
-@pytest.mark.parametrize(
-    "key",
-    ["projectPrefix", "projectPrefixes", "project_prefix", "project_prefixes"],
-)
-def test_project_prefix_aliases(key: str) -> None:
-    profile = BrandProfile.from_compose({key: "Brand."})
+def test_project_prefix() -> None:
+    profile = BrandProfile.from_compose({"projectPrefix": "Brand."})
     assert profile.project_prefix == ("Brand.",)
 
 
-@pytest.mark.parametrize(
-    "key",
-    ["hiddenEntities", "hidden_entities", "skipObjectIds", "skip_object_ids"],
-)
-def test_hidden_entities_aliases(key: str) -> None:
-    profile = BrandProfile.from_compose({key: ["status_led"]})
+def test_hidden_entities() -> None:
+    profile = BrandProfile.from_compose({"hiddenEntities": ["status_led"]})
     assert profile.skip_entity(entity("status_led")) is True
     assert profile.skip_entity(entity("relay")) is False
+
+
+@pytest.mark.parametrize(
+    "key", ["hidden_entities", "skipObjectIds", "projectNames", "hiddenEntites"]
+)
+def test_unknown_key_is_logged_and_ignored(
+    key: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Old aliases and typos would otherwise do nothing without a word."""
+    with caplog.at_level(logging.WARNING, logger="homey_esphomedriver.profile"):
+        profile = BrandProfile.from_compose({key: ["status_led"]})
+    assert profile == DEFAULT_BRAND_PROFILE
+    assert key in caplog.text
 
 
 def test_scalar_string_is_accepted_where_a_list_is_expected() -> None:

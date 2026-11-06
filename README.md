@@ -76,19 +76,37 @@ Product identity lives on the Homey driver like Zigbee `productId`: an `esphome`
 ```
 
 
-| Compose key            | Python `BrandProfile` field | Purpose                                          |
-| ---------------------- | --------------------------- | ------------------------------------------------ |
-| `projects`             | `projects`                  | Exact ESPHome `project.name` this driver accepts |
-| `projectPrefix`        | `project_prefix`            | Prefix match such as `Brand.`                    |
-| `clientInfo`           | `client_info`               | Name shown on the node for this Homey client     |
-| `hiddenEntities`       | `hidden_entities`           | Hide extra entities; `*`/`?`/`[` make a pattern  |
-| `deviceEntities`       | `device_entities`           | Remap an entity to a Homey capability            |
-| `deviceClassOverrides` | `device_class_overrides`    | Force Homey class from an entity id              |
+| Compose key            | Purpose                                                                  |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `projects`             | Exact ESPHome `project.name` this driver accepts                         |
+| `projectPrefix`        | Prefix match such as `Brand.`                                            |
+| `clientInfo`           | Name shown on the node for this Homey client                             |
+| `hiddenEntities`       | Hide extra entities; `*`/`?`/`[` make a pattern                          |
+| `deviceEntities`       | Remap an entity to a Homey capability                                    |
+| `capabilityOverrides`  | Remap only one default capability of an entity: `{"relay": {"onoff": "onoff.pump"}}` |
+| `deviceClassOverrides` | Force Homey class from an entity id                                      |
+| `nativeApps`           | Suggest a dedicated Homey app for a project (`io.esphome` only)          |
 
 
-Omit `projects` / `projectPrefix` to accept every project (`io.esphome`). If both are set, either match is enough.
+Omit `projects` / `projectPrefix` to accept every project (`io.esphome`). If both are set, either match is enough. Any other key is logged and ignored.
 
-A class-level `brand_profile = BrandProfile(...)` on the driver still overrides compose. Use that for `after_map`.
+Compose is the only source of profile data. For a Python hook (`after_map`, `device_class_for`), subclass `BrandProfile` and point the driver at it:
+
+```python
+# drivers/aq-1/driver.py
+from homey_esphomedriver import BrandProfile, EspHomeDriver
+
+
+class Aq1Profile(BrandProfile):
+    def after_map(self, entities, homey_device): ...
+
+
+class Aq1Driver(EspHomeDriver):
+    brand_profile_class = Aq1Profile
+
+
+homey_export = Aq1Driver
+```
 
 ### Settings
 
