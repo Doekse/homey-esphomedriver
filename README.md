@@ -86,6 +86,7 @@ Product identity lives on the Homey driver like Zigbee `productId`: an `esphome`
 | `capabilityOverrides`  | Remap only one default capability of an entity: `{"relay": {"onoff": "onoff.pump"}}` |
 | `deviceClassOverrides` | Force Homey class from an entity id                                      |
 | `nativeApps`           | Suggest a dedicated Homey app for a project (`io.esphome` only)          |
+| `settings[].esphome.entity` | On a setting, not in `esphome`: back that setting with an entity (see below) |
 
 
 Omit `projects` / `projectPrefix` to accept every project (`io.esphome`). If both are set, either match is enough. Any other key is logged and ignored.
@@ -126,18 +127,28 @@ A driver that leaves one out fails on init with an error naming the `$extends` t
 
 ### Settings backed by an entity
 
-A configuration entity, such as a calibration offset, can be shown on the device's settings page instead of the device tile. Link the setting to the entity with an `esphome` object on the setting, the way Z-Wave drivers use `zwave`:
+A configuration entity, such as a calibration offset, can be shown on the device's settings page instead of the device tile. Link the setting to the entity with an `esphome` object on the setting, the way Z-Wave drivers use `zwave`. Declaring `settings` replaces the default page, so keep every default group with its template:
 
 ```json
 "settings": [
+  { "$extends": "esphome-device" },
+  { "$extends": "esphome-device-capabilities" },
   {
-    "id": "temp_offset",
-    "type": "number",
-    "label": { "en": "Temperature offset" },
-    "value": 0, "min": -5, "max": 5, "step": 0.1,
-    "units": { "en": "°C" },
-    "esphome": { "entity": "temperature_offset" }
-  }
+    "type": "group",
+    "label": { "en": "Calibration" },
+    "children": [
+      {
+        "id": "temp_offset",
+        "type": "number",
+        "label": { "en": "Temperature offset" },
+        "value": 0, "min": -5, "max": 5, "step": 0.1,
+        "units": { "en": "°C" },
+        "esphome": { "entity": "temperature_offset" }
+      }
+    ]
+  },
+  { "$extends": "esphome-device-notifications" },
+  { "$extends": "esphome-device-information" }
 ]
 ```
 
