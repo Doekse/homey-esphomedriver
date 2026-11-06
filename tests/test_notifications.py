@@ -119,7 +119,9 @@ def test_removals_use_the_count() -> None:
     )
 
 
-def test_notification_copy_is_translated() -> None:
+def test_notification_copy_is_translated(
+    default_settings: list[dict[str, Any]],
+) -> None:
     """Every template locale and the settings checkbox carry this notification."""
     for code in _LOCALES:
         data = json.loads((_TEMPLATE / "locales" / f"{code}.json").read_text())
@@ -138,12 +140,7 @@ def test_notification_copy_is_translated() -> None:
         assert "__added__" not in removed_only
         assert "Flow" in removed_only
 
-    settings = json.loads(
-        (
-            _TEMPLATE / "compose" / "drivers" / "templates" / "esphome-defaults.json"
-        ).read_text()
-    )
-    groups = settings["settings"]
+    groups = default_settings
     index = next(
         i for i, group in enumerate(groups) if group.get("id") == "notifications"
     )

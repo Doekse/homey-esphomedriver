@@ -219,6 +219,15 @@ def _copy_shared(root: Path, app_dir: Path, result: BootstrapResult) -> None:
     ]
     for src, dest, overwrite in mappings:
         _copy_file(src, dest, app_dir, result, overwrite=overwrite)
+    # Setting templates: esphome-defaults uses them, and a brand driver that
+    # declares its own settings pulls the default groups in with $extends.
+    _copy_dir(
+        root / "compose" / "drivers" / "settings",
+        app_dir / ".homeycompose" / "drivers" / "settings",
+        app_dir,
+        result,
+        overwrite=True,
+    )
     _copy_dir(
         root / "compose" / "capabilities",
         app_dir / ".homeycompose" / "capabilities",

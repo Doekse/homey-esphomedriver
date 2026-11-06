@@ -6,9 +6,13 @@ Provide the few classes the import needs so device tests can run.
 
 from __future__ import annotations
 
+import json
 import sys
 import types
-from typing import Generic, TypeVar
+from pathlib import Path
+from typing import Any, Generic, TypeVar
+
+import pytest
 
 _DriverT = TypeVar("_DriverT")
 
@@ -57,3 +61,36 @@ def _install_homey_stub() -> None:
 
 
 _install_homey_stub()
+
+
+_DRIVER_COMPOSE = (
+    Path(__file__).resolve().parents[1]
+    / "src"
+    / "homey_esphomedriver"
+    / "homey_template"
+    / "compose"
+    / "drivers"
+)
+
+
+def expand_setting(setting: dict[str, Any]) -> dict[str, Any]:
+    """Resolve a top-level setting ``$extends`` the way Homey Compose does.
+
+    Homey spreads the template over ``{"id": template_id}`` and the setting's
+    own keys over that, so a template's ``id`` wins over the template id.
+    """
+    template_id = setting.get("$extends")
+    if template_id is None:
+        return setting
+    path = _DRIVER_COMPOSE / "settings" / f"{template_id}.json"
+    template = json.loads(path.read_text(encoding="utf-8"))
+    own = {key: value for key, value in setting.items() if key != "$extends"}
+    return {"id": setting.get("$id", template_id), **template, **own}
+
+
+@pytest.fixture
+def default_settings() -> list[dict[str, Any]]:
+    """The ``esphome-defaults`` settings with every ``$extends`` resolved."""
+    path = _DRIVER_COMPOSE / "templates" / "esphome-defaults.json"
+    template = json.loads(path.read_text(encoding="utf-8"))
+    return [expand_setting(setting) for setting in template["settings"]]
