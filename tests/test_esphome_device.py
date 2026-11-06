@@ -447,3 +447,64 @@ def test_driver_update_link_seeds_the_setting_from_the_connect_dump() -> None:
         device._state_handler.handle_state.assert_called_once()
 
     asyncio.run(run())
+
+
+def test_on_init_starts_the_client_after_brand_registration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Converters from on_esphome_init must see the connect dump and queued writes."""
+    events: list[str] = []
+
+    class _Sync:
+        def __init__(self, _device: Any) -> None:
+            events.append("sync")
+
+        def register(self, setting_id: str, **_converters: Any) -> None:
+            events.append(f"register {setting_id}")
+
+    class _Handler:
+        def __init__(self, _device: Any) -> None:
+            pass
+
+        async def init(self) -> None:
+            return None
+
+        async def ensure(self) -> None:
+            return None
+
+    class _Client:
+        async def start(self, _on_state: Any) -> None:
+            events.append("client started")
+
+    module = "homey_esphomedriver.esphome_device"
+    monkeypatch.setattr(f"{module}.SettingEntitySync", _Sync)
+    for name in (
+        "DeviceEntityStateHandler",
+        "DeviceEntityCommandHandler",
+        "DeviceCapabilityHandler",
+    ):
+        monkeypatch.setattr(f"{module}.{name}", _Handler)
+    monkeypatch.setattr(EspHomeDevice.__mro__[1], "on_init", AsyncMock(), raising=False)
+
+    class _Brand(EspHomeDevice):
+        async def on_esphome_init(self, client: Any) -> None:
+            self.register_setting("temp_offset", to_setting=float)
+
+    device = _device(store={"address": "192.0.2.1"})
+    device.__class__ = _Brand
+    device.get_data = lambda: {"id": "aabbccddeeff"}  # type: ignore[method-assign]
+
+    def create() -> _Client:
+        events.append("client created")
+        return _Client()
+
+    device._create_client = create  # type: ignore[method-assign,assignment]
+
+    asyncio.run(device.on_init())
+
+    assert events == [
+        "sync",
+        "client created",
+        "register temp_offset",
+        "client started",
+    ]

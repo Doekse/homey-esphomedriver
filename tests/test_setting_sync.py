@@ -11,7 +11,7 @@ import asyncio
 import copy
 from types import MappingProxyType, SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 from aioesphomeapi import NumberInfo, NumberState, SelectInfo, SelectState
@@ -34,11 +34,7 @@ BINDINGS = {
 
 
 class _Device(SimpleNamespace):
-    def setting_to_entity(self, setting_id: str, value: Any) -> Any:
-        return value
-
-    def entity_to_setting(self, setting_id: str, value: Any) -> Any:
-        return value
+    pass
 
 
 def _device(
@@ -155,6 +151,40 @@ def test_queued_writes_survive_a_restart() -> None:
     asyncio.run(run())
 
 
+def test_failing_converter_rejects_the_save() -> None:
+    """A lookup-table converter raises KeyError, not ValueError."""
+
+    async def run() -> None:
+        device = _device()
+        sync = SettingEntitySync(device)
+        sync.register("mode", to_entity={"0": "eco", "1": "boost"}.__getitem__)
+        with pytest.raises(ValueError, match="errors.setting_invalid"):
+            await sync.on_settings({"mode": "2"}, ("mode",))
+        device.client.command.assert_not_called()
+
+    asyncio.run(run())
+
+
+def test_queued_value_that_cannot_convert_does_not_block_the_rest() -> None:
+    async def run() -> None:
+        device = _device(
+            store={
+                "setting_entities": BINDINGS,
+                "pending_settings": {"mode": "2", "offset": 1.5},
+            }
+        )
+        sync = SettingEntitySync(device)
+        sync.register("mode", to_entity={"0": "eco", "1": "boost"}.__getitem__)
+
+        await sync.flush_pending()
+
+        device.client.command.assert_called_once_with("number_command", 11, 1.5)
+        assert device.store["pending_settings"] == {}
+        device.error.assert_called_once()
+
+    asyncio.run(run())
+
+
 def test_reported_value_is_mirrored_into_the_setting() -> None:
     async def run() -> None:
         device = _device()
@@ -244,12 +274,13 @@ def test_rejected_mirror_does_not_hold_back_the_others() -> None:
     asyncio.run(run())
 
 
-def test_conversion_hooks_run_both_ways() -> None:
+def test_registered_converters_run_both_ways() -> None:
     async def run() -> None:
         device = _device()
-        device.setting_to_entity = lambda _id, value: value * 10
-        device.entity_to_setting = lambda _id, value: value / 10
         sync = SettingEntitySync(device)
+        sync.register(
+            "offset", to_entity=lambda value: value * 10, to_setting=lambda v: v / 10
+        )
 
         await sync.on_settings({"offset": 1.5}, ("offset",))
         device.client.command.assert_called_once_with("number_command", 11, 15.0)
@@ -354,3 +385,26 @@ def test_bindings_for_settings_the_driver_dropped_are_ignored() -> None:
         device.client.command.assert_not_called()
 
     asyncio.run(run())
+
+
+def test_converters_are_per_setting() -> None:
+    """A converter on one setting leaves the others passing through."""
+
+    async def run() -> None:
+        device = _device()
+        sync = SettingEntitySync(device)
+        sync.register("mode", to_entity=str.upper, to_setting=str.lower)
+
+        await sync.on_settings({"offset": 1.5, "mode": "boost"}, ("offset", "mode"))
+        assert device.client.command.call_args_list == [
+            call("number_command", 11, 1.5),
+            call("select_command", 12, "BOOST"),
+        ]
+
+    asyncio.run(run())
+
+
+def test_registering_an_unlinked_setting_fails() -> None:
+    sync = SettingEntitySync(_device())
+    with pytest.raises(ValueError, match="'offest' is not linked"):
+        sync.register("offest", to_entity=float)

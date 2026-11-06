@@ -8,6 +8,7 @@ persist + reconnect; entity I/O lives on the handlers.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from typing import Any, cast
 
 from aioesphomeapi import (
@@ -97,8 +98,12 @@ class EspHomeDevice(Device[EspHomeDriver]):
         await self._state_handler.init()
         await self._capability_handler.ensure()
 
-        await self._ensure_client_started()
-        await self.on_esphome_init(self._client)
+        # Started only after the brand hook, so setting converters registered
+        # there apply to the connect dump and to queued writes.
+        client = self._create_client()
+        await self.on_esphome_init(client)
+        if client is not None:
+            await client.start(self._on_state)
 
         self.log(f"Initialized EspHomeDevice {self.get_name()}")
 
@@ -106,8 +111,8 @@ class EspHomeDevice(Device[EspHomeDriver]):
         """Brand hook after capability wiring.
 
         Args:
-            client: Live Native API session, or ``None`` when the node has no
-                host yet (waiting on mDNS).
+            client: Native API session, started once this hook returns, or
+                ``None`` when the node has no host yet (waiting on mDNS).
         """
 
     async def on_esphome_connected(self, client: EspHomeClient) -> None:
@@ -124,30 +129,42 @@ class EspHomeDevice(Device[EspHomeDriver]):
         Do not override :meth:`on_uninit`.
         """
 
-    def setting_to_entity(self, setting_id: str, value: Any) -> Any:
-        """Brand hook converting a saved setting into its entity's value.
+    def register_setting(
+        self,
+        setting_id: str,
+        *,
+        to_entity: Callable[[Any], Any] | None = None,
+        to_setting: Callable[[Any], Any] | None = None,
+    ) -> None:
+        """Register value converters for a setting backed by an entity.
 
-        Override for unit scaling, or for dropdown ids that differ from the
-        select's option strings. Pair with :meth:`entity_to_setting`.
+        Call from :meth:`on_esphome_init`, the way Z-Wave drivers call
+        ``registerSetting`` from ``onNodeInit``. The session starts after that
+        hook returns, so the connect dump is converted too. Without a
+        converter the value passes through unchanged.
+
+        Example:
+            ```python
+            async def on_esphome_init(self, client):
+                self.register_setting(
+                    "temp_offset",
+                    to_entity=lambda tenths: tenths / 10,
+                    to_setting=lambda celsius: round(celsius * 10),
+                )
+            ```
 
         Args:
             setting_id: Setting linked through ``settings[].esphome.entity``.
-            value: Value Homey saved.
+            to_entity: Saved setting value to the value the entity takes, for
+                example a unit scale or a dropdown id to a select option.
+            to_setting: Reported entity value to the setting value.
+
+        Raises:
+            ValueError: If ``setting_id`` is not linked to an entity.
         """
-        del setting_id
-        return value
-
-    def entity_to_setting(self, setting_id: str, value: Any) -> Any:
-        """Brand hook converting a reported entity value into its setting.
-
-        The inverse of :meth:`setting_to_entity`.
-
-        Args:
-            setting_id: Setting linked through ``settings[].esphome.entity``.
-            value: State the node reported.
-        """
-        del setting_id
-        return value
+        self._setting_sync.register(
+            setting_id, to_entity=to_entity, to_setting=to_setting
+        )
 
     async def on_uninit(self) -> None:
         """Stop the API session and release state handlers.
@@ -254,12 +271,20 @@ class EspHomeDevice(Device[EspHomeDriver]):
         """Create and start the long-lived API session from device settings."""
         if self._client is not None:
             return
+        client = self._create_client()
+        if client is not None:
+            await client.start(self._on_state)
+
+    def _create_client(self) -> EspHomeClient | None:
+        """Create the API session from device settings without starting it."""
+        if self._client is not None:
+            return self._client
 
         store = self.get_store()
         host = str(self.get_setting("host") or store.get("address") or "").strip()
         if not host:
             self.error("ESPHome host is missing; waiting for discovery or settings")
-            return
+            return None
 
         port = int(self.get_setting("port") or store.get("port") or DEFAULT_API_PORT)
         noise_psk = str(store.get("noise_psk") or "").strip() or None
@@ -278,7 +303,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
             on_connect_error=self._on_connect_error,
             on_ready=self._on_ready,
         )
-        await self._client.start(self._on_state)
+        return self._client
 
     async def _persist_endpoint(
         self,

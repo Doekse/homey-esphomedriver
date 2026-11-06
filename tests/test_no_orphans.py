@@ -21,7 +21,11 @@ from collections import Counter
 SRC = pathlib.Path(__file__).resolve().parent.parent / "src" / "homey_esphomedriver"
 
 # Names allowed to stay orphaned, each with a comment saying why. Keep it empty.
-KNOWN_ORPHANS: set[str] = set()
+KNOWN_ORPHANS: set[str] = {
+    # Brand API, called from a brand device's on_esphome_init like Z-Wave's
+    # registerSetting; nothing in the library registers converters itself.
+    "register_setting",
+}
 
 
 def _definitions() -> dict[str, str]:

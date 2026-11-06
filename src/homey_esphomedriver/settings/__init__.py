@@ -10,7 +10,7 @@ gets the write when it next wakes, as Z-Wave does for battery nodes.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any
 
 from aioesphomeapi import EntityState
@@ -38,6 +38,9 @@ class SettingEntitySync:
 
     def __init__(self, device: EspHomeDevice) -> None:
         self._device = device
+        self._converters: dict[
+            str, tuple[Callable[[Any], Any] | None, Callable[[Any], Any] | None]
+        ] = {}
         self._bound: dict[str, dict[str, Any]] = {}
         self._resolved: frozenset[str] = frozenset()
         self._by_key: dict[int, str] = {}
@@ -108,11 +111,39 @@ class SettingEntitySync:
         if fresh != self._device.get_store().get(BINDINGS_STORE_KEY):
             await self._device.set_store_value(BINDINGS_STORE_KEY, fresh)
         self._load_bindings(fresh)
-        # The connect dump may have gone by, and a number never repeats it.
+        self._replay_cached_states()
+
+    def _replay_cached_states(self) -> None:
+        """Mirror the latest state of every bound entity.
+
+        The connect dump may have gone by, and a number never repeats it.
+        """
         for key in self._by_key:
             state = self._latest.get(key)
             if state is not None:
                 self.on_state(state)
+
+    # --- converters ---------------------------------------------------------
+
+    def register(
+        self,
+        setting_id: str,
+        *,
+        to_entity: Callable[[Any], Any] | None = None,
+        to_setting: Callable[[Any], Any] | None = None,
+    ) -> None:
+        """Set the value converters for one linked setting.
+
+        Raises:
+            ValueError: If ``setting_id`` is not linked to an entity, so a typo
+                fails on init rather than silently passing values through.
+        """
+        if setting_id not in self._linked:
+            raise ValueError(
+                f"Setting {setting_id!r} is not linked to an entity; add "
+                '"esphome": {"entity": "<object_id>"} to it in the manifest'
+            )
+        self._converters[setting_id] = (to_entity, to_setting)
 
     async def ensure_bindings(self, client: EspHomeClient) -> None:
         """Bind settings a driver update linked after this device was paired.
@@ -183,11 +214,18 @@ class SettingEntitySync:
         return device.homey.translate("settings.applied_on_wake")
 
     def _entity_value(self, setting_id: str, value: Any) -> Any:
-        """Convert a setting value to what its entity's command takes."""
+        """Convert a setting value to what its entity's command takes.
+
+        Raises:
+            ValueError: For any failure of the brand's ``to_entity`` converter
+                or the domain coercion, so a ``KeyError`` from a lookup table
+                is handled the same as a value the entity cannot take.
+        """
         coerce = WRITABLE_DOMAINS[self._bound[setting_id]["domain"]].coerce
         try:
-            return coerce(self._device.setting_to_entity(setting_id, value))
-        except (TypeError, ValueError) as err:
+            to_entity, _to_setting = self._converters.get(setting_id, (None, None))
+            return coerce(value if to_entity is None else to_entity(value))
+        except Exception as err:
             raise ValueError(
                 self._device.homey.translate("errors.setting_invalid")
             ) from err
@@ -257,7 +295,8 @@ class SettingEntitySync:
             return
         device = self._device
         try:
-            value = device.entity_to_setting(setting_id, reported)
+            _to_entity, to_setting = self._converters.get(setting_id, (None, None))
+            value = reported if to_setting is None else to_setting(reported)
         except Exception as err:
             device.error(f"Could not convert {setting_id!r} from the node:", err)
             return

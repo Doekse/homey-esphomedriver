@@ -163,7 +163,28 @@ A configuration entity, such as a calibration offset, can be shown on the device
 - A deep-sleep node that is asleep gets the write when it next wakes, and the user sees a message saying so.
 - The linked entity is left off the device tile.
 
-Override `setting_to_entity` / `entity_to_setting` on the device to convert values, for example to scale units or to map dropdown ids to select options.
+To convert values, for example to scale units or to map dropdown ids to select options, register converters per setting from `on_esphome_init`, the way Z-Wave drivers call `registerSetting` from `onNodeInit`:
+
+```python
+# drivers/aq-1/device.py
+from homey_esphomedriver import EspHomeDevice
+
+MODES = {"0": "eco", "1": "boost"}
+
+
+class Aq1Device(EspHomeDevice):
+    async def on_esphome_init(self, client):
+        self.register_setting(
+            "mode",
+            to_entity=MODES.__getitem__,
+            to_setting={option: key for key, option in MODES.items()}.__getitem__,
+        )
+
+
+homey_export = Aq1Device
+```
+
+A setting without converters passes values through. Registering a setting that is not linked raises `ValueError`. The API session starts after `on_esphome_init` returns, so the converters also apply to the connect dump and to writes queued while a deep-sleep node slept.
 
 ### Driver
 
