@@ -235,6 +235,7 @@ A configuration entity, such as a calibration offset, can be shown on the device
 
 `domain` follows from the setting type and may be left out; add `device_id` for an entity on a sub-device.
 
+- The node is the truth for the value: what it reports, including changes from Home Assistant or the web server, is copied into the setting. Pairing never pushes the setting's default.
 - Saving the setting writes the entity. An invalid value, or a node that is offline and not a deep-sleep node, rejects the save. A setting whose entity the node lacks saves in Homey only.
 - A deep-sleep node that is asleep gets the write when it next wakes, and the user sees a message saying so.
 

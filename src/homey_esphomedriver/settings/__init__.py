@@ -1,15 +1,26 @@
-"""Write settings-page fields to the ESPHome entities backing them.
+"""Keep settings-page fields in step with the ESPHome entities backing them.
 
-The entity is written when the user saves the setting. A deep-sleep node that
-is asleep at that moment gets the write when it next wakes.
+The node holds the value, so it is the truth for what the value currently is:
+reported states are mirrored into the Homey setting, including changes made
+from Home Assistant or the ESPHome web server. The entity is written only when
+the user saves the setting. A deep-sleep node that is asleep at that moment
+gets the write when it next wakes.
 """
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
-from homey_esphomedriver.settings.links import DOMAIN_COERCE, SettingEntity
+from aioesphomeapi import EntityState
+
+from homey_esphomedriver.esphome_util import is_missing_number
+from homey_esphomedriver.settings.links import (
+    DOMAIN_COERCE,
+    SettingEntity,
+    setting_matches,
+)
 
 if TYPE_CHECKING:
     from homey_esphomedriver.esphome_client import EspHomeClient
@@ -20,11 +31,16 @@ PENDING_STORE_KEY = "pending_settings"
 
 
 class SettingEntitySync:
-    """Write and queue settings linked to an entity for one device."""
+    """Write, mirror and queue settings linked to an entity for one device."""
 
     def __init__(self, device: EspHomeDevice) -> None:
         self._device = device
+        self._by_ref = {
+            target.ref: setting_id for setting_id, target in self._linked.items()
+        }
         self._pending: dict[str, Any] = {}
+        self._mirror_queue: dict[str, Any] = {}
+        self._mirror_task: asyncio.Task[None] | None = None
         pending = device.get_store().get(PENDING_STORE_KEY)
         if isinstance(pending, Mapping):
             self._pending = {
@@ -36,6 +52,14 @@ class SettingEntitySync:
     @property
     def _linked(self) -> Mapping[str, SettingEntity]:
         return self._device.brand_profile.setting_entities
+
+    def uninit(self) -> None:
+        """Stop a mirror still waiting on Homey."""
+        task = self._mirror_task
+        if task is not None and not task.done():
+            task.cancel()
+        self._mirror_task = None
+        self._mirror_queue.clear()
 
     def _entity(self, setting_id: str) -> BoundEntity | None:
         """The entity backing a setting on the current connection."""
@@ -150,6 +174,51 @@ class SettingEntitySync:
         for setting_id in setting_ids:
             self._pending.pop(setting_id, None)
         await self._device.set_store_value(PENDING_STORE_KEY, dict(self._pending))
+
+    # --- node -> Homey ------------------------------------------------------
+
+    def on_state(self, state: EntityState) -> None:
+        """Mirror a reported value into its setting.
+
+        Runs inline in the Native API read callback, so it only queues; the
+        Homey write happens in a task.
+        """
+        ref = self._device._bindings.ref_for(state)
+        setting_id = self._by_ref.get(ref) if ref is not None else None
+        if setting_id is None or setting_id in self._pending:
+            # A queued edit wins over the value the node still holds.
+            return
+        if getattr(state, "missing_state", False):
+            return
+        reported = getattr(state, "state", None)
+        if reported is None or (
+            isinstance(reported, float) and is_missing_number(reported)
+        ):
+            return
+        device = self._device
+        if setting_matches(device.get_setting(setting_id), reported):
+            self._mirror_queue.pop(setting_id, None)
+            return
+        self._mirror_queue[setting_id] = reported
+        if self._mirror_task is None or self._mirror_task.done():
+            self._mirror_task = asyncio.create_task(self._run_mirror())
+
+    async def _run_mirror(self) -> None:
+        """Write queued values into their settings, newest value per setting."""
+        device = self._device
+        while self._mirror_queue:
+            setting_id = next(iter(self._mirror_queue))
+            value = self._mirror_queue.pop(setting_id)
+            if setting_matches(device.get_setting(setting_id), value):
+                continue
+            try:
+                await device.set_settings({setting_id: value})
+            except Exception as err:
+                # Refused while a save is in progress, and that save wins: a
+                # node reports nothing for a value it rejects, so a report then
+                # is the echo of the value being saved. Otherwise Homey rejects
+                # the value itself, such as one outside the setting's range.
+                device.log(f"Did not mirror {setting_id!r} into settings:", err)
 
 
 def _write(client: EspHomeClient, entity: BoundEntity, value: Any) -> None:

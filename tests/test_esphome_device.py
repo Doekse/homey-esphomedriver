@@ -14,6 +14,7 @@ from aioesphomeapi import (
     DeviceInfo,
     EntityInfo,
     NumberInfo,
+    NumberState,
     SwitchInfo,
     SwitchState,
 )
@@ -235,6 +236,26 @@ def test_ready_writes_settings_queued_while_the_node_slept() -> None:
         client, _events = await _login(device, info, [OFFSET])
         client.api.number_command.assert_called_once_with(11, 1.5)
         assert device._store["pending_settings"] == {}
+
+    asyncio.run(run())
+
+
+def test_connect_dump_mirrors_into_a_linked_setting() -> None:
+    info = _info()
+    device = _device(
+        settings={
+            **device_info_settings(info, host="192.0.2.1", encrypted=False),
+            "offset": 0.0,
+        },
+        profile=BrandProfile(setting_entities=OFFSET_LINK),
+    )
+
+    async def run() -> None:
+        await _login(device, info, [OFFSET])
+        device._on_state(NumberState(key=11, state=3.0))
+        for _ in range(3):
+            await asyncio.sleep(0)
+        assert device._settings["offset"] == 3.0
 
     asyncio.run(run())
 

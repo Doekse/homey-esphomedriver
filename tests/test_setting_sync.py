@@ -1,7 +1,8 @@
-"""Writing a linked setting to its ESPHome entity at runtime.
+"""Keeping a linked setting and its ESPHome entity in step at runtime.
 
-The entity is written when the user saves; a sleeping node gets the write
-when it wakes.
+The node is the truth for the value it holds, so reported states are mirrored
+into the setting; the entity is written only when the user saves; a sleeping
+node gets the write when it wakes.
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from aioesphomeapi import NumberInfo, SelectInfo
+from aioesphomeapi import NumberInfo, NumberState, SelectInfo, SelectState
 
 from homey_esphomedriver.bindings import CapabilityBindings
 from homey_esphomedriver.profile import BrandProfile
@@ -51,19 +52,33 @@ def _device(
         homey=SimpleNamespace(translate=lambda key: key),
         log=MagicMock(),
         error=MagicMock(),
+        mirrored=[],
     )
 
     async def set_store_value(key: str, value: Any) -> None:
         saved[key] = copy.deepcopy(value)
+
+    async def set_settings(values: dict[str, Any]) -> None:
+        device.mirrored.append(dict(values))
+        current.update(values)
 
     device.store = saved
     device.settings = current
     device.get_store = lambda: MappingProxyType(copy.deepcopy(saved))
     device.set_store_value = set_store_value
     device.get_setting = current.get
+    device.set_settings = set_settings
     device._bindings = CapabilityBindings(device)  # type: ignore[arg-type]
     device._bindings.bind([OFFSET, MODE] if entities is None else entities)
     return device
+
+
+async def _drain(sync: SettingEntitySync) -> None:
+    for _ in range(5):
+        await asyncio.sleep(0)
+    task = sync._mirror_task
+    if task is not None:
+        await task
 
 
 def test_save_writes_only_changed_linked_settings() -> None:
@@ -112,6 +127,11 @@ def test_sleeping_node_queues_the_write_until_it_wakes() -> None:
         assert device.store["pending_settings"] == {"offset": 1.5}
         device.client.command.assert_not_called()
 
+        # The connect dump still carries the old value; the queued edit wins.
+        sync.on_state(NumberState(key=11, state=0.5))
+        await _drain(sync)
+        assert device.mirrored == []
+
         device.client.available = True
         await sync.flush_pending()
         device.client.command.assert_called_once_with("number_command", 11, 1.5)
@@ -139,6 +159,95 @@ def test_queued_value_that_cannot_convert_does_not_block_the_rest() -> None:
         device.client.command.assert_called_once_with("select_command", 12, "boost")
         assert device.store["pending_settings"] == {}
         device.error.assert_called_once()
+
+    asyncio.run(run())
+
+
+def test_reported_value_is_mirrored_into_the_setting() -> None:
+    async def run() -> None:
+        device = _device()
+        sync = SettingEntitySync(device)
+        sync.on_state(SelectState(key=12, state="boost"))
+        sync.on_state(NumberState(key=11, state=0.0))  # already equal
+        sync.on_state(NumberState(key=99, state=3.0))  # not linked
+        await _drain(sync)
+        assert device.mirrored == [{"mode": "boost"}]
+        device.client.command.assert_not_called()
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        NumberState(key=11, state=float("nan")),
+        NumberState(key=11, state=2.0, missing_state=True),
+        SelectState(key=12, state="", missing_state=True),
+    ],
+)
+def test_placeholder_states_are_not_mirrored(state: Any) -> None:
+    async def run() -> None:
+        device = _device()
+        sync = SettingEntitySync(device)
+        sync.on_state(state)
+        await _drain(sync)
+        assert device.mirrored == []
+
+    asyncio.run(run())
+
+
+def test_mirror_keeps_only_the_latest_value() -> None:
+    async def run() -> None:
+        device = _device()
+        sync = SettingEntitySync(device)
+        sync.on_state(NumberState(key=11, state=1.0))
+        sync.on_state(NumberState(key=11, state=2.0))
+        await _drain(sync)
+        assert device.mirrored == [{"offset": 2.0}]
+
+    asyncio.run(run())
+
+
+def test_echo_refused_during_a_save_is_dropped() -> None:
+    """The SDK refuses set_settings while a save is pending. What the node
+    reports then is the value being saved, which the save commits anyway."""
+
+    async def run() -> None:
+        device = _device()
+
+        async def set_settings(values: dict[str, Any]) -> None:
+            raise RuntimeError("Cannot set settings while on_settings is pending")
+
+        device.set_settings = set_settings
+        sync = SettingEntitySync(device)
+        sync.on_state(NumberState(key=11, state=2.0))
+        await _drain(sync)
+
+        device.error.assert_not_called()
+        assert "'offset'" in device.log.call_args.args[0]
+        assert sync._mirror_queue == {}
+
+    asyncio.run(run())
+
+
+def test_rejected_mirror_does_not_hold_back_the_others() -> None:
+    async def run() -> None:
+        device = _device()
+
+        async def set_settings(values: dict[str, Any]) -> None:
+            if "offset" in values:
+                raise ValueError("out of range")
+            device.mirrored.append(dict(values))
+
+        device.set_settings = set_settings
+        sync = SettingEntitySync(device)
+        sync.on_state(NumberState(key=11, state=99.0))
+        sync.on_state(SelectState(key=12, state="boost"))
+        await _drain(sync)
+
+        assert device.mirrored == [{"mode": "boost"}]
+        device.log.assert_called_once()
+        assert "'offset'" in device.log.call_args.args[0]
 
     asyncio.run(run())
 

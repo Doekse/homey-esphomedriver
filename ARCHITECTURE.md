@@ -78,7 +78,7 @@ If both `projects` and `projectPrefix` are configured, a match on either is enou
 
 There is nothing to hide or remap: a device shows the capabilities its driver declares. A rare or risky button goes in the Maintenance menu with Homey's own `maintenanceAction` capability option.
 
-A setting on the driver can be backed by an entity through `settings[].esphome` (`{"domain": "number", "name": "..."}`). The link sits on the setting, the same way Z-Wave puts `zwave` on each setting, so a setting and the entity it configures cannot drift apart. The entity is written when the user saves. A save while a deep-sleep node is asleep is queued in the store and written on its next READY session. See the `settings` package: `links.py` parses, `__init__.py` writes the node.
+A setting on the driver can be backed by an entity through `settings[].esphome` (`{"domain": "number", "name": "..."}`). The link sits on the setting, the same way Z-Wave puts `zwave` on each setting, so a setting and the entity it configures cannot drift apart. The node holds the value and other API clients may change it, so the node is the truth: reported states are mirrored into the setting and the entity is written only when the user saves. A save while a deep-sleep node is asleep is queued in the store and written on its next READY session; a queued value wins over the stale value in the connect dump. See the `settings` package: `links.py` parses, `__init__.py` keeps the node and Homey in step.
 
 ### Settings page
 

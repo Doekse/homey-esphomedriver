@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from math import isclose
 from typing import Any
 
 from homey_esphomedriver.esphome_util import walk_settings
@@ -124,3 +125,21 @@ def parse_setting_entities(settings: object) -> dict[str, SettingEntity]:
         claimed[target.ref] = setting_id
         found[setting_id] = target
     return found
+
+
+def setting_matches(wanted: Any, reported: Any) -> bool:
+    """Whether two values are the same setting value.
+
+    Floats compare with a tolerance, because a value that round-trips through
+    the node's float32 can differ in the last bits without being a different
+    value. Anything else compares exactly, so a select option that only looks
+    numeric is not forced through ``float``.
+    """
+    if isinstance(wanted, float) or isinstance(reported, float):
+        if isinstance(wanted, bool) or isinstance(reported, bool):
+            return False
+        try:
+            return isclose(float(wanted), float(reported), rel_tol=1e-6, abs_tol=1e-6)
+        except TypeError, ValueError:
+            return False
+    return bool(wanted == reported)

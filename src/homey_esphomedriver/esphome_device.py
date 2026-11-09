@@ -212,6 +212,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
         if self._client is not None:
             await self._client.stop()
             self._client = None
+        self._setting_sync.uninit()
         self._bindings.unbind()
         await super().on_uninit()
 
@@ -375,7 +376,8 @@ class EspHomeDevice(Device[EspHomeDriver]):
         await self.on_esphome_connected(client)
 
     def _on_state(self, state: EntityState) -> None:
-        """Write a state to the capabilities bound to its entity."""
+        """Mirror settings linked to an entity, then update capabilities."""
+        self._setting_sync.on_state(state)
         self._bindings.handle_state(state)
 
     async def _on_ready(self) -> None:

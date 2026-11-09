@@ -63,7 +63,7 @@ class BrandProfile:
 
     Filled by :meth:`from_manifest` from ``settings[].esphome``, so the link
     sits on the setting it configures. The entity is written when the user
-    saves the setting.
+    saves the setting, and the setting follows what the node reports.
     """
 
     @classmethod

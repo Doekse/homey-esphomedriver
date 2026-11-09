@@ -1,12 +1,14 @@
 """Linking a Homey setting to the ESPHome entity behind it.
 
 A brand driver links a setting to an entity on the setting itself
-(``settings[].esphome``). These tests pin how a manifest link is parsed.
+(``settings[].esphome``). These tests pin how a manifest link is parsed and
+when two values count as the same setting value.
 """
 
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import pytest
 
@@ -14,6 +16,7 @@ from homey_esphomedriver.profile import BrandProfile
 from homey_esphomedriver.settings.links import (
     SettingEntity,
     parse_setting_entities,
+    setting_matches,
 )
 
 LINKS = {
@@ -114,3 +117,22 @@ def test_object_id_link_is_rejected_with_a_hint(
         )
     assert links == {}
     assert "by name" in caplog.text
+
+
+# --- values -----------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("wanted", "reported"),
+    [(21.0, 21.0), (0.1, 0.10000000149011612), (0, 0.0), ("eco", "eco"), (True, True)],
+)
+def test_matching_values(wanted: Any, reported: Any) -> None:
+    assert setting_matches(wanted, reported) is True
+
+
+@pytest.mark.parametrize(
+    ("wanted", "reported"),
+    [(21.0, 21.1), ("eco", "boost"), (True, False), ("1", "1.0"), (21.0, None)],
+)
+def test_differing_values(wanted: Any, reported: Any) -> None:
+    assert setting_matches(wanted, reported) is False
