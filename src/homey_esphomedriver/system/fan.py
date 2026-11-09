@@ -1,4 +1,4 @@
-"""Fan: on/off, speed and preset mode."""
+"""Fan: on/off, speed, oscillation and preset mode."""
 
 from __future__ import annotations
 
@@ -46,6 +46,18 @@ def _set_speed(
     return {"state": False}
 
 
+def _report_oscillating(state: Any, entity: BoundEntity) -> bool:
+    del entity
+    return bool(state.oscillating)
+
+
+def _set_oscillating(
+    value: Any, opts: Mapping[str, Any], entity: BoundEntity
+) -> dict[str, Any]:
+    del opts, entity
+    return {"oscillating": bool(value)}
+
+
 def _report_mode(state: Any, entity: BoundEntity) -> str | None:
     del entity
     return str(state.preset_mode).lower() or None
@@ -61,5 +73,8 @@ def _set_mode(
 CAPABILITIES: dict[str, SystemCapability] = {
     "onoff": SystemCapability(report_parser=_report_onoff, set_parser=_set_onoff),
     "fan_speed": SystemCapability(report_parser=_report_speed, set_parser=_set_speed),
+    "oscillating": SystemCapability(
+        report_parser=_report_oscillating, set_parser=_set_oscillating
+    ),
     "fan_mode": SystemCapability(report_parser=_report_mode, set_parser=_set_mode),
 }

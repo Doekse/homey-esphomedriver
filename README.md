@@ -124,14 +124,14 @@ homey_export = Aq1Device
 
 | System capabilities | Domain |
 | --- | --- |
-| `homealarm_state` | `alarm_control_panel` |
+| `homealarm_state`, `alarm_generic` | `alarm_control_panel` |
 | any `alarm_*`, `battery_charging_state` | `binary_sensor` |
 | `onoff`, `thermostat_mode`, `measure_temperature`, `target_temperature`, `target_temperature_min`, `target_temperature_max`, `measure_humidity`, `target_humidity`, `fan_mode`, `swing_mode` | `climate` |
-| `windowcoverings_state`, `windowcoverings_set`, `windowcoverings_tilt_set`, `windowcoverings_tilt_up`, `windowcoverings_tilt_down`, `garagedoor_closed` | `cover` |
-| `onoff`, `fan_speed`, `fan_mode` | `fan` |
+| `windowcoverings_state`, `windowcoverings_set`, `windowcoverings_tilt_set`, `windowcoverings_tilt_up`, `windowcoverings_tilt_down`, `windowcoverings_closed`, `garagedoor_closed` | `cover` |
+| `onoff`, `fan_speed`, `oscillating`, `fan_mode` | `fan` |
 | `onoff`, `dim`, `light_mode`, `light_hue`, `light_saturation`, `light_temperature` | `light` |
 | `locked`, `alarm_door_fault` | `lock` |
-| `speaker_playing`, `speaker_stop`, `volume_set`, `volume_mute`, `volume_up`, `volume_down` | `media_player` |
+| `onoff`, `speaker_playing`, `speaker_stop`, `volume_set`, `volume_mute`, `volume_up`, `volume_down` | `media_player` |
 | `onoff`, `volume_set` | `siren` |
 | `onoff`, `valve_position` | `valve` |
 | `onoff`, `heater_operation_mode`, `measure_temperature`, `target_temperature`, `target_temperature_min`, `target_temperature_max` | `water_heater` |

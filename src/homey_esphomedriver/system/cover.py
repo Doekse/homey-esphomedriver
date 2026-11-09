@@ -68,7 +68,7 @@ def _tilt_to(tilt: float) -> SystemCapability:
 
 def _report_closed(state: Any, entity: BoundEntity) -> bool | None:
     del entity
-    # Only a door that stopped moving is open or closed.
+    # Only a cover that stopped moving is open or closed.
     if state.current_operation != CoverOperation.IDLE:
         return None
     return bool(state.position == 0.0)
@@ -93,6 +93,9 @@ CAPABILITIES: dict[str, SystemCapability] = {
     ),
     "windowcoverings_tilt_up": _tilt_to(1.0),
     "windowcoverings_tilt_down": _tilt_to(0.0),
+    "windowcoverings_closed": SystemCapability(
+        report_parser=_report_closed, set_parser=_set_closed
+    ),
     "garagedoor_closed": SystemCapability(
         report_parser=_report_closed, set_parser=_set_closed
     ),

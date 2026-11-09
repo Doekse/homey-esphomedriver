@@ -19,6 +19,7 @@ The defaults live in [`src/homey_esphomedriver/system/`](src/homey_esphomedriver
 | Capability | Reads | Sets | Mapping |
 | --- | :---: | :---: | --- |
 | `homealarm_state` | ✓ | ✓ | `disarmed` ↔ disarmed; `armed` ↔ armed away / vacation; `partially_armed` ↔ armed home / night / custom bypass. Setting picks the first arm command the panel supports. Pending, arming, disarming and triggered leave the capability as is. |
+| `alarm_generic` | ✓ | | `true` while the alarm is triggered |
 
 ### `binary_sensor`
 
@@ -56,7 +57,8 @@ Position and tilt are 0–1 on both sides; 0 is closed.
 | `windowcoverings_tilt_set` | ✓ | ✓ | Tilt |
 | `windowcoverings_tilt_up` | | ✓ | Tilt to 1 |
 | `windowcoverings_tilt_down` | | ✓ | Tilt to 0 |
-| `garagedoor_closed` | ✓ | ✓ | Closed at position 0; only reported once the door stops moving |
+| `windowcoverings_closed` | ✓ | ✓ | Closed at position 0; only reported once the cover stops moving. Setting `false` opens fully. |
+| `garagedoor_closed` | ✓ | ✓ | Same as `windowcoverings_closed` |
 
 ### `fan`
 
@@ -64,6 +66,7 @@ Position and tilt are 0–1 on both sides; 0 is closed.
 | --- | :---: | :---: | --- |
 | `onoff` | ✓ | ✓ | Fan state |
 | `fan_speed` | ✓ | ✓ | `speed_level / supported_speed_count`. Setting 0 turns the fan off. |
+| `oscillating` | ✓ | ✓ | Oscillation |
 | `fan_mode` | ✓ | ✓ | Preset mode, lowercased in Homey and title-cased to ESPHome |
 
 ### `light`
@@ -90,6 +93,7 @@ Position and tilt are 0–1 on both sides; 0 is closed.
 
 | Capability | Reads | Sets | Mapping |
 | --- | :---: | :---: | --- |
+| `onoff` | ✓ | ✓ | Off only in the off state. Turn on / turn off; fails if the player lists its features and lacks that one. |
 | `speaker_playing` | ✓ | ✓ | Playing or announcing. Setting `false` pauses if the player supports it, otherwise stops. |
 | `speaker_stop` | | ✓ | Stop |
 | `volume_set` | ✓ | ✓ | Volume 0–1 |
@@ -189,13 +193,12 @@ Bind these with your own `report_parser` / `set_parser`, `register_state_listene
 
 | Domain | Not mapped |
 | --- | --- |
-| `alarm_control_panel` | Pending, arming, disarming and triggered states (a triggered alarm sets no `alarm_*` capability); arm and disarm codes are not sent, so a panel that requires a code rejects the command |
+| `alarm_control_panel` | Pending, arming and disarming states; arm and disarm codes are not sent, so a panel that requires a code rejects the command |
 | `climate` | Presets (home, away, boost, eco, sleep, …) and custom presets; current action (heating, cooling, idle, drying, defrosting) |
-| `cover` | `windowcoverings_closed` |
-| `fan` | Oscillation and direction |
+| `fan` | Direction |
 | `light` | Effects; white, cold-white and warm-white channel levels; color brightness separate from brightness; transitions and flash. `light_mode` stays unchanged in on/off, brightness-only and white modes. |
 | `lock` | The open (unlatch) command. Locking and unlocking read as not locked. |
-| `media_player` | Playing a URL or an announcement; repeat, enqueue and clear playlist; turn on / off; media info (title, artist, artwork) |
+| `media_player` | Playing a URL or an announcement; repeat, enqueue and clear playlist; media info (title, artist, artwork). ESPHome has no next, previous or shuffle, so `speaker_next`, `speaker_prev` and `speaker_shuffle` cannot be mapped. |
 | `siren` | Tones and duration; the volume is not reported back |
 | `valve` | Stop and the opening / closing state |
 | `water_heater` | Away mode |

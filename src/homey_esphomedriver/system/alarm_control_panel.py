@@ -1,4 +1,4 @@
-"""Alarm control panel: Homey's home alarm state."""
+"""Alarm control panel: Homey's home alarm state, and whether the alarm went off."""
 
 from __future__ import annotations
 
@@ -57,6 +57,11 @@ def _report_state(state: Any, entity: BoundEntity) -> str | None:
     return _STATE.get(state.state)
 
 
+def _report_triggered(state: Any, entity: BoundEntity) -> bool:
+    del entity
+    return bool(state.state == AlarmControlPanelState.TRIGGERED)
+
+
 def _set_state(
     value: Any, opts: Mapping[str, Any], entity: BoundEntity
 ) -> dict[str, Any]:
@@ -73,4 +78,5 @@ CAPABILITIES: dict[str, SystemCapability] = {
     "homealarm_state": SystemCapability(
         report_parser=_report_state, set_parser=_set_state
     ),
+    "alarm_generic": SystemCapability(report_parser=_report_triggered),
 }

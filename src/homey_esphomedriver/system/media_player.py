@@ -1,4 +1,4 @@
-"""Media player: play/pause, stop and volume."""
+"""Media player: on/off, play/pause, stop and volume."""
 
 from __future__ import annotations
 
@@ -32,6 +32,28 @@ def _command(command: MediaPlayerCommand) -> SystemCapability:
         return {"command": command}
 
     return SystemCapability(set_parser=set_command)
+
+
+def _report_onoff(state: Any, entity: BoundEntity) -> bool | None:
+    del entity
+    if state.state is None or state.state == MediaPlayerState.NONE:
+        return None
+    return state.state != MediaPlayerState.OFF
+
+
+def _set_onoff(
+    value: Any, opts: Mapping[str, Any], entity: BoundEntity
+) -> dict[str, Any]:
+    del opts
+    feature = (
+        MediaPlayerEntityFeature.TURN_ON if value else MediaPlayerEntityFeature.TURN_OFF
+    )
+    flags = cast(MediaPlayerInfo, entity.info).feature_flags
+    if flags and not flags & feature:
+        raise ValueError(f"Media player cannot turn {'on' if value else 'off'}")
+    return {
+        "command": MediaPlayerCommand.TURN_ON if value else MediaPlayerCommand.TURN_OFF
+    }
 
 
 def _report_playing(state: Any, entity: BoundEntity) -> bool:
@@ -75,6 +97,7 @@ def _set_mute(
 
 
 CAPABILITIES: dict[str, SystemCapability] = {
+    "onoff": SystemCapability(report_parser=_report_onoff, set_parser=_set_onoff),
     "speaker_playing": SystemCapability(
         report_parser=_report_playing, set_parser=_set_playing
     ),

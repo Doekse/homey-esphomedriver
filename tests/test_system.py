@@ -35,7 +35,10 @@ from aioesphomeapi import (
     LockInfo,
     LockState,
     MediaPlayerCommand,
+    MediaPlayerEntityFeature,
+    MediaPlayerEntityState,
     MediaPlayerInfo,
+    MediaPlayerState,
     SensorInfo,
     SensorState,
     TemperatureUnit,
@@ -249,6 +252,21 @@ def test_cover_garage_door_is_closed_only_when_idle() -> None:
     assert _set("windowcoverings_state", entity, "idle") == {"stop": True}
 
 
+def test_cover_window_covering_is_closed_only_when_idle() -> None:
+    entity = _entity(CoverInfo())
+    moving = CoverState(position=0.0, current_operation=CoverOperation.IS_CLOSING)
+    idle = CoverState(position=0.0, current_operation=CoverOperation.IDLE)
+    assert _report("windowcoverings_closed", entity, moving) is None
+    assert _report("windowcoverings_closed", entity, idle) is True
+    assert _set("windowcoverings_closed", entity, False) == {"position": 1.0}
+
+
+def test_fan_oscillating() -> None:
+    entity = _entity(FanInfo(supports_oscillation=True))
+    assert _report("oscillating", entity, FanState(oscillating=True)) is True
+    assert _set("oscillating", entity, False) == {"oscillating": False}
+
+
 def test_fan_speed_moves_in_the_fans_steps() -> None:
     entity = _entity(FanInfo(supported_speed_count=4))
     assert _report("fan_speed", entity, FanState(speed_level=2)) == 0.5
@@ -275,6 +293,39 @@ def test_media_player_pauses_when_it_can(
     info: MediaPlayerInfo, command: MediaPlayerCommand
 ) -> None:
     assert _set("speaker_playing", _entity(info), False) == {"command": command}
+
+
+@pytest.mark.parametrize(
+    ("state", "expected"),
+    [
+        (MediaPlayerState.OFF, False),
+        (MediaPlayerState.ON, True),
+        (MediaPlayerState.PAUSED, True),
+        (MediaPlayerState.NONE, None),
+    ],
+)
+def test_media_player_onoff_reports_off_only_when_off(
+    state: MediaPlayerState, expected: bool | None
+) -> None:
+    entity = _entity(MediaPlayerInfo())
+    assert _report("onoff", entity, MediaPlayerEntityState(state=state)) is expected
+
+
+def test_media_player_onoff_needs_the_feature_when_listed() -> None:
+    turns_on = _entity(MediaPlayerInfo(feature_flags=MediaPlayerEntityFeature.TURN_ON))
+    assert _set("onoff", turns_on, True) == {"command": MediaPlayerCommand.TURN_ON}
+    with pytest.raises(ValueError, match="off"):
+        _set("onoff", turns_on, False)
+    unlisted = _entity(MediaPlayerInfo())
+    assert _set("onoff", unlisted, False) == {"command": MediaPlayerCommand.TURN_OFF}
+
+
+def test_alarm_generic_is_on_while_triggered() -> None:
+    entity = _entity(AlarmControlPanelInfo())
+    triggered = AlarmControlPanelEntityState(state=AlarmControlPanelState.TRIGGERED)
+    armed = AlarmControlPanelEntityState(state=AlarmControlPanelState.ARMED_AWAY)
+    assert _report("alarm_generic", entity, triggered) is True
+    assert _report("alarm_generic", entity, armed) is False
 
 
 def test_alarm_arms_with_a_supported_command() -> None:
