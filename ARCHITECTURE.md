@@ -38,11 +38,12 @@ Homey talks directly to the device using ESPHome's Native API. Everything stays 
 | `reportParser(report)` / `setParser(value, opts)`          | `report_parser(state, entity)` / `set_parser(value, opts, entity)` |
 | `lib/system/capabilities/<cap>/<CC>.js`                    | `system/<domain>.py`, a `CAPABILITIES` table per domain   |
 | `registerReportListener(cc, report, fn)`                   | `register_state_listener(domain, name, fn)`               |
+| `zwave` on a setting                                       | `esphome` on a setting                                    |
 | `onNodeInit`                                               | `on_esphome_init`                                         |
 
 An entity is named by its domain and its name, plus a `device_id` for a sub-device: the identity aioesphomeapi's newest unique ids use. `object_id` is derived from the name, collides for non-ASCII names and sub-devices, and is planned for removal in ESPHome.
 
-`bindings.py` keeps the bindings in memory; they are made again on every app start, as in Z-Wave. Each login fetches the device info and the entity list in one request, resolves every binding, and only then subscribes to states, so the connect dump reaches every bound capability. A binding to an entity the node lacks is logged; setting that capability fails with a message.
+`bindings.py` keeps the bindings in memory; they are made again on every app start, as in Z-Wave. Each login fetches the device info and the entity list in one request, resolves every binding and linked setting, and only then subscribes to states, so the connect dump reaches every bound capability. A binding to an entity the node lacks is logged; setting that capability fails with a message.
 
 `system/__init__.py` looks a capability up by its full id, then its base (`dim.led` finds `dim`, as Z-Wave splits on the dot), then the domain's `default`, which single-value domains such as `sensor` and `number` have for any capability. Parsers get the bound entity, so metadata such as a sensor's unit, a light's color temperature range or a fan's speed count comes from what the node listed, not from capability options stored at pair time. The library writes unknown for a missing reading, NaN or Infinity before a report parser runs, so a parser's `None` can mean "leave it as is", as in Z-Wave. A set parser returns keyword arguments for `<domain>_command`. A `MULTI` group, such as hue and saturation, is set in one debounced command, like `ZwaveLightDevice`.
 
@@ -76,6 +77,8 @@ Normally there is one Homey driver per product SKU. Product filters go on that d
 If both `projects` and `projectPrefix` are configured, a match on either is enough. If neither is configured, every ESPHome project is accepted. This is how `io.esphome` works. An unknown key is logged and ignored.
 
 There is nothing to hide or remap: a device shows the capabilities its driver declares. A rare or risky button goes in the Maintenance menu with Homey's own `maintenanceAction` capability option.
+
+A setting on the driver can be backed by an entity through `settings[].esphome` (`{"domain": "number", "name": "..."}`). The link sits on the setting, the same way Z-Wave puts `zwave` on each setting, so a setting and the entity it configures cannot drift apart. The entity is written when the user saves. A save while a deep-sleep node is asleep is queued in the store and written on its next READY session. See the `settings` package: `links.py` parses, `__init__.py` writes the node.
 
 ### Settings page
 

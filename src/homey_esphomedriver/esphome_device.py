@@ -28,6 +28,7 @@ from homey_esphomedriver.esphome_util import (
     normalize_mac,
 )
 from homey_esphomedriver.profile import BrandProfile
+from homey_esphomedriver.settings import SettingEntitySync
 from homey_esphomedriver.system import BoundEntity, ReportParser, SetParser
 
 
@@ -57,6 +58,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
     _client: EspHomeClient | None
     _mac: str
     _bindings: CapabilityBindings
+    _setting_sync: SettingEntitySync
 
     @property
     def brand_profile(self) -> BrandProfile:
@@ -79,6 +81,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
         # Device data never changes, and Homey only matches discovery after on_init.
         self._mac = normalize_mac(str(self.get_data()["id"]))
         self._bindings = CapabilityBindings(self)
+        self._setting_sync = SettingEntitySync(self)
 
         # Started only after the brand hook, so the capabilities registered
         # there apply to the connect dump.
@@ -249,6 +252,21 @@ class EspHomeDevice(Device[EspHomeDriver]):
         if client is not None:
             await client.request_connect()
 
+    async def on_settings(
+        self,
+        old_settings: dict[str, bool | float | str | None],
+        new_settings: dict[str, bool | float | str | None],
+        changed_keys: tuple[str, ...],
+    ) -> str | None:
+        """Write settings linked to an entity to the node.
+
+        An invalid value, or a node that is offline and not a deep-sleep node,
+        rejects the save. A subclass that handles settings of its own calls
+        this first, so a rejected save applies nothing.
+        """
+        del old_settings
+        return await self._setting_sync.on_settings(new_settings, changed_keys)
+
     async def apply_connection(
         self,
         *,
@@ -298,6 +316,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
             on_connected=self._on_connected,
             on_disconnected=self._on_disconnected,
             on_connect_error=self._on_connect_error,
+            on_ready=self._on_ready,
         )
         return self._client
 
@@ -358,6 +377,10 @@ class EspHomeDevice(Device[EspHomeDriver]):
     def _on_state(self, state: EntityState) -> None:
         """Write a state to the capabilities bound to its entity."""
         self._bindings.handle_state(state)
+
+    async def _on_ready(self) -> None:
+        """The session accepts commands: send settings saved while asleep."""
+        await self._setting_sync.flush_pending()
 
     def _schedule_project_warning(
         self, device_info: DeviceInfo, *, accepted: bool

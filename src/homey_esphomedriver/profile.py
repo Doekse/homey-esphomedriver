@@ -62,7 +62,8 @@ class BrandProfile:
     """Homey setting id to the entity backing it.
 
     Filled by :meth:`from_manifest` from ``settings[].esphome``, so the link
-    sits on the setting it configures.
+    sits on the setting it configures. The entity is written when the user
+    saves the setting.
     """
 
     @classmethod

@@ -13,8 +13,9 @@ imported and tested without a live device.
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from typing import Any
 
 from homey_esphomedriver.esphome_util import walk_settings
 
@@ -26,6 +27,13 @@ SETTING_TYPE_DOMAINS: Mapping[str, str] = {
     "checkbox": "switch",
 }
 """Homey setting type to the ESPHome entity domain it can be backed by."""
+
+DOMAIN_COERCE: Mapping[str, Callable[[Any], Any]] = {
+    "number": float,
+    "select": str,
+    "switch": bool,
+}
+"""Turns a setting value into what ``<domain>_command`` takes."""
 
 
 @dataclass(frozen=True, slots=True)

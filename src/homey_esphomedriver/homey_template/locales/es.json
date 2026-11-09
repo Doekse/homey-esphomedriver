@@ -92,7 +92,11 @@
       "not_ready": "El dispositivo aún no está listo para la configuración Wi-Fi.",
       "ssid_too_long": "El SSID o la contraseña es demasiado largo",
       "invalid_value": "El dispositivo Improv ha enviado un valor no válido"
-    }
+    },
+    "setting_invalid": "Este valor no es válido para el dispositivo."
+  },
+  "settings": {
+    "applied_on_wake": "Guardado. El dispositivo está en reposo y recibirá el nuevo ajuste la próxima vez que se active."
   },
   "warnings": {
     "project_mismatch": "El proyecto de ESPHome __project__ no es compatible con esta app de Homey."

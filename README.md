@@ -203,6 +203,41 @@ A new device gets the driver's capabilities. To choose them from what the node h
 
 A driver that leaves it out fails on init with an error naming the `$extends` to add.
 
+### Settings backed by an entity
+
+A configuration entity, such as a calibration offset, can be shown on the device's settings page instead of the device tile. Link the setting to the entity with an `esphome` object on the setting, the way Z-Wave drivers use `zwave`:
+
+```json
+"settings": [
+  {
+    "type": "group",
+    "label": { "en": "Calibration" },
+    "children": [
+      {
+        "id": "temp_offset",
+        "type": "number",
+        "label": { "en": "Temperature offset" },
+        "value": 0, "min": -5, "max": 5, "step": 0.1,
+        "units": { "en": "°C" },
+        "esphome": { "domain": "number", "name": "Temperature offset" }
+      }
+    ]
+  },
+  { "$extends": "esphome-device-information" }
+]
+```
+
+| Setting type | ESPHome domain |
+| ------------ | -------------- |
+| `number`     | `number`       |
+| `dropdown`   | `select`       |
+| `checkbox`   | `switch`       |
+
+`domain` follows from the setting type and may be left out; add `device_id` for an entity on a sub-device.
+
+- Saving the setting writes the entity. An invalid value, or a node that is offline and not a deep-sleep node, rejects the save. A setting whose entity the node lacks saves in Homey only.
+- A deep-sleep node that is asleep gets the write when it next wakes, and the user sees a message saying so.
+
 ### Lifecycle hooks
 
 Core owns `on_init` and `on_uninit` on `EspHomeDriver` and `EspHomeDevice`. Subclass the hooks below instead — same pattern as `homey-oauth2app`'s `onOAuth2Init`. Brand `app.py` exports Homey's `App`.

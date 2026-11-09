@@ -21,10 +21,14 @@ from aioesphomeapi import (
 from homey_esphomedriver.bindings import CapabilityBindings
 from homey_esphomedriver.esphome_client import EspHomeClient, SessionState
 from homey_esphomedriver.esphome_device import EspHomeDevice
+from homey_esphomedriver.esphome_util import device_info_settings
 from homey_esphomedriver.profile import DEFAULT_BRAND_PROFILE, BrandProfile
+from homey_esphomedriver.settings import SettingEntitySync
+from homey_esphomedriver.settings.links import SettingEntity
 
 OFFSET = NumberInfo(object_id="temp_offset", key=11, name="Offset")
 RELAY = SwitchInfo(object_id="relay", key=1, name="Relay")
+OFFSET_LINK = {"offset": SettingEntity("number", "Offset")}
 
 
 def _device(
@@ -87,6 +91,7 @@ def _device(
     device.set_capability_value = set_capability_value  # type: ignore[method-assign]
     device.register_capability_listener = register_capability_listener  # type: ignore[method-assign]
     device._bindings = CapabilityBindings(device)
+    device._setting_sync = SettingEntitySync(device)
     return device
 
 
@@ -114,6 +119,7 @@ async def _login(
         on_entities=on_entities,
         on_connected=on_connected,
         on_disconnected=device._on_disconnected,
+        on_ready=device._on_ready,
     )
     device._client = client
     client._on_state = device._on_state
@@ -204,6 +210,31 @@ def test_project_mismatch_keeps_native_app_warning() -> None:
             callback()
         await asyncio.sleep(0)
         assert device.warnings == ["nativeAppSuggestion:Native App"]
+
+    asyncio.run(run())
+
+
+def test_rejected_linked_setting_raises() -> None:
+    """Homey keeps the old values of a rejected save."""
+    device = _device(profile=BrandProfile(setting_entities=OFFSET_LINK))
+
+    with pytest.raises(ValueError, match="errors.setting_invalid"):
+        asyncio.run(device.on_settings({}, {"offset": "abc"}, ("offset",)))
+
+
+def test_ready_writes_settings_queued_while_the_node_slept() -> None:
+    """A deep-sleep node gets the settings saved while it slept as it wakes."""
+    info = _info()
+    device = _device(
+        store={"pending_settings": {"offset": 1.5}},
+        settings=dict(device_info_settings(info, host="192.0.2.1", encrypted=False)),
+        profile=BrandProfile(setting_entities=OFFSET_LINK),
+    )
+
+    async def run() -> None:
+        client, _events = await _login(device, info, [OFFSET])
+        client.api.number_command.assert_called_once_with(11, 1.5)
+        assert device._store["pending_settings"] == {}
 
     asyncio.run(run())
 
