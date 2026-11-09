@@ -18,6 +18,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any
 
+from homey_esphomedriver.settings.links import SettingEntity, parse_setting_entities
+
 _LOGGER = logging.getLogger(__name__)
 
 COMPOSE_KEYS = frozenset(
@@ -56,6 +58,13 @@ class BrandProfile:
     native_apps: Mapping[str, str] = field(default_factory=dict)
     """ESPHome ``project.name`` to Homey App Store name (``io.esphome`` only)."""
 
+    setting_entities: Mapping[str, SettingEntity] = field(default_factory=dict)
+    """Homey setting id to the entity backing it.
+
+    Filled by :meth:`from_manifest` from ``settings[].esphome``, so the link
+    sits on the setting it configures.
+    """
+
     @classmethod
     def from_manifest(cls, manifest: Mapping[str, Any] | None) -> BrandProfile:
         """Build a profile from a Homey driver manifest's ``esphome`` object.
@@ -64,12 +73,17 @@ class BrandProfile:
             manifest: Driver manifest, typically ``self.manifest``.
 
         Returns:
-            A profile that accepts every project when ``esphome`` is missing.
+            A profile with the ``settings[].esphome`` links; one that accepts
+            every project when ``esphome`` is missing.
         """
         raw = manifest.get("esphome") if manifest else None
-        if not isinstance(raw, Mapping):
-            return cls()
-        return cls.from_compose(raw)
+        profile = cls.from_compose(raw) if isinstance(raw, Mapping) else cls()
+        setting_entities = parse_setting_entities(
+            manifest.get("settings") if manifest else None
+        )
+        if not setting_entities:
+            return profile
+        return profile.replace(setting_entities=setting_entities)
 
     @classmethod
     def from_compose(cls, data: Mapping[str, Any]) -> BrandProfile:
