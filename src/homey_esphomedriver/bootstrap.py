@@ -1,8 +1,9 @@
 """Copy package Homey Compose files into a brand or generic Homey app.
 
-Shared Compose (defaults, pair HTML, Flow cards, locales, SVGs) is refreshed
-on every run. Brand-owned files (app.json, driver.compose.json, driver
-entrypoints) are created once and left alone unless ``--force``.
+Shared Compose (defaults, pair HTML, locales) is refreshed on every run.
+Capabilities and Flow cards are the app's own. Brand-owned files (app.json,
+driver.compose.json, driver entrypoints) are created once and left alone unless
+``--force``.
 """
 
 from __future__ import annotations
@@ -13,13 +14,11 @@ import re
 import shutil
 import sys
 from collections.abc import Iterator
-from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
 
 _DRIVER_ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _PLACEHOLDER_RE = re.compile(r"__([A-Z0-9_]+)__")
-_FLOW_TYPES = ("triggers", "conditions", "actions")
 
 TEMPLATE_ROOT = Path(__file__).resolve().parent / "homey_template"
 
@@ -130,7 +129,6 @@ def bootstrap_app(options: BootstrapOptions) -> BootstrapResult:
             client_info=client_info,
             force=options.force,
         )
-    _emit_app_flow(root, app_dir, result)
     return result
 
 
@@ -220,13 +218,6 @@ def _copy_shared(root: Path, app_dir: Path, result: BootstrapResult) -> None:
     for src, dest, overwrite in mappings:
         _copy_file(src, dest, app_dir, result, overwrite=overwrite)
     _copy_dir(
-        root / "compose" / "capabilities",
-        app_dir / ".homeycompose" / "capabilities",
-        app_dir,
-        result,
-        overwrite=True,
-    )
-    _copy_dir(
         root / "compose" / "drivers" / "pair",
         app_dir / ".homeycompose" / "drivers" / "pair",
         app_dir,
@@ -244,13 +235,6 @@ def _copy_shared(root: Path, app_dir: Path, result: BootstrapResult) -> None:
     _copy_dir(
         root / "compose" / "drivers" / "repair",
         app_dir / ".homeycompose" / "drivers" / "repair",
-        app_dir,
-        result,
-        overwrite=True,
-    )
-    _copy_dir(
-        root / "assets" / "capabilities",
-        app_dir / "assets" / "capabilities",
         app_dir,
         result,
         overwrite=True,
@@ -350,57 +334,6 @@ def _scaffold_driver(
         result,
         overwrite=True,
     )
-
-
-def _emit_app_flow(root: Path, app_dir: Path, result: BootstrapResult) -> None:
-    """Write app-level Flow cards from the monolithic authoring JSON."""
-    src = json.loads((root / "driver.flow.compose.json").read_text(encoding="utf-8"))
-    driver_ids = _driver_ids(app_dir)
-    for kind in _FLOW_TYPES:
-        dest_dir = app_dir / ".homeycompose" / "flow" / kind
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        for raw in src.get(kind, []):
-            card = deepcopy(raw)
-            card_id = card["id"]
-            card_filter = card.pop("$filter", None)
-            args = list(card.get("args", []))
-            card["args"] = [
-                {
-                    "type": "device",
-                    "name": "device",
-                    "filter": _device_arg_filter(driver_ids, card_filter),
-                },
-                *args,
-            ]
-            _write_text(
-                json.dumps(card, indent=2, ensure_ascii=False) + "\n",
-                dest_dir / f"{card_id}.json",
-                app_dir,
-                result,
-                overwrite=True,
-            )
-
-
-def _driver_ids(app_dir: Path) -> list[str]:
-    """Return sorted Homey driver folder names under ``drivers/``."""
-    drivers = app_dir / "drivers"
-    if not drivers.is_dir():
-        return []
-    return sorted(
-        path.name
-        for path in drivers.iterdir()
-        if path.is_dir() and not path.name.startswith(".")
-    )
-
-
-def _device_arg_filter(driver_ids: list[str], card_filter: str | None) -> str:
-    """Build a Homey device-arg filter from driver ids and a card ``$filter``."""
-    parts: list[str] = []
-    if driver_ids:
-        parts.append("driver_id=" + "|".join(driver_ids))
-    if card_filter:
-        parts.append(card_filter)
-    return "&".join(parts)
 
 
 def _render(src: Path, mapping: dict[str, str]) -> str:

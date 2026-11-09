@@ -96,7 +96,7 @@ On `EspHomeDevice`, `on_esphome_init(client)` is where capabilities and state li
 | Store listing, app ID, product names and images                | Native API client and reconnect logic                              |
 | One driver folder per SKU, with its capabilities               | `register_capability` and the system capability parsers            |
 | Its own custom capabilities and Flow cards                     | Improv BLE, encryption and mDNS/IP pairing                         |
-| `esphome` block in `driver.compose.json`                       | Compose defaults, pairing UI, Flow cards, locales and SVGs (`esphome-homey sync`) |
+| `esphome` block in `driver.compose.json`                       | Compose defaults, pairing UI and locales (`esphome-homey sync`)    |
 
 `esphome-homey sync` refreshes the Homey files owned by the package after a core upgrade. It does not overwrite `app.json`, `app.py` or existing `driver.py` / `device.py` files unless `--force` is explicitly used, and it never deletes files.
 

@@ -1,7 +1,7 @@
-"""Bootstrap naming-helper tests.
+"""Bootstrap tests.
 
-Covers driver-id validation and the derived Homey / ESPHome identifiers used
-when scaffolding a brand app. Does not write files.
+Covers driver-id validation, the derived Homey / ESPHome identifiers used when
+scaffolding a brand app, and what it copies into the app.
 """
 
 from __future__ import annotations
@@ -11,11 +11,14 @@ from pathlib import Path
 import pytest
 
 from homey_esphomedriver.bootstrap import (
+    BootstrapResult,
+    _copy_shared,
     _validate_driver_id,
     derive_app_id,
     derive_app_name,
     derive_brand,
     derive_project_name,
+    template_root,
 )
 
 
@@ -77,3 +80,11 @@ def test_validate_driver_id_accepts(driver_id: str) -> None:
 def test_validate_driver_id_rejects(driver_id: str) -> None:
     with pytest.raises(ValueError, match="Invalid driver id"):
         _validate_driver_id(driver_id)
+
+
+def test_sync_leaves_capabilities_and_flow_cards_to_the_app(tmp_path: Path) -> None:
+    _copy_shared(template_root(), tmp_path, BootstrapResult())
+
+    assert not (tmp_path / ".homeycompose" / "capabilities").exists()
+    assert not (tmp_path / ".homeycompose" / "flow").exists()
+    assert not (tmp_path / "assets" / "capabilities").exists()

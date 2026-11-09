@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   System capability parsers per Homey capability and ESPHome domain supply the values and commands. Pass `report_parser` or `set_parser` to override them, or for an app's own capability.
 - Auto-mapping, Refresh, the firmware entity sync and its timeline notification, the diagnostics/configuration toggles and the `device_class` setting are gone from the library; the generic ESPHome app (io.esphome) now carries them. `esphome-defaults` keeps only the device information settings.
+- `esphome-homey sync` no longer copies the `esphome_*` and extra `measure_*` capabilities, their icons or the 56 Flow cards. An app that used them adds its own. Sync never deletes, so remove the old copies from `.homeycompose/capabilities`, `.homeycompose/flow` and `assets/capabilities` yourself.
 - The `esphome` compose object no longer reads `hiddenEntities`, `deviceEntities`, `capabilityOverrides` and `deviceClassOverrides`: a device only shows the capabilities its driver declares.
 - `BrandProfile` has no `skip_entity`, `capability_id_for`, `device_class_for` or `after_map`.
 - The pair payload has no `capabilities`, so Homey gives a new device the driver's own. Override `EspHomeDriver.on_pair_device(device, device_info, entities)` to set them from what the node has.
