@@ -120,7 +120,7 @@ Core owns `on_init` and `on_uninit` on `EspHomeDriver` and `EspHomeDevice`. Subc
 | Class           | Override                                                          | When                                                                 |
 | --------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
 | `EspHomeDriver` | `on_esphome_init` / `on_esphome_uninit`                           | After Flow listeners / before teardown                               |
-| `EspHomeDevice` | `on_esphome_init(client)` / `on_esphome_uninit`                   | After capability wiring; `client` is `None` when host is unknown     |
+| `EspHomeDevice` | `on_esphome_init(client)` / `on_esphome_uninit`                   | Before the session starts; `client` is `None` when host is unknown   |
 | `EspHomeDevice` | `on_esphome_connected(client)`                                    | After each login + `set_available`; session not READY yet — no cmds |
 
 

@@ -100,7 +100,7 @@ Everything else, including pairing, mapping and reconnect logic, stays inside th
 
 `EspHomeDriver` and `EspHomeDevice` seal `on_init` / `on_uninit`. Brand apps extend `on_esphome_init`, `on_esphome_connected`, and `on_esphome_uninit` instead (mirrors `homey-oauth2app`). Brand `app.py` exports Homey's `App`.
 
-On `EspHomeDevice`, `on_esphome_init(client)` runs after capability listeners are registered and `_ensure_client_started()` has run. `client` is `None` when the node has no host yet (waiting on mDNS). Use the public `client` property to read the session later; command paths still use `_require_client()` when a live connection is required.
+On `EspHomeDevice`, `on_esphome_init(client)` runs after capability listeners are registered and before the API session starts, so no state or ready event arrives during it. `client` is `None` when the node has no host yet (waiting on mDNS). Use the public `client` property to read the session later; command paths still use `_require_client()` when a live connection is required.
 
 `on_esphome_connected(client)` runs at the end of each successful login (including reconnects), after Homey `set_available()`. The session is still not READY when the hook runs — `_mark_ready()` happens after `_on_connected` returns — so brand code must not issue commands until `client.available` / `_require_client()`.
 

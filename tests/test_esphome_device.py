@@ -348,3 +348,42 @@ def test_sync_if_rebuilt_skips_notification_when_disabled() -> None:
     asyncio.run(_finish_sync(device))
 
     device.homey.notifications.create_notification.assert_not_awaited()
+
+
+def test_on_init_starts_the_client_after_the_brand_hook(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """What on_esphome_init sets up must see the connect dump."""
+    events: list[str] = []
+
+    class _Client:
+        async def start(self, _on_state: Any) -> None:
+            events.append("client started")
+
+    module = "homey_esphomedriver.esphome_device"
+    handler = SimpleNamespace(init=AsyncMock(), ensure=AsyncMock(), handle_state=None)
+    for name in (
+        "DeviceEntityStateHandler",
+        "DeviceEntityCommandHandler",
+        "DeviceCapabilityHandler",
+    ):
+        monkeypatch.setattr(f"{module}.{name}", lambda _device: handler)
+    monkeypatch.setattr(EspHomeDevice.__mro__[1], "on_init", AsyncMock(), raising=False)
+
+    class _Brand(EspHomeDevice):
+        async def on_esphome_init(self, client: Any) -> None:
+            events.append("on_esphome_init")
+
+    device = _device(store={"address": "192.0.2.1"}, settings={"device_class": "auto"})
+    device.__class__ = _Brand
+    device.get_data = lambda: {"id": "aabbccddeeff"}  # type: ignore[method-assign]
+
+    def create() -> _Client:
+        events.append("client created")
+        return _Client()
+
+    device._create_client = create  # type: ignore[method-assign,assignment]
+
+    asyncio.run(device.on_init())
+
+    assert events == ["client created", "on_esphome_init", "client started"]

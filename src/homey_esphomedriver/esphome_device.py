@@ -93,17 +93,21 @@ class EspHomeDevice(Device[EspHomeDriver]):
         await self._state_handler.init()
         await self._capability_handler.ensure()
 
-        await self._ensure_client_started()
-        await self.on_esphome_init(self._client)
+        # Started only after the brand hook, so what it sets up sees the
+        # connect dump.
+        client = self._create_client()
+        await self.on_esphome_init(client)
+        if client is not None:
+            await client.start(self._state_handler.handle_state)
 
         self.log(f"Initialized EspHomeDevice {self.get_name()}")
 
     async def on_esphome_init(self, client: EspHomeClient | None) -> None:
-        """Brand hook after capability wiring.
+        """Brand hook after capability wiring, before the session starts.
 
         Args:
-            client: Live Native API session, or ``None`` when the node has no
-                host yet (waiting on mDNS).
+            client: Native API session, started once this hook returns, or
+                ``None`` when the node has no host yet (waiting on mDNS).
         """
 
     async def on_esphome_connected(self, client: EspHomeClient) -> None:
@@ -217,12 +221,20 @@ class EspHomeDevice(Device[EspHomeDriver]):
         """Create and start the long-lived API session from device settings."""
         if self._client is not None:
             return
+        client = self._create_client()
+        if client is not None:
+            await client.start(self._state_handler.handle_state)
+
+    def _create_client(self) -> EspHomeClient | None:
+        """Create the API session from device settings without starting it."""
+        if self._client is not None:
+            return self._client
 
         store = self.get_store()
         host = str(self.get_setting("host") or store.get("address") or "").strip()
         if not host:
             self.error("ESPHome host is missing; waiting for discovery or settings")
-            return
+            return None
 
         port = int(self.get_setting("port") or store.get("port") or DEFAULT_API_PORT)
         noise_psk = str(store.get("noise_psk") or "").strip() or None
@@ -241,7 +253,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
             on_connect_error=self._on_connect_error,
             on_ready=self._sync_if_rebuilt,
         )
-        await self._client.start(self._state_handler.handle_state)
+        return self._client
 
     async def _persist_endpoint(
         self,

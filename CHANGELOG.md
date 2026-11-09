@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking
+
+- `EspHomeDevice.on_esphome_init(client)` now runs before the API session starts; the session starts when the hook returns. Use `on_esphome_connected` for anything that needs a connection.
+
 ## [0.5.0] - 2026-11-05
 
 ### Added
