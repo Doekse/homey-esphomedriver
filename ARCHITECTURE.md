@@ -73,7 +73,7 @@ Normally there is one Homey driver per product SKU. Product filters go on that d
 | `clientInfo`    | Name shown on the ESPHome device for the connected client, for example `Homey Brand`                             |
 | `nativeApps`    | `io.esphome` only: suggest the dedicated Homey app for a project                                                 |
 
-If both `projects` and `projectPrefix` are configured, a match on either is enough. If neither is configured, every ESPHome project is accepted. This is how `io.esphome` works.
+If both `projects` and `projectPrefix` are configured, a match on either is enough. If neither is configured, every ESPHome project is accepted. This is how `io.esphome` works. An unknown key is logged and ignored.
 
 There is nothing to hide or remap: a device shows the capabilities its driver declares. A rare or risky button goes in the Maintenance menu with Homey's own `maintenanceAction` capability option.
 

@@ -32,8 +32,7 @@ class EspHomeDriver(Driver):
     Extend this class and export it from ``driver.py`` as ``homey_export``.
     Override :meth:`on_esphome_init` / :meth:`on_esphome_uninit` instead of
     :meth:`on_init` / :meth:`on_uninit`. Product filters come from the driver
-    manifest ``esphome`` object, or a class-level :attr:`brand_profile`; a
-    device's capabilities are the driver's own.
+    manifest ``esphome`` object; a device's capabilities are the driver's own.
 
     Example:
         ```python
@@ -45,24 +44,20 @@ class EspHomeDriver(Driver):
 
     @property
     def brand_profile(self) -> BrandProfile:
-        """Resolved product profile: class attribute, else compose ``esphome``."""
+        """Product profile built from the driver manifest's ``esphome`` object."""
         resolved = getattr(self, "_resolved_brand_profile", None)
-        if resolved is not None:
-            return resolved
-        assigned = vars(type(self)).get("brand_profile")
-        if isinstance(assigned, BrandProfile):
-            resolved = assigned
-        else:
+        if resolved is None:
             resolved = BrandProfile.from_manifest(self.manifest)
-        self._resolved_brand_profile = resolved
+            self._resolved_brand_profile = resolved
         return resolved
 
     async def on_init(self) -> None:
-        """Wire library logs.
+        """Check the manifest and wire library logs.
 
         Do not override. Use :meth:`on_esphome_init` for brand setup.
         """
         await super().on_init()
+        _reject_assigned_profile(type(self))
         attach_library_logs(self.log, self.error)
         await self.on_esphome_init()
         self.log("Initialized EspHomeDriver")
@@ -121,3 +116,17 @@ class EspHomeDriver(Driver):
     async def on_repair(self, session: PairSession, device: EspHomeDevice) -> None:
         """Update host/port, prompting for a Noise PSK only when the node needs it."""
         await DriverPairHandler(self).repair(session, device)
+
+
+def _reject_assigned_profile(driver_class: type) -> None:
+    """Fail fast on a pre-0.6 class-level ``brand_profile = BrandProfile(...)``.
+
+    Assigning it would shadow the property and silently ignore compose.
+    """
+    for klass in driver_class.__mro__:
+        if isinstance(vars(klass).get("brand_profile"), BrandProfile):
+            msg = (
+                f"{klass.__name__}.brand_profile is no longer supported: move the "
+                "data to the driver.compose.json esphome object"
+            )
+            raise TypeError(msg)

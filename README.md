@@ -89,7 +89,7 @@ Like Z-Wave and Zigbee drivers, a driver declares its capabilities in `driver.co
 | `clientInfo`    | Name shown on the node for this Homey client                    |
 | `nativeApps`    | Suggest a dedicated Homey app for a project (`io.esphome` only) |
 
-Omit `projects` / `projectPrefix` to accept every project (`io.esphome`). If both are set, either match is enough.
+Omit `projects` / `projectPrefix` to accept every project (`io.esphome`). If both are set, either match is enough. Any other key is logged and ignored.
 
 A button for a rare or risky task, such as a calibration, goes in the device's Maintenance menu with Homey's own `maintenanceAction` capability option, as above.
 
@@ -196,7 +196,7 @@ Core owns `on_init` and `on_uninit` on `EspHomeDriver` and `EspHomeDevice`. Subc
 
 | Class           | Override                                        | When                                                                |
 | --------------- | ----------------------------------------------- | ------------------------------------------------------------------- |
-| `EspHomeDriver` | `on_esphome_init` / `on_esphome_uninit`         | After library setup, e.g. to register Flow cards / before teardown  |
+| `EspHomeDriver` | `on_esphome_init` / `on_esphome_uninit`         | After the manifest check, e.g. to register Flow cards / before teardown |
 | `EspHomeDriver` | `on_pair_device(device, device_info, entities)` | Before Homey creates a paired device                                |
 | `EspHomeDevice` | `on_esphome_init(client)` / `on_esphome_uninit` | Before the session starts; `client` is `None` when host is unknown  |
 | `EspHomeDevice` | `on_esphome_connected(client)`                  | After each login + `set_available`; session not READY yet — no cmds |

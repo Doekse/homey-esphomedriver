@@ -1,12 +1,13 @@
 """BrandProfile parsing and filtering tests.
 
 Brand apps declare an ``esphome`` object in ``driver.compose.json``. These tests
-pin the compose key aliases and the project-acceptance rules that decide which
-driver claims a node.
+pin the compose keys and the project-acceptance rules that decide which driver
+claims a node.
 """
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import pytest
@@ -41,27 +42,44 @@ def test_default_profile_accepts_every_project() -> None:
     ("keys", "expected"),
     [
         ({"clientInfo": "Brand App"}, "Brand App"),
-        ({"client_info": "Brand App"}, "Brand App"),
         ({}, DEFAULT_CLIENT_INFO),
     ],
 )
-def test_client_info_aliases(keys: dict[str, Any], expected: str) -> None:
+def test_client_info(keys: dict[str, Any], expected: str) -> None:
     assert BrandProfile.from_compose(keys).client_info == expected
 
 
-@pytest.mark.parametrize("key", ["projects", "projectNames", "project_names"])
-def test_projects_aliases(key: str) -> None:
-    profile = BrandProfile.from_compose({key: ["Brand.AQ-1", "Brand.AQ-2"]})
+def test_projects() -> None:
+    profile = BrandProfile.from_compose({"projects": ["Brand.AQ-1", "Brand.AQ-2"]})
     assert profile.projects == frozenset({"Brand.AQ-1", "Brand.AQ-2"})
+
+
+def test_project_prefix() -> None:
+    profile = BrandProfile.from_compose({"projectPrefix": "Brand."})
+    assert profile.project_prefix == ("Brand.",)
 
 
 @pytest.mark.parametrize(
     "key",
-    ["projectPrefix", "projectPrefixes", "project_prefix", "project_prefixes"],
+    [
+        "hidden_entities",
+        "projectNames",
+        # Capability keys from before register_capability.
+        "hiddenEntities",
+        "deviceEntities",
+        "capabilityOverrides",
+        "deviceClassOverrides",
+        "maintenanceActions",
+    ],
 )
-def test_project_prefix_aliases(key: str) -> None:
-    profile = BrandProfile.from_compose({key: "Brand."})
-    assert profile.project_prefix == ("Brand.",)
+def test_unknown_key_is_logged_and_ignored(
+    key: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Old aliases and typos would otherwise do nothing without a word."""
+    with caplog.at_level(logging.WARNING, logger="homey_esphomedriver.profile"):
+        profile = BrandProfile.from_compose({key: ["status_led"]})
+    assert profile == DEFAULT_BRAND_PROFILE
+    assert key in caplog.text
 
 
 def test_scalar_string_is_accepted_where_a_list_is_expected() -> None:

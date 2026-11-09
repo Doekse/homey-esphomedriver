@@ -1,8 +1,7 @@
 """Which ESPHome nodes a Homey driver takes, read from its manifest.
 
 Brand apps declare an ``esphome`` object in ``driver.compose.json``.
-:class:`EspHomeDriver` reads it from ``self.manifest``; a class-level
-``brand_profile`` on the driver still wins when set. Which capabilities a
+:class:`EspHomeDriver` reads it from ``self.manifest``. Which capabilities a
 device has is the driver's own ``capabilities`` list, bound to entities with
 :meth:`EspHomeDevice.register_capability`.
 
@@ -14,9 +13,22 @@ project is accepted. Brand apps that ship one driver per SKU set ``projects``
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any
+
+_LOGGER = logging.getLogger(__name__)
+
+COMPOSE_KEYS = frozenset(
+    {
+        "clientInfo",
+        "projects",
+        "projectPrefix",
+        "nativeApps",
+    }
+)
+"""Keys of the ``driver.compose.json`` ``esphome`` object."""
 
 DEFAULT_CLIENT_INFO = "Homey ESPHome"
 """Identifies the generic Homey ESPHome app on the node's API hello."""
@@ -26,8 +38,7 @@ DEFAULT_CLIENT_INFO = "Homey ESPHome"
 class BrandProfile:
     """Product filters consulted at pair and connect time.
 
-    Built from the driver manifest ``esphome`` object, or assigned as a
-    class-level ``brand_profile`` on the driver.
+    Built from the driver manifest ``esphome`` object.
     """
 
     client_info: str = DEFAULT_CLIENT_INFO
@@ -65,22 +76,21 @@ class BrandProfile:
         """Build a profile from a ``driver.compose.json`` ``esphome`` object.
 
         Args:
-            data: The ``esphome`` object. CamelCase compose keys are preferred;
-                snake_case and a few legacy aliases are also accepted.
+            data: The ``esphome`` object. Keys are listed in
+                :data:`COMPOSE_KEYS`; any other key is logged and ignored.
         """
+        unknown = sorted(set(data) - COMPOSE_KEYS)
+        if unknown:
+            _LOGGER.warning(
+                "Ignoring unknown esphome compose key(s) %s; expected one of %s",
+                ", ".join(map(str, unknown)),
+                ", ".join(sorted(COMPOSE_KEYS)),
+            )
         return cls(
-            client_info=str(
-                _pick(data, "clientInfo", "client_info") or DEFAULT_CLIENT_INFO
-            ),
-            projects=_optional_names(data, "projects", "projectNames", "project_names"),
-            project_prefix=_optional_tuple(
-                data,
-                "projectPrefix",
-                "projectPrefixes",
-                "project_prefix",
-                "project_prefixes",
-            ),
-            native_apps=_string_map(_pick(data, "nativeApps", "native_apps") or {}),
+            client_info=str(data.get("clientInfo") or DEFAULT_CLIENT_INFO),
+            projects=_optional_names(data.get("projects")),
+            project_prefix=_optional_tuple(data.get("projectPrefix")),
+            native_apps=_string_map(data.get("nativeApps")),
         )
 
     def replace(self, **kwargs: object) -> BrandProfile:
@@ -120,13 +130,6 @@ DEFAULT_BRAND_PROFILE = BrandProfile()
 """Profile that accepts every project and applies no remaps."""
 
 
-def _pick(data: Mapping[str, Any], *keys: str) -> Any:
-    for key in keys:
-        if key in data:
-            return data[key]
-    return None
-
-
 def _string_list(value: object) -> list[str]:
     if isinstance(value, str):
         return [value]
@@ -135,15 +138,13 @@ def _string_list(value: object) -> list[str]:
     return []
 
 
-def _optional_names(data: Mapping[str, Any], *keys: str) -> frozenset[str] | None:
-    raw = _pick(data, *keys)
+def _optional_names(raw: object) -> frozenset[str] | None:
     if raw is None:
         return None
     return frozenset(_string_list(raw))
 
 
-def _optional_tuple(data: Mapping[str, Any], *keys: str) -> tuple[str, ...] | None:
-    raw = _pick(data, *keys)
+def _optional_tuple(raw: object) -> tuple[str, ...] | None:
     if raw is None:
         return None
     return tuple(_string_list(raw))
