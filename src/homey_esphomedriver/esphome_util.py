@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import functools
+import json
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from pathlib import Path
 from typing import Any
 
 from aioesphomeapi import (
@@ -22,6 +24,9 @@ from aioesphomeapi import (
 from aioesphomeapi.core import TimeoutAPIError
 
 _DEBUG_TRUE = frozenset({"true", "1"})
+_DRIVER_COMPOSE = (
+    Path(__file__).resolve().parent / "homey_template" / "compose" / "drivers"
+)
 _LIBRARY_LOGGERS = ("aioesphomeapi", "homey_esphomedriver")
 _library_logs_attached = False
 
@@ -208,3 +213,84 @@ def error_key(error: BaseException) -> str:
     if isinstance(error, HandshakeAPIError):
         return "errors.handshake"
     return "errors.cannot_connect"
+
+
+def walk_settings(settings: object) -> Iterator[Mapping[str, Any]]:
+    """Yield the leaf settings of a driver manifest ``settings`` array.
+
+    Group children are walked; groups themselves are not yielded. Malformed
+    entries are skipped.
+    """
+    if not isinstance(settings, Sequence) or isinstance(settings, (str, bytes)):
+        return
+    for setting in settings:
+        if not isinstance(setting, Mapping):
+            continue
+        if setting.get("type") == "group":
+            yield from walk_settings(setting.get("children"))
+        else:
+            yield setting
+
+
+@functools.cache
+def _default_setting_ids() -> dict[str, tuple[str, ...]]:
+    """Setting template id to the setting ids it declares.
+
+    The templates are the ones ``esphome-defaults`` extends, so the check
+    covers exactly the default settings page.
+
+    Raises:
+        RuntimeError: If the package data holding the templates is missing,
+            so the check can never pass because nothing was found to check.
+    """
+    defaults = _package_json(_DRIVER_COMPOSE / "templates" / "esphome-defaults.json")
+    template_ids = [
+        str(setting["$extends"])
+        for setting in defaults["settings"]
+        if "$extends" in setting
+    ]
+    return {
+        template_id: tuple(
+            str(setting["id"])
+            for setting in walk_settings(
+                [_package_json(_DRIVER_COMPOSE / "settings" / f"{template_id}.json")]
+            )
+        )
+        for template_id in template_ids
+    }
+
+
+def _package_json(path: Path) -> Any:
+    """Read a JSON file shipped in this package's ``homey_template``."""
+    try:
+        return json.loads(path.read_text("utf-8"))
+    except FileNotFoundError as err:
+        msg = (
+            f"homey-esphomedriver package data is missing {path}; reinstall the package"
+        )
+        raise RuntimeError(msg) from err
+
+
+def missing_default_settings(
+    manifest: Mapping[str, Any] | None,
+) -> dict[str, list[str]]:
+    """Default settings a driver manifest lacks, by the template that adds them.
+
+    The library reads and writes these settings, so a driver that declares its
+    own ``settings`` must keep every default group with ``$extends``.
+
+    Returns:
+        Setting template id to its missing setting ids; empty when complete.
+    """
+    declared = {
+        str(setting.get("id"))
+        for setting in walk_settings((manifest or {}).get("settings"))
+    }
+    missing: dict[str, list[str]] = {}
+    for template_id, setting_ids in _default_setting_ids().items():
+        absent = [
+            setting_id for setting_id in setting_ids if setting_id not in declared
+        ]
+        if absent:
+            missing[template_id] = absent
+    return missing

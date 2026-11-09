@@ -201,6 +201,8 @@ A new device gets the driver's capabilities. To choose them from what the node h
 ]
 ```
 
+A driver that leaves it out fails on init with an error naming the `$extends` to add.
+
 ### Lifecycle hooks
 
 Core owns `on_init` and `on_uninit` on `EspHomeDriver` and `EspHomeDevice`. Subclass the hooks below instead — same pattern as `homey-oauth2app`'s `onOAuth2Init`. Brand `app.py` exports Homey's `App`.

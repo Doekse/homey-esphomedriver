@@ -79,7 +79,7 @@ There is nothing to hide or remap: a device shows the capabilities its driver de
 
 ### Settings page
 
-The library writes the Device Information labels and reads the connection fields on every connect. Homey Compose cannot append to an `$extends` template's `settings`; a driver that declares `settings` replaces the whole list. So the group is also a setting template (`esphome-device-information`), and a brand driver that adds its own settings keeps it with `{"$extends": "esphome-device-information"}`.
+The library writes the Device Information labels and reads the connection fields on every connect. Homey Compose cannot append to an `$extends` template's `settings`; a driver that declares `settings` replaces the whole list. So the group is also a setting template (`esphome-device-information`), and a brand driver that adds its own settings keeps it with `{"$extends": "esphome-device-information"}`. The driver checks this on init and fails with the missing template id rather than letting a device run without settings the library relies on.
 
 ### Pairing
 

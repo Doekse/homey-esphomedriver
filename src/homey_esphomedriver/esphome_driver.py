@@ -6,8 +6,8 @@ stays here; the pair and repair wizards live on that handler.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 
 from aioesphomeapi import DeviceInfo, EntityInfo
 from homey.driver import Driver
@@ -17,6 +17,7 @@ from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 from homey_esphomedriver.esphome_util import (
     attach_library_logs,
     debug_log,
+    missing_default_settings,
 )
 from homey_esphomedriver.pairing import DriverPairHandler
 from homey_esphomedriver.profile import BrandProfile
@@ -58,6 +59,7 @@ class EspHomeDriver(Driver):
         """
         await super().on_init()
         _reject_assigned_profile(type(self))
+        _require_default_settings(self.manifest)
         attach_library_logs(self.log, self.error)
         await self.on_esphome_init()
         self.log("Initialized EspHomeDriver")
@@ -116,6 +118,31 @@ class EspHomeDriver(Driver):
     async def on_repair(self, session: PairSession, device: EspHomeDevice) -> None:
         """Update host/port, prompting for a Noise PSK only when the node needs it."""
         await DriverPairHandler(self).repair(session, device)
+
+
+def _require_default_settings(manifest: Mapping[str, Any] | None) -> None:
+    """Fail on init when a driver's own ``settings`` dropped a default group.
+
+    Homey Compose replaces the ``esphome-defaults`` settings when a driver
+    declares ``settings``. The library reads and writes the default ones, so
+    the brand must keep each group through its setting template.
+
+    Raises:
+        ValueError: Naming the missing settings and the ``$extends`` to add.
+    """
+    missing = missing_default_settings(manifest)
+    if not missing:
+        return
+    driver_id = (manifest or {}).get("id", "?")
+    detail = "; ".join(
+        f'{{"$extends": "{template_id}"}} for {", ".join(setting_ids)}'
+        for template_id, setting_ids in missing.items()
+    )
+    msg = (
+        f"Driver {driver_id!r} declares settings without the ESPHome defaults. "
+        f"Add to its settings: {detail}"
+    )
+    raise ValueError(msg)
 
 
 def _reject_assigned_profile(driver_class: type) -> None:
