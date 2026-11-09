@@ -8,7 +8,8 @@ entity I/O lives on :class:`~homey_esphomedriver.bindings.CapabilityBindings`.
 from __future__ import annotations
 
 import asyncio
-from typing import cast
+from collections.abc import Callable
+from typing import Any, cast
 
 from aioesphomeapi import DeviceInfo, EntityState
 from homey.device import Device
@@ -83,8 +84,9 @@ class EspHomeDevice(Device[EspHomeDriver]):
         self._bindings = CapabilityBindings(self)
         self._setting_sync = SettingEntitySync(self)
 
-        # Started only after the brand hook, so the capabilities registered
-        # there apply to the connect dump.
+        # Started only after the brand hook, so the capabilities and setting
+        # converters registered there apply to the connect dump and to queued
+        # writes.
         client = self._create_client()
         await self.on_esphome_init(client)
         if client is not None:
@@ -95,8 +97,8 @@ class EspHomeDevice(Device[EspHomeDriver]):
     async def on_esphome_init(self, client: EspHomeClient | None) -> None:
         """Brand hook to bind capabilities before the session starts.
 
-        Call :meth:`register_capability` and :meth:`register_state_listener`
-        here.
+        Call :meth:`register_capability`, :meth:`register_state_listener` and
+        :meth:`register_setting` here.
 
         Args:
             client: Native API session, started once this hook returns, or
@@ -202,6 +204,42 @@ class EspHomeDevice(Device[EspHomeDriver]):
             ```
         """
         return self._bindings.entity(domain, name, device_id)
+
+    def register_setting(
+        self,
+        setting_id: str,
+        *,
+        to_entity: Callable[[Any], Any] | None = None,
+        to_setting: Callable[[Any], Any] | None = None,
+    ) -> None:
+        """Register value converters for a setting backed by an entity.
+
+        Call from :meth:`on_esphome_init`. The session starts after that hook
+        returns, so the connect dump is converted too. Without a converter the
+        value passes through unchanged.
+
+        Example:
+            ```python
+            async def on_esphome_init(self, client):
+                self.register_setting(
+                    "temp_offset",
+                    to_entity=lambda tenths: tenths / 10,
+                    to_setting=lambda celsius: round(celsius * 10),
+                )
+            ```
+
+        Args:
+            setting_id: Setting linked through ``settings[].esphome``.
+            to_entity: Saved setting value to the value the entity takes, for
+                example a unit scale or a dropdown id to a select option.
+            to_setting: Reported entity value to the setting value.
+
+        Raises:
+            ValueError: If ``setting_id`` is not linked to an entity.
+        """
+        self._setting_sync.register(
+            setting_id, to_entity=to_entity, to_setting=to_setting
+        )
 
     async def on_uninit(self) -> None:
         """Stop the API session and release state handlers.

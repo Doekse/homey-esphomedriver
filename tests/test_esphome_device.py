@@ -260,21 +260,30 @@ def test_connect_dump_mirrors_into_a_linked_setting() -> None:
     asyncio.run(run())
 
 
-def test_on_init_starts_the_client_after_the_brand_hook(
+def test_on_init_starts_the_client_after_brand_registration(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Bindings from on_esphome_init must see the connect dump."""
+    """Bindings from on_esphome_init must see the connect dump and queued writes."""
     events: list[str] = []
+
+    class _Sync:
+        def __init__(self, _device: Any) -> None:
+            events.append("sync")
+
+        def register(self, setting_id: str, **_converters: Any) -> None:
+            events.append(f"register {setting_id}")
 
     class _Client:
         async def start(self, _on_state: Any) -> None:
             events.append("client started")
 
+    module = "homey_esphomedriver.esphome_device"
+    monkeypatch.setattr(f"{module}.SettingEntitySync", _Sync)
     monkeypatch.setattr(EspHomeDevice.__mro__[1], "on_init", AsyncMock(), raising=False)
 
     class _Brand(EspHomeDevice):
         async def on_esphome_init(self, client: Any) -> None:
-            events.append("on_esphome_init")
+            self.register_setting("temp_offset", to_setting=float)
 
     device = _device(store={"address": "192.0.2.1"})
     device.__class__ = _Brand
@@ -288,4 +297,9 @@ def test_on_init_starts_the_client_after_the_brand_hook(
 
     asyncio.run(device.on_init())
 
-    assert events == ["client created", "on_esphome_init", "client started"]
+    assert events == [
+        "sync",
+        "client created",
+        "register temp_offset",
+        "client started",
+    ]

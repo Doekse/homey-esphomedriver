@@ -38,7 +38,7 @@ Homey talks directly to the device using ESPHome's Native API. Everything stays 
 | `reportParser(report)` / `setParser(value, opts)`          | `report_parser(state, entity)` / `set_parser(value, opts, entity)` |
 | `lib/system/capabilities/<cap>/<CC>.js`                    | `system/<domain>.py`, a `CAPABILITIES` table per domain   |
 | `registerReportListener(cc, report, fn)`                   | `register_state_listener(domain, name, fn)`               |
-| `zwave` on a setting                                       | `esphome` on a setting                                    |
+| `registerSetting(id, parser)` + `zwave` on a setting       | `register_setting(id, to_entity=, to_setting=)` + `esphome` on a setting |
 | `onNodeInit`                                               | `on_esphome_init`                                         |
 
 An entity is named by its domain and its name, plus a `device_id` for a sub-device: the identity aioesphomeapi's newest unique ids use. `object_id` is derived from the name, collides for non-ASCII names and sub-devices, and is planned for removal in ESPHome.
@@ -92,7 +92,7 @@ Pairing probes the node, checks its project, and creates the device with its con
 
 `EspHomeDriver` and `EspHomeDevice` seal `on_init` / `on_uninit`. Brand apps extend `on_esphome_init`, `on_esphome_connected`, and `on_esphome_uninit` instead (mirrors `homey-oauth2app`). Brand `app.py` exports Homey's `App`.
 
-On `EspHomeDevice`, `on_esphome_init(client)` is where capabilities and state listeners are registered, like Z-Wave's `onNodeInit`. It runs before the API session starts, so no state or ready event arrives during it. `client` is `None` when the node has no host yet (waiting on mDNS).
+On `EspHomeDevice`, `on_esphome_init(client)` is where capabilities, state listeners and setting converters are registered, like Z-Wave's `onNodeInit`. It runs before the API session starts, so no state or ready event arrives during it. `client` is `None` when the node has no host yet (waiting on mDNS).
 
 `on_esphome_connected(client)` runs at the end of each successful login (including reconnects), after Homey `set_available()`. The session is still not READY when the hook runs — `_mark_ready()` happens after `_on_connected` returns — so brand code must not issue commands until `client.available`.
 
