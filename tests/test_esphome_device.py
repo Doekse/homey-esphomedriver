@@ -303,3 +303,21 @@ def test_on_init_starts_the_client_after_brand_registration(
         "register temp_offset",
         "client started",
     ]
+
+
+def test_ready_hook_runs_after_queued_settings() -> None:
+    info = _info()
+    device = _device(
+        store={"pending_settings": {"offset": 1.5}},
+        profile=BrandProfile(setting_entities=OFFSET_LINK),
+    )
+    events: list[str] = []
+
+    async def on_ready(client: EspHomeClient) -> None:
+        events.append(f"ready {client.available}")
+        client.api.number_command.assert_called_once()
+
+    device.on_esphome_ready = on_ready  # type: ignore[method-assign]
+
+    asyncio.run(_login(device, info, [OFFSET]))
+    assert events == ["ready True"]

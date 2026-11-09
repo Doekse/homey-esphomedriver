@@ -272,6 +272,7 @@ Core owns `on_init` and `on_uninit` on `EspHomeDriver` and `EspHomeDevice`. Subc
 | `EspHomeDriver` | `on_pair_device(device, device_info, entities)` | Before Homey creates a paired device                                |
 | `EspHomeDevice` | `on_esphome_init(client)` / `on_esphome_uninit` | Before the session starts; `client` is `None` when host is unknown  |
 | `EspHomeDevice` | `on_esphome_connected(client)`                  | After each login + `set_available`; session not READY yet — no cmds |
+| `EspHomeDevice` | `on_esphome_ready(client)`                      | Once the session accepts commands, after each login                 |
 
 On a paired device, use `self.client` for the live `EspHomeClient` (may exist before the API handshake). Commands require a READY session — including from `on_esphome_connected`.
 

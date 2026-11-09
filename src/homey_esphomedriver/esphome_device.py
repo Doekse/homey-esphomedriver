@@ -113,6 +113,12 @@ class EspHomeDevice(Device[EspHomeDriver]):
         ``client.available`` or :meth:`_require_client`.
         """
 
+    async def on_esphome_ready(self, client: EspHomeClient) -> None:
+        """Brand hook once the session accepts commands, after each login.
+
+        Settings saved while a deep-sleep node slept are written first.
+        """
+
     async def on_esphome_uninit(self) -> None:
         """Brand hook before the API session stops.
 
@@ -420,7 +426,11 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
     async def _on_ready(self) -> None:
         """The session accepts commands: send settings saved while asleep."""
+        # Queued settings first: a deep-sleep node may not stay awake for long.
         await self._setting_sync.flush_pending()
+        client = self._client
+        if client is not None and client.available:
+            await self.on_esphome_ready(client)
 
     def _schedule_project_warning(
         self, device_info: DeviceInfo, *, accepted: bool
