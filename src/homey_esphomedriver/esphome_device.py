@@ -1,8 +1,8 @@
 """Homey Device for one ESPHome node (identity is the mDNS MAC).
 
 Owns :class:`~homey_esphomedriver.esphome_client.EspHomeClient` and the
-capability / command / state handlers. Homey discovery and settings drive
-persist + reconnect; entity I/O lives on the handlers.
+capability bindings. Homey discovery and settings drive persist + reconnect;
+entity I/O lives on :class:`~homey_esphomedriver.bindings.CapabilityBindings`.
 """
 
 from __future__ import annotations
@@ -10,17 +10,12 @@ from __future__ import annotations
 import asyncio
 from typing import cast
 
-from aioesphomeapi import (
-    DeviceInfo,
-    EntityCategory,
-)
+from aioesphomeapi import DeviceInfo, EntityState
 from homey.device import Device
 from homey.discovery_result import DiscoveryResult
 from homey.discovery_result_mdns_sd import DiscoveryResultMDNSSD
 
-from homey_esphomedriver.capabilities import DeviceCapabilityHandler
-from homey_esphomedriver.entities.commands import DeviceEntityCommandHandler
-from homey_esphomedriver.entities.state import DeviceEntityStateHandler
+from homey_esphomedriver.bindings import CapabilityBindings, StateListener
 from homey_esphomedriver.esphome_client import (
     DEFAULT_API_PORT,
     EspHomeClient,
@@ -32,11 +27,8 @@ from homey_esphomedriver.esphome_util import (
     error_key,
     normalize_mac,
 )
-from homey_esphomedriver.notifications import notify_entities_changed
 from homey_esphomedriver.profile import BrandProfile
-
-# The event loop keeps only a weak reference to scheduled tasks.
-_notification_tasks: set[asyncio.Task[None]] = set()
+from homey_esphomedriver.system import BoundEntity, ReportParser, SetParser
 
 
 class EspHomeDevice(Device[EspHomeDriver]):
@@ -45,21 +37,26 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
     Extend this class and export it from ``device.py`` as ``homey_export``.
     Override :meth:`on_esphome_init` / :meth:`on_esphome_connected` /
-    :meth:`on_esphome_uninit` instead of :meth:`on_init` / :meth:`on_uninit`.
+    :meth:`on_esphome_uninit` instead of :meth:`on_init` / :meth:`on_uninit`,
+    and bind the driver's capabilities to entities in :meth:`on_esphome_init`.
 
     Example:
         ```python
         from homey_esphomedriver import EspHomeDevice
 
-        homey_export = EspHomeDevice
+
+        class Air1Device(EspHomeDevice):
+            async def on_esphome_init(self, client):
+                self.register_capability("measure_co2", "sensor", "CO2")
+
+
+        homey_export = Air1Device
         ```
     """
 
     _client: EspHomeClient | None
     _mac: str
-    _capability_handler: DeviceCapabilityHandler
-    _commands: DeviceEntityCommandHandler
-    _state_handler: DeviceEntityStateHandler
+    _bindings: CapabilityBindings
 
     @property
     def brand_profile(self) -> BrandProfile:
@@ -81,29 +78,22 @@ class EspHomeDevice(Device[EspHomeDriver]):
         self._client = None
         # Device data never changes, and Homey only matches discovery after on_init.
         self._mac = normalize_mac(str(self.get_data()["id"]))
-        self._pending_build: str | None = None
-        self._state_handler = DeviceEntityStateHandler(self)
-        self._commands = DeviceEntityCommandHandler(self)
-        self._capability_handler = DeviceCapabilityHandler(self)
+        self._bindings = CapabilityBindings(self)
 
-        device_class = self.get_setting("device_class")
-        if device_class != "auto":
-            await self._apply_device_class_setting(str(device_class))
-
-        await self._state_handler.init()
-        await self._capability_handler.ensure()
-
-        # Started only after the brand hook, so what it sets up sees the
-        # connect dump.
+        # Started only after the brand hook, so the capabilities registered
+        # there apply to the connect dump.
         client = self._create_client()
         await self.on_esphome_init(client)
         if client is not None:
-            await client.start(self._state_handler.handle_state)
+            await client.start(self._on_state)
 
         self.log(f"Initialized EspHomeDevice {self.get_name()}")
 
     async def on_esphome_init(self, client: EspHomeClient | None) -> None:
-        """Brand hook after capability wiring, before the session starts.
+        """Brand hook to bind capabilities before the session starts.
+
+        Call :meth:`register_capability` and :meth:`register_state_listener`
+        here.
 
         Args:
             client: Native API session, started once this hook returns, or
@@ -124,6 +114,92 @@ class EspHomeDevice(Device[EspHomeDriver]):
         Do not override :meth:`on_uninit`.
         """
 
+    def register_capability(
+        self,
+        capability_id: str,
+        domain: str,
+        name: str,
+        *,
+        device_id: int = 0,
+        set_parser: SetParser | None = None,
+        report_parser: ReportParser | None = None,
+    ) -> None:
+        """Bind a capability of this device to an ESPHome entity.
+
+        The capability must already be on the device; the driver declares it.
+        The system capabilities supply parsers for Homey's own capabilities;
+        pass a parser to override them, or for an app's own capability. Call
+        from :meth:`on_esphome_init` so the connect dump reaches it; a later
+        call binds right away and replays the entity's last state.
+
+        Example:
+            ```python
+            async def on_esphome_init(self, client):
+                self.register_capability("measure_co2", "sensor", "CO2")
+                self.register_capability("dim.led", "light", "Status LED")
+                self.register_capability(
+                    "air_quality", "sensor", "VOC Index",
+                    report_parser=lambda state, entity: state.state > 150,
+                )
+            ```
+
+        Args:
+            capability_id: Capability on this device, such as ``dim.led``.
+            domain: ESPHome entity domain, such as ``light`` or ``sensor``.
+            name: Entity name the YAML author chose.
+            device_id: Sub-device the entity belongs to; 0 is the node itself.
+            set_parser: ``(value, opts, entity)`` to keyword arguments for
+                ``<domain>_command``, or ``None`` to send nothing.
+            report_parser: ``(state, entity)`` to the capability value, or
+                ``None`` to leave it as is.
+
+        Raises:
+            ValueError: The device lacks the capability, the domain is
+                unknown, or no parser is available.
+        """
+        self._bindings.register_capability(
+            capability_id,
+            domain,
+            name,
+            device_id=device_id,
+            set_parser=set_parser,
+            report_parser=report_parser,
+        )
+
+    def unregister_capability(self, capability_id: str) -> None:
+        """Stop reporting and setting a capability; the capability stays."""
+        self._bindings.unregister_capability(capability_id)
+
+    def register_state_listener(
+        self,
+        domain: str,
+        name: str,
+        listener: StateListener,
+        *,
+        device_id: int = 0,
+    ) -> None:
+        """Call ``listener(state, entity)`` with every state of an entity.
+
+        For what no capability shows, such as firing an app's own Flow card
+        on an event. Runs inline in the Native API read callback, so a
+        coroutine it returns runs as a task.
+        """
+        self._bindings.register_state_listener(
+            domain, name, listener, device_id=device_id
+        )
+
+    def entity(self, domain: str, name: str, device_id: int = 0) -> BoundEntity | None:
+        """An entity of the current connection, to send it a command yourself.
+
+        Example:
+            ```python
+            entity = self.entity("button", "Calibrate")
+            if entity is not None:
+                self.client.command("button_command", entity.key)
+            ```
+        """
+        return self._bindings.entity(domain, name, device_id)
+
     async def on_uninit(self) -> None:
         """Stop the API session and release state handlers.
 
@@ -133,7 +209,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
         if self._client is not None:
             await self._client.stop()
             self._client = None
-        self._state_handler.uninit()
+        self._bindings.unbind()
         await super().on_uninit()
 
     async def on_discovery_result(self, discovery_result: DiscoveryResult) -> bool:
@@ -173,31 +249,6 @@ class EspHomeDevice(Device[EspHomeDriver]):
         if client is not None:
             await client.request_connect()
 
-    async def on_settings(
-        self,
-        old_settings: dict[str, bool | float | str | None],
-        new_settings: dict[str, bool | float | str | None],
-        changed_keys: tuple[str, ...],
-    ) -> str | None:
-        """Apply device-class override and diagnostic/configuration toggles."""
-        del old_settings
-
-        if "device_class" in changed_keys:
-            await self._apply_device_class_setting(str(new_settings["device_class"]))
-        if "show_diagnostics" in changed_keys:
-            await self._capability_handler.apply_category(
-                bool(new_settings.get("show_diagnostics")),
-                EntityCategory.DIAGNOSTIC,
-                "diagnostic_capabilities",
-            )
-        if "show_configuration" in changed_keys:
-            await self._capability_handler.apply_category(
-                bool(new_settings.get("show_configuration")),
-                EntityCategory.CONFIG,
-                "configuration_capabilities",
-            )
-        return None
-
     async def apply_connection(
         self,
         *,
@@ -212,18 +263,13 @@ class EspHomeDevice(Device[EspHomeDriver]):
             self._client = None
         await self._ensure_client_started()
 
-    async def _apply_device_class_setting(self, value: str) -> None:
-        """Set Homey class from the device_class setting (auto restores mapped)."""
-        target = self.get_store()["auto_class"] if value == "auto" else value
-        await self.set_class(target)
-
     async def _ensure_client_started(self) -> None:
         """Create and start the long-lived API session from device settings."""
         if self._client is not None:
             return
         client = self._create_client()
         if client is not None:
-            await client.start(self._state_handler.handle_state)
+            await client.start(self._on_state)
 
     def _create_client(self) -> EspHomeClient | None:
         """Create the API session from device settings without starting it."""
@@ -248,10 +294,10 @@ class EspHomeDevice(Device[EspHomeDriver]):
             expected_mac=self._mac,
             client_info=self.brand_profile.client_info,
             deep_sleep=self.get_setting("deep_sleep") == "Yes",
+            on_entities=self._bindings.bind,
             on_connected=self._on_connected,
             on_disconnected=self._on_disconnected,
             on_connect_error=self._on_connect_error,
-            on_ready=self._sync_if_rebuilt,
         )
         return self._client
 
@@ -293,13 +339,7 @@ class EspHomeDevice(Device[EspHomeDriver]):
 
     async def _on_connected(self, device_info: DeviceInfo) -> None:
         client = cast(EspHomeClient, self._client)
-        build = device_info.compilation_time
-        entities_build = await self._ensure_entities_build(build)
         accepted = self.brand_profile.accepts_project(device_info.project_name)
-        self._pending_build = (
-            build if accepted and build and build != entities_build else None
-        )
-
         has_encryption = bool(str(self.get_store().get("noise_psk") or "").strip())
         settings = changed_values(
             self.get_settings(),
@@ -315,45 +355,9 @@ class EspHomeDevice(Device[EspHomeDriver]):
         self._schedule_project_warning(device_info, accepted=accepted)
         await self.on_esphome_connected(client)
 
-    async def _sync_if_rebuilt(self) -> None:
-        build = self._pending_build
-        if not build:
-            return
-        self._pending_build = None
-        result = await self._capability_handler.sync_entities(build)
-        self.log(
-            f"Synced capabilities for firmware {build}: "
-            f"added {result.added}, removed {result.removed}"
-        )
-
-        async def post() -> None:
-            try:
-                await notify_entities_changed(
-                    homey=self.homey,
-                    device_name=self.get_name(),
-                    added=result.added,
-                    removed=result.removed_titles,
-                    enabled=self.get_setting("notify_entities_changed") is not False,
-                )
-            except Exception as error:
-                self.error("Failed to create entities changed notification:", error)
-
-        task = asyncio.create_task(post())
-        _notification_tasks.add(task)
-        task.add_done_callback(_notification_tasks.discard)
-
-    async def _ensure_entities_build(self, build: str) -> str:
-        """Return the stored build, seeding a missing key from the old setting.
-
-        This login overwrites the compilation_time setting, so the seed has to
-        happen first. Seeding is not itself a firmware change.
-        """
-        store = self.get_store()
-        if "entities_build" in store:
-            return str(store.get("entities_build") or "")
-        seeded = str(self.get_setting("compilation_time") or build)
-        await self.set_store_value("entities_build", seeded)
-        return seeded
+    def _on_state(self, state: EntityState) -> None:
+        """Write a state to the capabilities bound to its entity."""
+        self._bindings.handle_state(state)
 
     def _schedule_project_warning(
         self, device_info: DeviceInfo, *, accepted: bool

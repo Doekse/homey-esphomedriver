@@ -1,9 +1,10 @@
-"""Brand-specific filters and remaps for a Homey ESPHome driver.
+"""Which ESPHome nodes a Homey driver takes, read from its manifest.
 
 Brand apps declare an ``esphome`` object in ``driver.compose.json``.
-:class:`EspHomeDriver` reads it from ``self.manifest``. A class-level
-``brand_profile`` on the driver still wins when set — use that for
-``after_map`` or a Python-only table.
+:class:`EspHomeDriver` reads it from ``self.manifest``; a class-level
+``brand_profile`` on the driver still wins when set. Which capabilities a
+device has is the driver's own ``capabilities`` list, bound to entities with
+:meth:`EspHomeDevice.register_capability`.
 
 The generic esphome-homey app (``io.esphome``) omits ``projects`` so every
 project is accepted. Brand apps that ship one driver per SKU set ``projects``
@@ -15,22 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from fnmatch import fnmatchcase
 from typing import Any
-
-from aioesphomeapi import EntityInfo
-
-from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
-
-
-def _is_pattern(entry: str) -> bool:
-    """Whether a ``hiddenEntities`` entry is a pattern rather than an id.
-
-    ESPHome object ids are slugified to ``[a-z0-9_-]``, so these characters
-    cannot appear in a literal id and are unambiguous as wildcards.
-    """
-    return any(ch in entry for ch in "*?[")
-
 
 DEFAULT_CLIENT_INFO = "Homey ESPHome"
 """Identifies the generic Homey ESPHome app on the node's API hello."""
@@ -38,11 +24,10 @@ DEFAULT_CLIENT_INFO = "Homey ESPHome"
 
 @dataclass(frozen=True, slots=True)
 class BrandProfile:
-    """
-    Override surface consulted at pair, map, and connect time.
+    """Product filters consulted at pair and connect time.
 
     Built from the driver manifest ``esphome`` object, or assigned as a
-    class-level ``brand_profile`` when ``after_map`` needs Python.
+    class-level ``brand_profile`` on the driver.
     """
 
     client_info: str = DEFAULT_CLIENT_INFO
@@ -57,26 +42,8 @@ class BrandProfile:
     ``None`` with :attr:`projects` unset accepts every project.
     """
 
-    hidden_entities: frozenset[str] = field(default_factory=frozenset)
-    """Entity object ids to omit, on top of diagnostic/config defaults.
-
-    An entry containing ``*``, ``?`` or ``[`` is a shell-style pattern rather
-    than an id, so a family of entities can be named once: ``debug_*`` hides
-    every debug helper a node exposes, and stays correct when the node gains
-    another one.
-    """
-
-    device_entities: Mapping[str, str] = field(default_factory=dict)
-    """Entity object id to Homey capability id."""
-
-    device_class_overrides: Mapping[str, str] = field(default_factory=dict)
-    """Entity object id to Homey device class."""
-
     native_apps: Mapping[str, str] = field(default_factory=dict)
     """ESPHome ``project.name`` to Homey App Store name (``io.esphome`` only)."""
-
-    capability_overrides: Mapping[tuple[str, str], str] = field(default_factory=dict)
-    """``(object_id, default_capability_id)`` to capability id. Python-only."""
 
     @classmethod
     def from_manifest(cls, manifest: Mapping[str, Any] | None) -> BrandProfile:
@@ -86,13 +53,11 @@ class BrandProfile:
             manifest: Driver manifest, typically ``self.manifest``.
 
         Returns:
-            :data:`DEFAULT_BRAND_PROFILE` when ``esphome`` is missing.
+            A profile that accepts every project when ``esphome`` is missing.
         """
-        if not manifest:
-            return DEFAULT_BRAND_PROFILE
-        raw = manifest.get("esphome")
+        raw = manifest.get("esphome") if manifest else None
         if not isinstance(raw, Mapping):
-            return DEFAULT_BRAND_PROFILE
+            return cls()
         return cls.from_compose(raw)
 
     @classmethod
@@ -115,35 +80,7 @@ class BrandProfile:
                 "project_prefix",
                 "project_prefixes",
             ),
-            hidden_entities=frozenset(
-                _string_list(
-                    _pick(
-                        data,
-                        "hiddenEntities",
-                        "hidden_entities",
-                        "skipObjectIds",
-                        "skip_object_ids",
-                    )
-                    or ()
-                )
-            ),
-            device_entities=_string_map(
-                _pick(
-                    data,
-                    "deviceEntities",
-                    "device_entities",
-                    "capabilityByObjectId",
-                    "capability_by_object_id",
-                )
-                or {}
-            ),
-            device_class_overrides=_string_map(
-                _pick(data, "deviceClassOverrides", "device_class_overrides") or {}
-            ),
             native_apps=_string_map(_pick(data, "nativeApps", "native_apps") or {}),
-            capability_overrides=_capability_overrides(
-                _pick(data, "capabilityOverrides", "capability_overrides")
-            ),
         )
 
     def replace(self, **kwargs: object) -> BrandProfile:
@@ -177,55 +114,6 @@ class BrandProfile:
     def native_app_suggestion(self, project_name: str) -> str | None:
         """Return a Homey App Store name when a dedicated app exists."""
         return self.native_apps.get(project_name)
-
-    def skip_entity(self, entity: EntityInfo) -> bool:
-        """Return whether the brand wants this entity omitted from the Homey device."""
-        object_id = entity.object_id
-        if object_id in self.hidden_entities:
-            return True
-        return any(
-            _is_pattern(entry) and fnmatchcase(object_id, entry)
-            for entry in self.hidden_entities
-        )
-
-    def capability_id_for(self, entity: EntityInfo, default: str) -> str:
-        """Return a remapped capability id, or ``default`` when unset."""
-        pair = self.capability_overrides.get((entity.object_id, default))
-        if pair is not None:
-            return pair
-        return self.device_entities.get(entity.object_id, default)
-
-    def device_class_for(
-        self,
-        homey_device: HomeyEspHomeDeviceOption,
-        entity: EntityInfo | None,
-    ) -> str | None:
-        """Return a Homey class override for ``entity``.
-
-        Args:
-            homey_device: Mapped device so subclasses can inspect already-added
-                capabilities. Unused by the default implementation.
-            entity: Entity currently being mapped.
-
-        Returns:
-            Override class, or ``None`` to keep the mapper default.
-        """
-        del homey_device
-        if entity is None:
-            return None
-        return self.device_class_overrides.get(entity.object_id)
-
-    def after_map(
-        self,
-        entities: Sequence[EntityInfo],
-        homey_device: HomeyEspHomeDeviceOption,
-    ) -> None:
-        """Hook after all entities are mapped.
-
-        Override on a class-level ``brand_profile`` for brand-specific
-        post-processing. The default implementation is a no-op.
-        """
-        del entities, homey_device
 
 
 DEFAULT_BRAND_PROFILE = BrandProfile()
@@ -265,15 +153,3 @@ def _string_map(value: object) -> dict[str, str]:
     if not isinstance(value, Mapping):
         return {}
     return {str(key): str(item) for key, item in value.items()}
-
-
-def _capability_overrides(value: object) -> dict[tuple[str, str], str]:
-    if not isinstance(value, Mapping):
-        return {}
-    parsed: dict[tuple[str, str], str] = {}
-    for object_id, mapping in value.items():
-        if not isinstance(mapping, Mapping):
-            continue
-        for default, capability_id in mapping.items():
-            parsed[(str(object_id), str(default))] = str(capability_id)
-    return parsed

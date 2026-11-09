@@ -1,48 +1,53 @@
 """Normalize ESPHome units to Homey-expected bases.
 
-Pairing stores the source unit in ``capabilitiesOptions.esphome_unit``. Runtime
-applies these converters so Homey Energy and measure UI see consistent values.
-Color temperature uses the same module for mireds to Kelvin.
+System capability parsers pass the unit the entity reports
+(``SensorInfo.unit_of_measurement``, or a climate's temperature unit) so
+Homey Energy and measure UI see consistent values. Color temperature uses the
+same module for mireds to Kelvin.
 """
 
 from __future__ import annotations
 
 import math
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    from homey.device import Device
+from aioesphomeapi import TemperatureUnit
 
 UnitConverter = Callable[[str, float], float]
 
 
-def convert_units(device: Device, capability_id: str, value: Any) -> Any:
-    """Convert ``value`` using the unit stored on the capability options.
+def convert_unit(capability_id: str, unit: str | None, value: Any) -> Any:
+    """Convert ``value`` from the entity's ``unit`` to the capability's base unit.
 
     Indexed caps (``measure_temperature.1``) use the same converter as the base
-    capability. ESPHome states do not carry a unit, so the pair-time
-    ``esphome_unit`` is the only source of truth.
+    capability.
 
     Args:
-        device: Homey device holding capability options.
-        capability_id: Capability whose ``esphome_unit`` should be applied.
+        capability_id: Homey capability the value is written to.
+        unit: Unit the ESPHome entity reports, such as ``°F`` or ``kWh``.
         value: Raw ESPHome state value.
 
     Returns:
         Converted value, ``None`` when ``value`` is NaN or infinite, or
-        ``value`` unchanged when it is not numeric or has no stored unit.
+        ``value`` unchanged when it is not numeric or has no unit.
     """
     if isinstance(value, float) and not math.isfinite(value):
         return None
-    if not isinstance(value, (int, float)):
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
         return value
-
-    stored_unit = device.get_capability_options(capability_id).get("esphome_unit")
-    if not stored_unit:
+    if not unit:
         return value
+    return _get_converter(capability_id)(unit, float(value))
 
-    return _get_converter(capability_id)(str(stored_unit), float(value))
+
+def temperature_unit_label(unit: TemperatureUnit | None) -> str:
+    """Unit label of a climate or water heater temperature, for the converters."""
+    if unit == TemperatureUnit.FAHRENHEIT:
+        return "°F"
+    if unit == TemperatureUnit.KELVIN:
+        return "K"
+    return "°C"
 
 
 def convert_temperature(unit: str, value: float) -> float:

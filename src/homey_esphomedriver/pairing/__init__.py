@@ -13,7 +13,6 @@ from aioesphomeapi import (
     RequiresEncryptionAPIError,
 )
 
-from homey_esphomedriver.entities.mapping import DeviceEntityMapper
 from homey_esphomedriver.esphome_client import (
     DEFAULT_API_PORT,
     probe_esphome_device,
@@ -21,6 +20,7 @@ from homey_esphomedriver.esphome_client import (
 )
 from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 from homey_esphomedriver.esphome_util import (
+    device_info_settings,
     error_key,
     needs_encryption_key,
     normalize_mac,
@@ -205,8 +205,6 @@ class DriverPairHandler:
         """Return the mapped device for the custom add_device view."""
         if self.mapped_device is None:
             raise RuntimeError(self._t("errors.device_not_prepared"))
-        if not self.mapped_device["capabilities"]:
-            raise RuntimeError(self._t("errors.no_supported_entities"))
         return self.mapped_device
 
     async def _on_repair_show_view(self, view_id: str) -> None:
@@ -314,7 +312,7 @@ class DriverPairHandler:
         async def run() -> str:
             info, entities, psk = await self._probe()
             self.noise_psk = psk
-            self.mapped_device = self._map_pair_payload(
+            self.mapped_device = await self._map_pair_payload(
                 info, entities, psk, expected_id=expected_id
             )
             return "add_device"
@@ -393,7 +391,7 @@ class DriverPairHandler:
                     debug=self._driver.debug,
                 )
 
-    def _map_pair_payload(
+    async def _map_pair_payload(
         self,
         device_info: DeviceInfo,
         entities: list[EntityInfo],
@@ -401,7 +399,11 @@ class DriverPairHandler:
         *,
         expected_id: str | None,
     ) -> HomeyEspHomeDeviceOption:
-        """Validate identity and build the Homey pair-time payload."""
+        """Validate identity and build the Homey pair-time payload.
+
+        The payload has no ``capabilities``, so Homey gives the device the
+        driver's own; :meth:`EspHomeDriver.on_pair_device` may add them.
+        """
         assert self.host is not None
 
         if not self._driver.brand_profile.accepts_project(device_info.project_name):
@@ -416,28 +418,17 @@ class DriverPairHandler:
 
         # Homey discovery matches paired devices by this id; keep the mDNS form.
         data_id = expected_id or device_id
-        homey_device = DeviceEntityMapper.pair_option(
+        homey_device = pair_option(
             device_info,
             host=self.host,
             port=self.port,
             noise_psk=noise_psk,
             data_id=data_id,
         )
-        DeviceEntityMapper.map_device(
-            entities, homey_device, profile=self._driver.brand_profile
+        homey_device = await self._driver.on_pair_device(
+            homey_device, device_info, entities
         )
-
-        if not homey_device.get("class"):
-            # Homey requires a class; mapping leaves it unset when no entity claims one.
-            homey_device["class"] = "other"
-        homey_device["store"]["auto_class"] = homey_device["class"]
-        homey_device["store"]["entities_build"] = device_info.compilation_time
-
-        self._driver.debug(
-            f"Mapped {homey_device['name']} ({data_id}) to "
-            f"{len(homey_device['capabilities'])} capabilities, "
-            f"class={homey_device['store']['auto_class']}"
-        )
+        self._driver.debug(f"Prepared {homey_device['name']} ({data_id}) for pairing")
         return homey_device
 
     def _list_discovery_devices(self) -> list[ListDeviceProperties]:
@@ -526,3 +517,34 @@ class DriverPairHandler:
             raise ValueError(self._t("errors.port_range"))
 
         return raw_host, parsed_port
+
+
+def pair_option(
+    device_info: DeviceInfo,
+    *,
+    host: str,
+    port: int,
+    noise_psk: str | None,
+    data_id: str,
+) -> HomeyEspHomeDeviceOption:
+    """Pair-time payload with the connection; capabilities come from the driver."""
+    name = device_info.friendly_name or device_info.name or "ESPHome Device"
+    return {
+        "name": name,
+        "data": {"id": data_id},
+        "store": {
+            "address": host,
+            "host": device_info.name or host,
+            "port": port,
+            "mac": device_info.mac_address,
+            "model": device_info.model,
+            "manufacturer": device_info.manufacturer,
+            "esphome_version": device_info.esphome_version,
+            "noise_psk": noise_psk or "",
+        },
+        "settings": {
+            "host": host,
+            "port": str(port),
+            **device_info_settings(device_info, host=host, encrypted=bool(noise_psk)),
+        },
+    }

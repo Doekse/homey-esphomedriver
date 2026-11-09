@@ -9,7 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
+- The library no longer adds capabilities on its own. A driver declares its `capabilities` in `driver.compose.json` and binds each one to an ESPHome entity from `on_esphome_init`, the way Z-Wave and Zigbee drivers do:
+
+  ```python
+  self.register_capability("measure_co2", "sensor", "CO2")
+  self.register_capability("dim.led", "light", "Status LED")
+  ```
+
+  System capability parsers per Homey capability and ESPHome domain supply the values and commands. Pass `report_parser` or `set_parser` to override them, or for an app's own capability.
+- Auto-mapping, Refresh, the firmware entity sync and its timeline notification, the diagnostics/configuration toggles and the `device_class` setting are gone from the library; the generic ESPHome app (io.esphome) now carries them. `esphome-defaults` keeps only the device information settings.
+- The `esphome` compose object no longer reads `hiddenEntities`, `deviceEntities`, `capabilityOverrides` and `deviceClassOverrides`: a device only shows the capabilities its driver declares.
+- `BrandProfile` has no `skip_entity`, `capability_id_for`, `device_class_for` or `after_map`.
+- The pair payload has no `capabilities`, so Homey gives a new device the driver's own. Override `EspHomeDriver.on_pair_device(device, device_info, entities)` to set them from what the node has.
 - `EspHomeDevice.on_esphome_init(client)` now runs before the API session starts; the session starts when the hook returns. Use `on_esphome_connected` for anything that needs a connection.
+- `units.convert_units(device, capability_id, value)` is now `convert_unit(capability_id, unit, value)`: the unit comes from the entity, not from stored capability options. `esphome_util.format_uptime`, `format_date`, `format_timestamp` and `format_event_type` moved to io.esphome.
+- A `binary_sensor` no longer reads `garagedoor_closed` or `locked`, and `sensor`, `binary_sensor`, `text_sensor` and `event` entities do not bind to a Homey capability the user can set, such as `onoff` or `target_temperature`, without a parser. Homey showed a control for them that failed. Use a capability that only shows a value, such as `alarm_contact`, or pass a `report_parser` and set `"setable": false` in `capabilitiesOptions`.
+
+### Added
+
+- `EspHomeDevice.register_capability(capability_id, domain, name, *, device_id=0, set_parser=None, report_parser=None)`, like Z-Wave's `registerCapability`. An entity is named by its domain and name (and sub-device), not by `object_id`, which ESPHome plans to remove. A suffixed id such as `dim.led` uses the parsers of `dim`. `sensor`, `binary_sensor`, `text_sensor`, `number`, `select`, `switch`, `text`, `button` and `event` entities bind to any capability without a parser. Hue and saturation are sent in one command, as `ZwaveLightDevice` does. [CAPABILITIES.md](CAPABILITIES.md) lists every capability per domain and what is not supported.
+- `EspHomeDevice.register_state_listener(domain, name, listener)`, like Z-Wave's `registerReportListener`, for what no capability shows, such as firing an app's own Flow card on an event.
+- `EspHomeDevice.unregister_capability(capability_id)` and `EspHomeDevice.entity(domain, name)`, for an app that adds capabilities at runtime or sends a command itself.
+
+### Changed
+
+- Each connection lists the node's entities along with its device info, in one request, and binds every capability before the state dump starts. Bindings no longer live in the device store.
+- Commands to an entity on a sub-device carry its `device_id`.
+
+### Fixed
+
+- A climate or water heater in °F reported its target temperatures to Homey in °F; they are now converted to °C, as the commands already expected.
+- Suffixed capabilities such as `dim.x` or `target_temperature.x` got no command listener.
 
 ## [0.5.0] - 2026-11-05
 

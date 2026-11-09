@@ -1,7 +1,6 @@
 """Unit conversion tests.
 
-ESPHome states carry no unit, so the pair-time ``esphome_unit`` stored in
-capability options is the only source of truth at runtime. These tests pin the
+ESPHome states carry no unit; the entity info does. These tests pin the
 conversion table and the capability-to-converter lookup.
 """
 
@@ -10,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from aioesphomeapi import TemperatureUnit
 
 from homey_esphomedriver.units import (
     convert_absolute_humidity,
@@ -39,7 +39,7 @@ from homey_esphomedriver.units import (
     convert_speed_ms,
     convert_temperature,
     convert_temperature_from_celsius,
-    convert_units,
+    convert_unit,
     convert_voltage,
     convert_volume_l,
     convert_volume_m3,
@@ -47,17 +47,8 @@ from homey_esphomedriver.units import (
     convert_weight,
     kelvin_to_mireds,
     mireds_to_kelvin,
+    temperature_unit_label,
 )
-
-
-class FakeDevice:
-    """Minimal stand-in exposing only what :func:`convert_units` reads."""
-
-    def __init__(self, options: dict[str, dict[str, Any]] | None = None) -> None:
-        self._options = options or {}
-
-    def get_capability_options(self, capability_id: str) -> dict[str, Any]:
-        return self._options.get(capability_id, {})
 
 
 @pytest.mark.parametrize(
@@ -287,63 +278,66 @@ def test_convert_reactive_power_and_energy() -> None:
     assert convert_reactive_energy("kvarh", 2.0) == pytest.approx(2_000.0)
 
 
-def test_convert_units_applies_stored_unit() -> None:
-    device = FakeDevice({"measure_temperature": {"esphome_unit": "°F"}})
-    assert convert_units(device, "measure_temperature", 212.0) == pytest.approx(100.0)
+def test_convert_unit_applies_the_entity_unit() -> None:
+    assert convert_unit("measure_temperature", "°F", 212.0) == pytest.approx(100.0)
 
 
-def test_convert_units_uses_base_capability_for_indexed_ids() -> None:
+def test_convert_unit_uses_base_capability_for_indexed_ids() -> None:
     """``measure_temperature.1`` must resolve the same converter as the base id."""
-    device = FakeDevice({"measure_temperature.1": {"esphome_unit": "K"}})
-    assert convert_units(device, "measure_temperature.1", 273.15) == pytest.approx(0.0)
+    assert convert_unit("measure_temperature.1", "K", 273.15) == pytest.approx(0.0)
 
 
-def test_convert_units_passes_through_without_stored_unit() -> None:
-    device = FakeDevice({"measure_temperature": {}})
-    assert convert_units(device, "measure_temperature", 99.0) == 99.0
+def test_convert_unit_passes_through_without_a_unit() -> None:
+    assert convert_unit("measure_temperature", "", 99.0) == 99.0
 
 
 @pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
-def test_convert_units_drops_non_finite(value: float) -> None:
-    device = FakeDevice({"measure_temperature": {"esphome_unit": "°F"}})
-    assert convert_units(device, "measure_temperature", value) is None
+def test_convert_unit_drops_non_finite(value: float) -> None:
+    assert convert_unit("measure_temperature", "°F", value) is None
 
 
-def test_convert_units_passes_through_unknown_capability() -> None:
-    """A capability with no converter keeps its value even with a unit stored."""
-    device = FakeDevice({"esphome_number.thing": {"esphome_unit": "widgets"}})
-    assert convert_units(device, "esphome_number.thing", 7.0) == 7.0
+def test_convert_unit_passes_through_unknown_capability() -> None:
+    """A capability with no converter keeps its value, whatever the unit."""
+    assert convert_unit("esphome_number.thing", "widgets", 7.0) == 7.0
 
 
-@pytest.mark.parametrize("value", ["on", None, "", "12.5"])
-def test_convert_units_passes_through_non_numeric(value: Any) -> None:
-    """Strings are never coerced: a numeric-looking string stays a string."""
-    device = FakeDevice({"measure_power": {"esphome_unit": "kW"}})
-    result = convert_units(device, "measure_power", value)
-    assert result is value
+@pytest.mark.parametrize("value", ["on", None, "", "12.5", True])
+def test_convert_unit_passes_through_non_numeric(value: Any) -> None:
+    """Strings and booleans are never coerced."""
+    assert convert_unit("measure_power", "kW", value) is value
 
 
-def test_convert_units_accepts_ints_as_numeric() -> None:
-    device = FakeDevice({"measure_power": {"esphome_unit": "kW"}})
-    assert convert_units(device, "measure_power", 2) == pytest.approx(2000.0)
+def test_convert_unit_accepts_ints_as_numeric() -> None:
+    assert convert_unit("measure_power", "kW", 2) == pytest.approx(2000.0)
+
+
+@pytest.mark.parametrize(
+    ("unit", "label"),
+    [
+        (TemperatureUnit.CELSIUS, "°C"),
+        (TemperatureUnit.FAHRENHEIT, "°F"),
+        (TemperatureUnit.KELVIN, "K"),
+        (None, "°C"),
+    ],
+)
+def test_temperature_unit_label(unit: TemperatureUnit | None, label: str) -> None:
+    assert temperature_unit_label(unit) == label
 
 
 class TestImportableOffDevice:
     """The `homey` package only exists on a Homey.
 
-    `units`, `entities.state` and `entities.state.base` annotate with
-    `homey.device.Device` but must not import it at runtime, or none of them
-    can be imported off-device — including by these tests. Nothing else here
-    imports `state`, so without this a re-added module-level import would keep
-    the suite green while breaking every consumer outside the Homey runtime.
+    The system capabilities annotate with the device type but must not import
+    the SDK at runtime, or none of them can be imported off-device, including
+    by io.esphome's own tests.
     """
 
     @pytest.mark.parametrize(
         "module",
         [
             "homey_esphomedriver.units",
-            "homey_esphomedriver.entities.state",
-            "homey_esphomedriver.entities.state.base",
+            "homey_esphomedriver.system",
+            "homey_esphomedriver.system.light",
         ],
     )
     def test_module_imports_without_the_homey_runtime(self, module: str) -> None:

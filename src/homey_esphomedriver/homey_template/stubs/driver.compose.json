@@ -3,6 +3,7 @@
     "en": "__DRIVER_NAME__"
   },
   "class": "__DEVICE_CLASS__",
+  "capabilities": [],
   "$extends": ["esphome-defaults"],
   "esphome": {
     "clientInfo": "__CLIENT_INFO__",

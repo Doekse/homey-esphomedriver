@@ -36,11 +36,7 @@ from homey_esphomedriver.esphome_util import (
     debug_log,
     device_info_settings,
     error_key,
-    format_date,
-    format_event_type,
     format_project,
-    format_timestamp,
-    format_uptime,
     format_webserver,
     invalid_encryption_key,
     is_debug_enabled,
@@ -116,51 +112,6 @@ def test_format_project(name: str, version: str, expected: str) -> None:
 )
 def test_format_webserver(host: str, port: int, expected: str) -> None:
     assert format_webserver(host, port) == expected
-
-
-@pytest.mark.parametrize(
-    ("seconds", "expected"),
-    [
-        (0, "0m"),
-        (59, "0m"),
-        (60, "1m"),
-        (3600, "1h"),
-        (3660, "1h 1m"),
-        (86400, "1d"),
-        (7_807_680, "90d 8h 48m"),
-    ],
-)
-def test_format_uptime(seconds: float, expected: str) -> None:
-    assert format_uptime(seconds) == expected
-
-
-def test_format_uptime_omits_empty_leading_units_but_always_shows_minutes() -> None:
-    """A bare-seconds uptime still renders as ``0m`` rather than an empty string."""
-    assert format_uptime(30) == "0m"
-    assert format_uptime(90061) == "1d 1h 1m"
-
-
-def test_format_date() -> None:
-    assert format_date("2026-08-19") == "2026-08-19"
-    assert format_date("2026-08-19T14:30:00Z") == "2026-08-19"
-
-
-def test_format_timestamp_is_stable_for_naive_input() -> None:
-    """Naive timestamps are not shifted, so this does not depend on local TZ."""
-    assert format_timestamp("2026-08-19T14:30:05") == "2026-08-19 14:30:05"
-
-
-@pytest.mark.parametrize(
-    ("raw", "expected"),
-    [
-        ("single_press", "Single Press"),
-        ("double_press", "Double Press"),
-        ("press", "Press"),
-        ("", ""),
-    ],
-)
-def test_format_event_type(raw: str, expected: str) -> None:
-    assert format_event_type(raw) == expected
 
 
 def test_device_info_settings_reports_encryption_state() -> None:

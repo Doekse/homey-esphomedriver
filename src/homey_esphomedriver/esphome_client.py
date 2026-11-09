@@ -44,6 +44,7 @@ DEFAULT_API_PORT = 6053
 """ESPHome native API port used when discovery omits it."""
 
 StateCallback = Callable[[EntityState], None]
+EntitiesCallback = Callable[[list[EntityInfo]], None]
 DebugCallback = Callable[..., None]
 
 
@@ -74,6 +75,7 @@ class EspHomeClient:
         expected_mac: str | None = None,
         client_info: str = DEFAULT_CLIENT_INFO,
         deep_sleep: bool = False,
+        on_entities: EntitiesCallback | None = None,
         on_connected: Callable[[DeviceInfo], Awaitable[None]] | None = None,
         on_disconnected: Callable[[bool], Awaitable[None]] | None = None,
         on_connect_error: Callable[[Exception], Awaitable[None]] | None = None,
@@ -89,6 +91,8 @@ class EspHomeClient:
             expected_mac: Paired MAC; a mismatch stops reconnect at that address.
             client_info: Name shown on the node for this Homey client.
             deep_sleep: Treat disconnects as expected while the node is sleeping.
+            on_entities: Gets the node's entities on each login, before the
+                session subscribes to states.
         """
         if not host:
             raise ValueError("ESPHome host is required")
@@ -100,6 +104,7 @@ class EspHomeClient:
         self._expected_mac = normalize_mac(expected_mac) if expected_mac else None
         self._client_info = client_info
         self._deep_sleep = deep_sleep
+        self._on_entities = on_entities
         self._on_connected = on_connected
         self._on_disconnected = on_disconnected
         self._on_connect_error = on_connect_error
@@ -291,10 +296,10 @@ class EspHomeClient:
             self._cli = None
 
     async def _handle_connect(self) -> None:
-        """Re-subscribe and refresh device info whenever ReconnectLogic logs in."""
+        """List entities and re-subscribe whenever ReconnectLogic logs in."""
         cli = self.api
         try:
-            device_info = await cli.device_info()
+            device_info, entities, _services = await cli.device_info_and_list_entities()
             self._device_info = device_info
             self._name = device_info.name
             self._deep_sleep = device_info.has_deep_sleep
@@ -303,6 +308,9 @@ class EspHomeClient:
                 return
             reconnect.name = self._name
             reconnect.deep_sleep = self._deep_sleep
+            if self._on_entities is not None:
+                # Bindings resolve before the state dump starts.
+                self._on_entities(entities)
             cli.subscribe_states(self._dispatch_state)
             self._state = SessionState.CONNECTED
         except APIConnectionError:

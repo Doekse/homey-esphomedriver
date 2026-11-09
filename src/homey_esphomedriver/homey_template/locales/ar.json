@@ -67,7 +67,6 @@
     "device_mismatch": "الجهاز على هذا العنوان ليس الذي ربطه Homey. تحقق من عنوان IP أو حجز DHCP.",
     "mac_missing": "لم يُرسل جهاز ESPHome عنوان MAC.",
     "project_not_supported": "مشروع ESPHome هذا غير مدعوم في تطبيق Homey هذا.",
-    "no_supported_entities": "جهاز ESPHome هذا لا يحتوي على عناصر يدعمها Homey.",
     "device_not_connected": "جهاز ESPHome غير متصل",
     "device_not_prepared": "الجهاز غير جاهز. ارجع وأعد الاتصال.",
     "no_device_selected": "لم يتم اختيار جهاز",
@@ -97,11 +96,6 @@
   },
   "warnings": {
     "project_mismatch": "مشروع ESPHome __project__ غير مدعوم في تطبيق Homey هذا."
-  },
-  "notifications": {
-    "entities_changed": "لدى __device__ كيانات جديدة: __added__.",
-    "entities_changed_removed": "تغيّرت كيانات __device__: أُضيف __added__ وحُذف __removed__. ربما تود مراجعة Flows.",
-    "entities_removed": "حُذفت كيانات من __device__: __removed__. ربما تود مراجعة Flows."
   },
   "nativeAppSuggestion": "أخبار سارة! لهذا الجهاز تطبيق خاص به! ابحث في Homey App Store عن __appName__."
 }

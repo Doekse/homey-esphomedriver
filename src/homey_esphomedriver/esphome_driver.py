@@ -1,22 +1,23 @@
 """Homey Driver for ESPHome brand apps.
 
-Wires :class:`~homey_esphomedriver.flow.DriverFlowHandler` and
-:class:`~homey_esphomedriver.pairing.DriverPairHandler`. Homey lifecycle stays
-here; Flow cards and pair/repair wizards live on those handlers.
+Wires :class:`~homey_esphomedriver.pairing.DriverPairHandler`. Homey lifecycle
+stays here; the pair and repair wizards live on that handler.
 """
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
+from aioesphomeapi import DeviceInfo, EntityInfo
 from homey.driver import Driver
 from homey.pair_session import PairSession
 
+from homey_esphomedriver.esphome_types import HomeyEspHomeDeviceOption
 from homey_esphomedriver.esphome_util import (
     attach_library_logs,
     debug_log,
 )
-from homey_esphomedriver.flow import DriverFlowHandler
 from homey_esphomedriver.pairing import DriverPairHandler
 from homey_esphomedriver.profile import BrandProfile
 
@@ -31,8 +32,8 @@ class EspHomeDriver(Driver):
     Extend this class and export it from ``driver.py`` as ``homey_export``.
     Override :meth:`on_esphome_init` / :meth:`on_esphome_uninit` instead of
     :meth:`on_init` / :meth:`on_uninit`. Product filters come from the driver
-    manifest ``esphome`` object; a class-level :attr:`brand_profile` overrides
-    that when Python-only hooks such as ``after_map`` are needed.
+    manifest ``esphome`` object, or a class-level :attr:`brand_profile`; a
+    device's capabilities are the driver's own.
 
     Example:
         ```python
@@ -41,8 +42,6 @@ class EspHomeDriver(Driver):
         homey_export = EspHomeDriver
         ```
     """
-
-    _flow: DriverFlowHandler
 
     @property
     def brand_profile(self) -> BrandProfile:
@@ -59,14 +58,12 @@ class EspHomeDriver(Driver):
         return resolved
 
     async def on_init(self) -> None:
-        """Wire Flow listeners and library logs.
+        """Wire library logs.
 
         Do not override. Use :meth:`on_esphome_init` for brand setup.
         """
         await super().on_init()
         attach_library_logs(self.log, self.error)
-        self._flow = DriverFlowHandler(self)
-        self._flow.register()
         await self.on_esphome_init()
         self.log("Initialized EspHomeDriver")
 
@@ -79,7 +76,7 @@ class EspHomeDriver(Driver):
         await super().on_uninit()
 
     async def on_esphome_init(self) -> None:
-        """Brand hook after Flow listeners are registered.
+        """Brand hook for driver setup, such as registering Flow cards.
 
         Do not override :meth:`on_init`.
         """
@@ -93,6 +90,29 @@ class EspHomeDriver(Driver):
     def debug(self, *args: object) -> None:
         """Write a debug log line when ``DEBUG`` is enabled in ``env.json``."""
         debug_log(self.log, *args)
+
+    async def on_pair_device(
+        self,
+        device: HomeyEspHomeDeviceOption,
+        device_info: DeviceInfo,
+        entities: Sequence[EntityInfo],
+    ) -> HomeyEspHomeDeviceOption:
+        """Hook to adjust the device Homey creates when a node is paired.
+
+        The payload has no ``capabilities``, so Homey gives the device the
+        driver's own. Override to set ``capabilities``, ``capabilitiesOptions``
+        or ``class`` from what the node has, as the generic ESPHome app does.
+
+        Args:
+            device: Pair payload with name, data, store and settings.
+            device_info: The node's device info.
+            entities: Entities the node listed.
+
+        Returns:
+            The payload to create the device from.
+        """
+        del device_info, entities
+        return device
 
     async def on_pair(self, session: PairSession) -> None:
         """Wire multi-step pair views for discovery, BLE Improv, and encryption."""

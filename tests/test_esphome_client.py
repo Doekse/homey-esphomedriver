@@ -15,6 +15,7 @@ from aioesphomeapi import (
     DeviceInfo,
     EntityState,
     RequiresEncryptionAPIError,
+    SwitchInfo,
 )
 
 from homey_esphomedriver.esphome_client import (
@@ -38,8 +39,8 @@ def test_deep_sleep_hint_until_login_then_device_info() -> None:
         client._on_state = AsyncMock()
         client._reconnect = MagicMock()
         api = MagicMock()
-        api.device_info = AsyncMock(
-            return_value=DeviceInfo(name="node", has_deep_sleep=False)
+        api.device_info_and_list_entities = AsyncMock(
+            return_value=(DeviceInfo(name="node", has_deep_sleep=False), [], [])
         )
         client._cli = api
 
@@ -47,7 +48,6 @@ def test_deep_sleep_hint_until_login_then_device_info() -> None:
 
         assert client.deep_sleep is False
         assert client._reconnect.deep_sleep is False
-        api.device_info_and_list_entities.assert_not_called()
 
     asyncio.run(run())
 
@@ -66,7 +66,9 @@ def test_on_connected_awaited_before_ready() -> None:
         device_info = DeviceInfo(name="node", has_deep_sleep=True)
 
         api = MagicMock()
-        api.device_info = AsyncMock(return_value=device_info)
+        api.device_info_and_list_entities = AsyncMock(
+            return_value=(device_info, [], [])
+        )
         client._cli = api
 
         await client._handle_connect()
@@ -75,11 +77,35 @@ def test_on_connected_awaited_before_ready() -> None:
         assert client.deep_sleep is True
         assert client._reconnect.deep_sleep is True
         api.subscribe_states.assert_called_once_with(client._dispatch_state)
-        api.device_info_and_list_entities.assert_not_called()
         client.command("light_command", key=1)
         api.light_command.assert_called_once_with(key=1)
 
     client = _client(on_connected=on_connected)
+    asyncio.run(run())
+
+
+def test_entities_reach_on_entities_before_the_state_subscription() -> None:
+    """Bindings resolve before the connect dump arrives."""
+    events: list[str] = []
+    relay = SwitchInfo(object_id="relay", key=1, name="Relay")
+
+    async def run() -> None:
+        client = _client(
+            on_entities=lambda entities: events.append(f"entities {len(entities)}")
+        )
+        client._on_state = AsyncMock()
+        client._reconnect = MagicMock()
+        api = MagicMock()
+        api.device_info_and_list_entities = AsyncMock(
+            return_value=(DeviceInfo(name="node"), [relay], [])
+        )
+        api.subscribe_states = MagicMock(side_effect=lambda _cb: events.append("sub"))
+        client._cli = api
+
+        await client._handle_connect()
+
+        assert events == ["entities 1", "sub"]
+
     asyncio.run(run())
 
 
@@ -361,7 +387,9 @@ def test_on_ready_runs_after_connected_returns() -> None:
         client._on_state = AsyncMock()
         client._reconnect = MagicMock()
         api = MagicMock()
-        api.device_info = AsyncMock(return_value=DeviceInfo(name="node"))
+        api.device_info_and_list_entities = AsyncMock(
+            return_value=(DeviceInfo(name="node"), [], [])
+        )
         client._cli = api
 
         await client._handle_connect()
@@ -392,7 +420,9 @@ def test_disconnect_cancels_on_ready() -> None:
         client._on_state = AsyncMock()
         client._reconnect = MagicMock()
         api = MagicMock()
-        api.device_info = AsyncMock(return_value=DeviceInfo(name="node"))
+        api.device_info_and_list_entities = AsyncMock(
+            return_value=(DeviceInfo(name="node"), [], [])
+        )
         client._cli = api
 
         await client._handle_connect()
@@ -424,7 +454,9 @@ def test_stop_cancels_on_ready() -> None:
         client._reconnect = MagicMock()
         client._reconnect.stop = AsyncMock()
         api = MagicMock()
-        api.device_info = AsyncMock(return_value=DeviceInfo(name="node"))
+        api.device_info_and_list_entities = AsyncMock(
+            return_value=(DeviceInfo(name="node"), [], [])
+        )
         api.disconnect = AsyncMock()
         client._cli = api
 

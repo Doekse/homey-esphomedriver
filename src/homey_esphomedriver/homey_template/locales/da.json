@@ -67,7 +67,6 @@
     "device_mismatch": "Enheden på denne adresse er ikke den, Homey parrede. Tjek IP-adressen eller DHCP-reservationen.",
     "mac_missing": "ESPHome-enheden har ikke sendt en MAC-adresse.",
     "project_not_supported": "Dette ESPHome-projekt understøttes ikke af denne Homey-app.",
-    "no_supported_entities": "Denne ESPHome-enhed har ingen dele, som Homey understøtter.",
     "device_not_connected": "ESPHome-enheden er ikke forbundet",
     "device_not_prepared": "Enheden er ikke klar. Gå tilbage, og opret forbindelsen igen.",
     "no_device_selected": "Ingen enhed valgt",
@@ -97,11 +96,6 @@
   },
   "warnings": {
     "project_mismatch": "ESPHome-projektet __project__ understøttes ikke af denne Homey-app."
-  },
-  "notifications": {
-    "entities_changed": "__device__ har __added__ nye entiteter.",
-    "entities_changed_removed": "__device__ tilføjede __added__ entiteter og fjernede __removed__. Du vil måske tjekke dine Flows.",
-    "entities_removed": "__device__ fjernede __removed__ entiteter. Du vil måske tjekke dine Flows."
   },
   "nativeAppSuggestion": "Gode nyheder! Denne enhed har sin egen app! Søg i Homey App Store efter __appName__."
 }

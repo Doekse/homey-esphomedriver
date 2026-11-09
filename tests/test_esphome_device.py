@@ -1,4 +1,4 @@
-"""Capability sync when a node reconnects with a new compilation time."""
+"""EspHomeDevice lifecycle: connect, bindings, linked settings and warnings."""
 
 from __future__ import annotations
 
@@ -9,20 +9,22 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aioesphomeapi import APIConnectionError, DeviceInfo, EntityInfo, SwitchInfo
+from aioesphomeapi import (
+    APIConnectionError,
+    DeviceInfo,
+    EntityInfo,
+    NumberInfo,
+    SwitchInfo,
+    SwitchState,
+)
 
-from homey_esphomedriver.capabilities import DeviceCapabilityHandler, EntitySyncResult
-from homey_esphomedriver.entities.mapping import DeviceEntityMapper
+from homey_esphomedriver.bindings import CapabilityBindings
 from homey_esphomedriver.esphome_client import EspHomeClient, SessionState
-from homey_esphomedriver.esphome_device import EspHomeDevice, _notification_tasks
-from homey_esphomedriver.esphome_util import device_info_settings
+from homey_esphomedriver.esphome_device import EspHomeDevice
 from homey_esphomedriver.profile import DEFAULT_BRAND_PROFILE, BrandProfile
 
-
-def _mapped(*entities: EntityInfo) -> tuple[list[str], dict[str, Any]]:
-    scratch = DeviceEntityMapper.empty_option()
-    DeviceEntityMapper.map_device(list(entities), scratch)
-    return list(scratch["capabilities"]), dict(scratch["capabilitiesOptions"])
+OFFSET = NumberInfo(object_id="temp_offset", key=11, name="Offset")
+RELAY = SwitchInfo(object_id="relay", key=1, name="Relay")
 
 
 def _device(
@@ -31,41 +33,31 @@ def _device(
     settings: dict[str, Any] | None = None,
     profile: BrandProfile | None = None,
     capabilities: list[str] | None = None,
-    options: dict[str, Any] | None = None,
 ) -> EspHomeDevice:
     device = EspHomeDevice.__new__(EspHomeDevice)
     device._store = {} if store is None else dict(store)
     device._settings = {} if settings is None else dict(settings)
-    device._pending_build = None
     device._capabilities = list(capabilities or [])
-    device._capabilities_options = dict(options or {})
     device._state = {}
-    device._commands = SimpleNamespace(
-        register_listener_for_capability=MagicMock(),
-        register_multi_listeners=MagicMock(),
-    )
-    device._state_handler = SimpleNamespace(init=AsyncMock())
-    device._capability_handler = DeviceCapabilityHandler(device)
+    device._capability_listeners = {}
     device.driver = SimpleNamespace(brand_profile=profile or DEFAULT_BRAND_PROFILE)
     device._name = "node"
+    device._client = None
     device.timeouts: list[Any] = []
     device.warnings: list[str] = []
     device.store_writes: list[tuple[str, Any]] = []
+    device.values: list[tuple[str, Any]] = []
     device.homey = SimpleNamespace(
         translate=lambda key, **tags: f"{key}:{next(iter(tags.values()), '')}",
         set_timeout=lambda callback, _ms: device.timeouts.append(callback),
-        notifications=SimpleNamespace(create_notification=AsyncMock()),
     )
     device.set_warning = AsyncMock(
         side_effect=lambda message: device.warnings.append(message)
     )
     device.set_unavailable = AsyncMock()
     device.set_available = AsyncMock()
-    device.set_class = AsyncMock()
-    device.set_capability_options = AsyncMock()
     device.log = MagicMock()
     device.error = MagicMock()
-    device._client_emit = AsyncMock()
 
     def get_store() -> MappingProxyType[str, Any]:
         return MappingProxyType(copy.deepcopy(device._store))
@@ -80,51 +72,61 @@ def _device(
     async def set_settings(values: dict[str, Any]) -> None:
         device._settings.update(values)
 
+    async def set_capability_value(capability_id: str, value: Any) -> None:
+        device.values.append((capability_id, value))
+
+    def register_capability_listener(capability_id: str, listener: Any) -> None:
+        device._capability_listeners[capability_id] = listener
+
     device.get_store = get_store  # type: ignore[method-assign]
     device.get_settings = get_settings  # type: ignore[method-assign]
     device.get_setting = lambda key: device._settings.get(key)  # type: ignore[method-assign]
     device.set_store_value = set_store_value  # type: ignore[method-assign]
     device.set_settings = set_settings  # type: ignore[method-assign]
+    device.has_capability = lambda cap: cap in device._capabilities  # type: ignore[method-assign]
+    device.set_capability_value = set_capability_value  # type: ignore[method-assign]
+    device.register_capability_listener = register_capability_listener  # type: ignore[method-assign]
+    device._bindings = CapabilityBindings(device)
     return device
 
 
-def _info(build: str, *, project: str = "") -> DeviceInfo:
-    return DeviceInfo(name="node", compilation_time=build, project_name=project)
+def _info(*, project: str = "") -> DeviceInfo:
+    return DeviceInfo(name="node", compilation_time="build-1", project_name=project)
 
 
 async def _login(
     device: EspHomeDevice,
     info: DeviceInfo,
-    list_entities: Any = None,
-) -> tuple[EspHomeClient, list[tuple[str, SessionState]]]:
-    events: list[tuple[str, SessionState]] = []
+    entities: list[EntityInfo] | None = None,
+) -> tuple[EspHomeClient, list[str]]:
+    events: list[str] = []
+
+    def on_entities(listed: list[EntityInfo]) -> None:
+        events.append("entities")
+        device._bindings.bind(listed)
 
     async def on_connected(device_info: DeviceInfo) -> None:
         await device._on_connected(device_info)
-        events.append(("connected", client.state))
+        events.append(f"connected {client.state.name}")
 
     client = EspHomeClient(
         "192.0.2.1",
+        on_entities=on_entities,
         on_connected=on_connected,
         on_disconnected=device._on_disconnected,
-        on_ready=device._sync_if_rebuilt,
     )
     device._client = client
-    client._on_state = AsyncMock()
+    client._on_state = device._on_state
     client._reconnect = MagicMock()
     api = MagicMock()
-    api.device_info = AsyncMock(return_value=info)
-
-    async def listed() -> tuple[list[EntityInfo], list[object]]:
-        events.append(("list", client.state))
-        if list_entities is not None:
-            return await list_entities()
-        return [], []
-
-    api.list_entities_services = listed
+    api.device_info_and_list_entities = AsyncMock(
+        return_value=(info, list(entities or []), [])
+    )
+    api.subscribe_states = MagicMock(side_effect=lambda _cb: events.append("subscribe"))
     client._cli = api
     await client._handle_connect()
-    await asyncio.sleep(0)
+    for _ in range(3):
+        await asyncio.sleep(0)
     return client, events
 
 
@@ -147,128 +149,39 @@ def test_deep_sleep_stays_available_only_after_a_clean_goodbye() -> None:
     asyncio.run(run())
 
 
-def test_unchanged_build_does_not_list_or_write_store() -> None:
-    info = _info("build-1")
-    device = _device(
-        store={"entities_build": "build-1"},
-        settings=dict(device_info_settings(info, host="192.0.2.1", encrypted=False)),
-    )
+def test_login_binds_entities_before_subscribing() -> None:
+    """The connect dump reaches capabilities registered before the login."""
+    device = _device(capabilities=["onoff"])
+    device.register_capability("onoff", "switch", "Relay")
 
     async def run() -> None:
-        _client, events = await _login(device, info)
-        assert events == [("connected", SessionState.CONNECTED)]
-        assert device.store_writes == []
-        assert device._pending_build is None
+        client, events = await _login(device, _info(), [RELAY])
+        assert events[:2] == ["entities", "subscribe"]
+        assert client.state is SessionState.READY
+        device._on_state(SwitchState(key=1, state=True))
+        await asyncio.sleep(0)
+        assert device.values == [("onoff", True)]
 
     asyncio.run(run())
 
 
-def test_changed_build_syncs_only_after_ready() -> None:
-    relay = SwitchInfo(object_id="relay", key=1, name="Relay")
-    pump = SwitchInfo(object_id="pump", key=2, name="Pump")
-    capabilities, options = _mapped(relay)
-    device = _device(
-        store={"entities_build": "old"},
-        capabilities=capabilities,
-        options=options,
-    )
-
-    async def entities() -> tuple[list[EntityInfo], list[object]]:
-        return [relay, pump], []
+def test_capability_listener_sends_the_entity_command() -> None:
+    device = _device(capabilities=["onoff"])
+    device.register_capability("onoff", "switch", "Relay")
 
     async def run() -> None:
-        _client, events = await _login(device, _info("new"), entities)
-        assert events[0] == ("connected", SessionState.CONNECTED)
-        assert ("list", SessionState.READY) in events
-        assert any(name == "list" for name, _state in events)
-        assert events.index(("connected", SessionState.CONNECTED)) < events.index(
-            ("list", SessionState.READY)
-        )
-        assert device._store["entities_build"] == "new"
-        assert device.store_writes[-1] == ("entities_build", "new")
-        assert device.set_class.await_count == 0
-        added = [cap for cap in device._capabilities if cap not in capabilities]
-        assert added
-        assert "onoff" in device._capabilities
+        client, _events = await _login(device, _info(), [RELAY])
+        await device._capability_listeners["onoff"](False)
+        client.api.switch_command.assert_called_once_with(1, state=False)
 
     asyncio.run(run())
 
 
-def test_changed_build_keeps_entities_build_when_sync_fails() -> None:
-    device = _device(store={"entities_build": "old"})
-
-    async def entities() -> tuple[list[EntityInfo], list[object]]:
-        raise RuntimeError("list failed")
+def test_project_mismatch_warns() -> None:
+    device = _device(profile=BrandProfile(projects=frozenset({"allowed.project"})))
 
     async def run() -> None:
-        _client, events = await _login(device, _info("new"), entities)
-        assert ("list", SessionState.READY) in events
-        assert device._store["entities_build"] == "old"
-        assert device.store_writes == []
-
-    asyncio.run(run())
-
-
-def test_missing_entities_build_seeds_old_setting_without_sync() -> None:
-    device = _device(settings={"compilation_time": "build-1"})
-
-    async def run() -> None:
-        _client, events = await _login(device, _info("build-1"))
-        assert device.store_writes == [("entities_build", "build-1")]
-        assert device._store["entities_build"] == "build-1"
-        assert not any(name == "list" for name, _state in events)
-
-    asyncio.run(run())
-
-
-def test_missing_entities_build_seeds_old_setting_before_a_real_change() -> None:
-    """A driver upgrade still syncs when the node was reflashed while offline."""
-    device = _device(settings={"compilation_time": "old"})
-
-    async def run() -> None:
-        _client, events = await _login(device, _info("new"))
-        assert events[0] == ("connected", SessionState.CONNECTED)
-        assert device.store_writes[0] == ("entities_build", "old")
-        assert ("list", SessionState.READY) in events
-        assert device.store_writes[-1] == ("entities_build", "new")
-
-    asyncio.run(run())
-
-
-def test_disconnect_during_sync_leaves_entities_build() -> None:
-    device = _device(store={"entities_build": "old"})
-    started = asyncio.Event()
-
-    async def entities() -> tuple[list[EntityInfo], list[object]]:
-        started.set()
-        await asyncio.Event().wait()
-        return [], []
-
-    async def run() -> None:
-        client, _events = await _login(device, _info("new"), entities)
-        await started.wait()
-        task = client._ready_task
-        assert task is not None
-        await client._handle_disconnect(expected_disconnect=False)
-        with pytest.raises(asyncio.CancelledError):
-            await task
-        assert task.cancelled()
-        assert device._store["entities_build"] == "old"
-        assert ("entities_build", "new") not in device.store_writes
-
-    asyncio.run(run())
-
-
-def test_project_mismatch_warns_without_sync() -> None:
-    device = _device(
-        store={"entities_build": "old"},
-        profile=BrandProfile(projects=frozenset({"allowed.project"})),
-    )
-
-    async def run() -> None:
-        _client, events = await _login(device, _info("new", project="other.project"))
-        assert device._pending_build is None
-        assert not any(name == "list" for name, _state in events)
+        await _login(device, _info(project="other.project"))
         for callback in device.timeouts:
             callback()
         await asyncio.sleep(0)
@@ -279,7 +192,6 @@ def test_project_mismatch_warns_without_sync() -> None:
 
 def test_project_mismatch_keeps_native_app_warning() -> None:
     device = _device(
-        store={"entities_build": "old"},
         profile=BrandProfile(
             projects=frozenset({"allowed.project"}),
             native_apps={"other.project": "Native App"},
@@ -287,8 +199,7 @@ def test_project_mismatch_keeps_native_app_warning() -> None:
     )
 
     async def run() -> None:
-        _client, events = await _login(device, _info("new", project="other.project"))
-        assert not any(name == "list" for name, _state in events)
+        await _login(device, _info(project="other.project"))
         for callback in device.timeouts:
             callback()
         await asyncio.sleep(0)
@@ -297,84 +208,23 @@ def test_project_mismatch_keeps_native_app_warning() -> None:
     asyncio.run(run())
 
 
-def _arm_entity_sync(device: EspHomeDevice) -> None:
-    device._pending_build = "new"
-    device._capability_handler.sync_entities = AsyncMock(  # type: ignore[method-assign]
-        return_value=EntitySyncResult(
-            added=["onoff.pump"],
-            removed=["onoff.relay"],
-            removed_titles=["Relay"],
-        )
-    )
-
-
-async def _finish_sync(device: EspHomeDevice) -> None:
-    await device._sync_if_rebuilt()
-    await asyncio.gather(*tuple(_notification_tasks))
-
-
-def test_sync_if_rebuilt_logs_notification_failure() -> None:
-    """A timeline failure is logged and does not fail the firmware sync."""
-    device = _device()
-    error = RuntimeError("boom")
-    device.homey.notifications.create_notification = AsyncMock(side_effect=error)
-    _arm_entity_sync(device)
-
-    asyncio.run(_finish_sync(device))
-
-    device.error.assert_called_once_with(
-        "Failed to create entities changed notification:",
-        error,
-    )
-
-
-def test_sync_if_rebuilt_notifies_when_setting_missing() -> None:
-    """Devices paired before the checkbox existed stay opted in."""
-    device = _device()
-    assert device.get_setting("notify_entities_changed") is None
-    _arm_entity_sync(device)
-
-    asyncio.run(_finish_sync(device))
-
-    device.homey.notifications.create_notification.assert_awaited_once_with(
-        "notifications.entities_changed_removed:**node**"
-    )
-
-
-def test_sync_if_rebuilt_skips_notification_when_disabled() -> None:
-    device = _device(settings={"notify_entities_changed": False})
-    _arm_entity_sync(device)
-
-    asyncio.run(_finish_sync(device))
-
-    device.homey.notifications.create_notification.assert_not_awaited()
-
-
 def test_on_init_starts_the_client_after_the_brand_hook(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """What on_esphome_init sets up must see the connect dump."""
+    """Bindings from on_esphome_init must see the connect dump."""
     events: list[str] = []
 
     class _Client:
         async def start(self, _on_state: Any) -> None:
             events.append("client started")
 
-    module = "homey_esphomedriver.esphome_device"
-    handler = SimpleNamespace(init=AsyncMock(), ensure=AsyncMock(), handle_state=None)
-    for name in (
-        "DeviceEntityStateHandler",
-        "DeviceEntityCommandHandler",
-        "DeviceCapabilityHandler",
-    ):
-        monkeypatch.setattr(f"{module}.{name}", lambda _device: handler)
     monkeypatch.setattr(EspHomeDevice.__mro__[1], "on_init", AsyncMock(), raising=False)
 
     class _Brand(EspHomeDevice):
         async def on_esphome_init(self, client: Any) -> None:
             events.append("on_esphome_init")
 
-    device = _device(store={"address": "192.0.2.1"}, settings={"device_class": "auto"})
+    device = _device(store={"address": "192.0.2.1"})
     device.__class__ = _Brand
     device.get_data = lambda: {"id": "aabbccddeeff"}  # type: ignore[method-assign]
 

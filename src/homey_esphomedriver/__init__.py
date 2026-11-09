@@ -1,7 +1,8 @@
-"""Shared ESPHome Native API client, entity mapping, and pairing for Homey apps.
+"""Shared ESPHome Native API client, capability bindings, and pairing for Homey apps.
 
-Brand apps import :class:`EspHomeDriver` and :class:`EspHomeDevice` and re-export
-them from ``driver.py`` / ``device.py``. Product filters live on the driver
+Brand apps extend :class:`EspHomeDriver` and :class:`EspHomeDevice` from
+``driver.py`` / ``device.py`` and bind their declared capabilities with
+:meth:`EspHomeDevice.register_capability`. Product filters live on the driver
 manifest as ``esphome`` (see :class:`BrandProfile`).
 
 Homey-dependent symbols load on first access so helpers such as

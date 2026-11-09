@@ -56,7 +56,7 @@ This module requires Homey Apps SDK v3 (Python 3.14 runtime).
 
 Your device should extend `EspHomeDevice`. This is the class you most likely want to extend from. Your driver should extend `EspHomeDriver`.
 
-Product identity lives on the Homey driver like Zigbee `productId`: an `esphome` object in `driver.compose.json`. `EspHomeDriver` reads it from `self.manifest`. `driver.py` and `device.py` can re-export the stock classes when you do not need extra logic.
+Like Z-Wave and Zigbee drivers, a driver declares its capabilities in `driver.compose.json`, and the device binds each one to an ESPHome entity in `on_esphome_init`. The library knows how to read and set Homey's system capabilities on each ESPHome domain; anything else is your own code.
 
 ### Driver compose
 
@@ -64,31 +64,120 @@ Product identity lives on the Homey driver like Zigbee `productId`: an `esphome`
 {
   "name": { "en": "AQ-1" },
   "class": "sensor",
+  "capabilities": ["measure_temperature", "measure_co2", "onoff.led", "dim.led", "button.calibrate"],
+  "capabilitiesOptions": {
+    "onoff.led": { "title": { "en": "Status LED" } },
+    "dim.led": { "title": { "en": "Status LED brightness" } },
+    "button.calibrate": {
+      "maintenanceAction": true,
+      "title": { "en": "Calibrate CO₂" },
+      "desc": { "en": "Place the sensor outside for 10 minutes first" }
+    }
+  },
   "$extends": ["esphome-defaults"],
   "esphome": {
     "clientInfo": "Homey EverythingSmart",
-    "projects": ["EverythingSmart.AQ-1"],
-    "hiddenEntities": ["status_led"],
-    "deviceEntities": { "voc": "measure_tvoc" },
-    "deviceClassOverrides": { "aq_1": "sensor" }
+    "projects": ["EverythingSmart.AQ-1"]
   }
 }
 ```
 
-
-| Compose key            | Python `BrandProfile` field | Purpose                                          |
-| ---------------------- | --------------------------- | ------------------------------------------------ |
-| `projects`             | `projects`                  | Exact ESPHome `project.name` this driver accepts |
-| `projectPrefix`        | `project_prefix`            | Prefix match such as `Brand.`                    |
-| `clientInfo`           | `client_info`               | Name shown on the node for this Homey client     |
-| `hiddenEntities`       | `hidden_entities`           | Hide extra entities; `*`/`?`/`[` make a pattern  |
-| `deviceEntities`       | `device_entities`           | Remap an entity to a Homey capability            |
-| `deviceClassOverrides` | `device_class_overrides`    | Force Homey class from an entity id              |
-
+| `esphome` key   | Purpose                                                         |
+| --------------- | --------------------------------------------------------------- |
+| `projects`      | Exact ESPHome `project.name` this driver accepts                |
+| `projectPrefix` | Prefix match such as `Brand.`                                   |
+| `clientInfo`    | Name shown on the node for this Homey client                    |
+| `nativeApps`    | Suggest a dedicated Homey app for a project (`io.esphome` only) |
 
 Omit `projects` / `projectPrefix` to accept every project (`io.esphome`). If both are set, either match is enough.
 
-A class-level `brand_profile = BrandProfile(...)` on the driver still overrides compose. Use that for `after_map`.
+A button for a rare or risky task, such as a calibration, goes in the device's Maintenance menu with Homey's own `maintenanceAction` capability option, as above.
+
+### Device
+
+```python
+# drivers/aq-1/device.py
+from homey_esphomedriver import EspHomeDevice
+
+
+class Aq1Device(EspHomeDevice):
+    async def on_esphome_init(self, client):
+        self.register_capability("measure_temperature", "sensor", "Temperature")
+        self.register_capability("measure_co2", "sensor", "CO2")
+        self.register_capability("onoff.led", "light", "Status LED")
+        self.register_capability("dim.led", "light", "Status LED")
+        self.register_capability("button.calibrate", "button", "Calibrate CO2")
+
+
+homey_export = Aq1Device
+```
+
+`register_capability(capability_id, domain, name, *, device_id=0, set_parser=None, report_parser=None)` follows Z-Wave's `registerCapability`:
+
+- The capability must already be on the device; registering never adds one. A missing capability raises `ValueError`.
+- An entity is named by its ESPHome domain and its name, as written in the YAML, plus `device_id` for a sub-device. `object_id` is not used: ESPHome plans to remove it.
+- System capabilities supply the parsers, looked up by the full id and then its base, as Z-Wave splits on the dot: `dim.led` uses `dim`.
+- `sensor`, `binary_sensor`, `text_sensor`, `number`, `select`, `switch`, `text`, `button` and `event` entities bind to any capability without a parser, including your own. A sensor's reading is converted from the entity's unit to the capability's (°F to °C, kW to W, …).
+- `sensor`, `binary_sensor`, `text_sensor` and `event` entities only report, so they do not bind to a Homey capability the user can set, such as `onoff`, `locked` or `target_temperature`, without a parser. Homey would show a control that cannot work.
+- On other domains, a capability the library does not know raises `ValueError` unless you pass a parser.
+- Bindings are made again on every app start and resolved on every connection, before the state dump. An entity the node does not have is logged and its capability left alone; setting it fails with a message.
+
+| System capabilities | Domain |
+| --- | --- |
+| `homealarm_state` | `alarm_control_panel` |
+| any `alarm_*`, `battery_charging_state` | `binary_sensor` |
+| `onoff`, `thermostat_mode`, `measure_temperature`, `target_temperature`, `target_temperature_min`, `target_temperature_max`, `measure_humidity`, `target_humidity`, `fan_mode`, `swing_mode` | `climate` |
+| `windowcoverings_state`, `windowcoverings_set`, `windowcoverings_tilt_set`, `windowcoverings_tilt_up`, `windowcoverings_tilt_down`, `garagedoor_closed` | `cover` |
+| `onoff`, `fan_speed`, `fan_mode` | `fan` |
+| `onoff`, `dim`, `light_mode`, `light_hue`, `light_saturation`, `light_temperature` | `light` |
+| `locked`, `alarm_door_fault` | `lock` |
+| `speaker_playing`, `speaker_stop`, `volume_set`, `volume_mute`, `volume_up`, `volume_down` | `media_player` |
+| `onoff`, `volume_set` | `siren` |
+| `onoff`, `valve_position` | `valve` |
+| `onoff`, `heater_operation_mode`, `measure_temperature`, `target_temperature`, `target_temperature_min`, `target_temperature_max` | `water_heater` |
+
+`light_hue` and `light_saturation` are sent together in one command once both are bound to the same light, as `ZwaveLightDevice` does.
+
+[CAPABILITIES.md](CAPABILITIES.md) has how each capability maps, the sensor unit conversions and what is not supported.
+
+#### Parsers
+
+Pass a parser to change how a value is read or set, or for an app capability on a multi-value domain:
+
+```python
+self.register_capability(
+    "aq1_air_quality",
+    "sensor",
+    "VOC Index",
+    report_parser=lambda state, entity: "poor" if state.state > 150 else "good",
+)
+self.register_capability(
+    "onoff.led",
+    "light",
+    "Status LED",
+    set_parser=lambda value, opts, entity: {"state": value, "effect": "Pulse"},
+)
+```
+
+- `report_parser(state, entity)` turns the ESPHome state into the capability value. `None` leaves the capability as is. A missing reading, NaN or Infinity is written as unknown before the parser runs.
+- `set_parser(value, opts, entity)` returns the keyword arguments for the domain's command, here `light_command`. `None` sends nothing; an exception is shown to the user.
+- `entity` is the bound entity: `entity.info` is what the node listed (unit, color temperature range, speed count, …) and `entity.capability_value("light_hue")` reads a sibling capability.
+
+#### Everything else
+
+What no capability shows is your own code, like Z-Wave's `registerReportListener`:
+
+```python
+class Aq1Device(EspHomeDevice):
+    async def on_esphome_init(self, client):
+        self.register_state_listener("event", "Button", self._on_button)
+
+    async def _on_button(self, state, entity):
+        card = self.homey.flow.get_device_trigger_card("aq1_button_pressed")
+        await card.trigger(self, {"type": state.event_type})
+```
+
+`self.entity(domain, name)` gives the entity of the current connection, to send it a command yourself through `self.client.command("<domain>_command", entity.key, ...)`. `unregister_capability(capability_id)` stops reporting and setting a capability you remove at runtime.
 
 ### Driver
 
@@ -99,55 +188,22 @@ from homey_esphomedriver import EspHomeDriver
 homey_export = EspHomeDriver
 ```
 
-
-
-### Device
-
-```python
-# drivers/aq-1/device.py
-from homey_esphomedriver import EspHomeDevice
-
-homey_export = EspHomeDevice
-```
-
-
+A new device gets the driver's capabilities. To choose them from what the node has, as the generic ESPHome app does, override `on_pair_device(device, device_info, entities)` and set `capabilities`, `capabilitiesOptions` or `class` on the payload it returns.
 
 ### Lifecycle hooks
 
 Core owns `on_init` and `on_uninit` on `EspHomeDriver` and `EspHomeDevice`. Subclass the hooks below instead — same pattern as `homey-oauth2app`'s `onOAuth2Init`. Brand `app.py` exports Homey's `App`.
 
+| Class           | Override                                        | When                                                                |
+| --------------- | ----------------------------------------------- | ------------------------------------------------------------------- |
+| `EspHomeDriver` | `on_esphome_init` / `on_esphome_uninit`         | After library setup, e.g. to register Flow cards / before teardown  |
+| `EspHomeDriver` | `on_pair_device(device, device_info, entities)` | Before Homey creates a paired device                                |
+| `EspHomeDevice` | `on_esphome_init(client)` / `on_esphome_uninit` | Before the session starts; `client` is `None` when host is unknown  |
+| `EspHomeDevice` | `on_esphome_connected(client)`                  | After each login + `set_available`; session not READY yet — no cmds |
 
-| Class           | Override                                                          | When                                                                 |
-| --------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `EspHomeDriver` | `on_esphome_init` / `on_esphome_uninit`                           | After Flow listeners / before teardown                               |
-| `EspHomeDevice` | `on_esphome_init(client)` / `on_esphome_uninit`                   | Before the session starts; `client` is `None` when host is unknown   |
-| `EspHomeDevice` | `on_esphome_connected(client)`                                    | After each login + `set_available`; session not READY yet — no cmds |
-
-
-On a paired device, use `self.client` for the live `EspHomeClient` (may exist before the API handshake). Capability commands still require a READY session via `_require_client()` / `available` — including from `on_esphome_connected`.
+On a paired device, use `self.client` for the live `EspHomeClient` (may exist before the API handshake). Commands require a READY session — including from `on_esphome_connected`.
 
 Debug logging uses `env.json` `DEBUG`; there is no separate class flag.
-
-```python
-# drivers/aq-1/device.py
-from homey_esphomedriver import EspHomeClient, EspHomeDevice as BaseDevice
-
-
-class EspHomeDevice(BaseDevice):
-    async def on_esphome_init(self, client: EspHomeClient | None) -> None:
-        await super().on_esphome_init(client)
-        if client is not None:
-            self.log(f"API session started for {client.host}")
-
-    async def on_esphome_connected(self, client: EspHomeClient) -> None:
-        await super().on_esphome_connected(client)
-        self.log(f"Logged in to {client.host}")
-
-
-homey_export = EspHomeDevice
-```
-
-
 
 ### Homey Compose files
 

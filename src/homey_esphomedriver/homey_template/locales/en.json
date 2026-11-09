@@ -67,7 +67,6 @@
     "device_mismatch": "The device at this address is not the one Homey paired. Check the IP address or DHCP reservation.",
     "mac_missing": "The ESPHome device did not report a MAC address.",
     "project_not_supported": "This ESPHome project is not supported by this Homey app.",
-    "no_supported_entities": "This ESPHome node has no supported entities for Homey.",
     "device_not_connected": "ESPHome device is not connected",
     "device_not_prepared": "Device was not prepared. Go back and reconnect.",
     "no_device_selected": "No device selected",
@@ -93,15 +92,11 @@
       "not_ready": "The device is not ready for Wi-Fi setup.",
       "ssid_too_long": "SSID or password is too long",
       "invalid_value": "Improv device sent an invalid value"
-    }
+    },
+    "entity_missing": "This device has no __domain__ named __name__."
   },
   "warnings": {
     "project_mismatch": "This ESPHome project (__project__) is not supported by this Homey app."
-  },
-  "notifications": {
-    "entities_changed": "__device__ has __added__ new entities.",
-    "entities_changed_removed": "__device__ added __added__ entities and removed __removed__. You might want to check your Flows.",
-    "entities_removed": "__device__ removed __removed__ entities. You might want to check your Flows."
   },
   "nativeAppSuggestion": "Good news! This device has its own app! Search in the Homey App Store for __appName__."
 }

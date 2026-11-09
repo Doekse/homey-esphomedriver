@@ -67,7 +67,6 @@
     "device_mismatch": "이 주소의 기기는 Homey가 페어링한 기기가 아니에요. IP 주소나 DHCP 예약을 확인하세요.",
     "mac_missing": "ESPHome 기기가 MAC 주소를 보내지 않았어요.",
     "project_not_supported": "이 ESPHome 프로젝트는 이 Homey 앱에서 지원되지 않아요.",
-    "no_supported_entities": "이 ESPHome 기기에는 Homey가 지원하는 구성 요소가 없어요.",
     "device_not_connected": "ESPHome 기기가 연결되어 있지 않아요",
     "device_not_prepared": "기기가 준비되지 않았어요. 돌아가서 다시 연결하세요.",
     "no_device_selected": "선택된 기기가 없어요",
@@ -97,11 +96,6 @@
   },
   "warnings": {
     "project_mismatch": "ESPHome 프로젝트 __project__는 이 Homey 앱에서 지원되지 않아요."
-  },
-  "notifications": {
-    "entities_changed": "__device__에 새 엔티티 __added__개가 생겼어요.",
-    "entities_changed_removed": "__device__에서 엔티티 __added__개가 추가되고 __removed__개가 제거됐어요. Flow를 한번 확인해 보셔도 좋겠어요.",
-    "entities_removed": "__device__에서 엔티티 __removed__개가 제거됐어요. Flow를 한번 확인해 보셔도 좋겠어요."
   },
   "nativeAppSuggestion": "좋은 소식이 있어요! 이 기기에는 전용 앱이 있어요! Homey 앱 스토어에서 __appName__을 검색해보세요."
 }

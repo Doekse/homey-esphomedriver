@@ -1,8 +1,8 @@
 """BrandProfile parsing and filtering tests.
 
 Brand apps declare an ``esphome`` object in ``driver.compose.json``. These tests
-pin the compose key aliases, the project-acceptance rules that decide which
-driver claims a node, and the capability override precedence.
+pin the compose key aliases and the project-acceptance rules that decide which
+driver claims a node.
 """
 
 from __future__ import annotations
@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from aioesphomeapi import EntityInfo
 
 from homey_esphomedriver.profile import (
     DEFAULT_BRAND_PROFILE,
@@ -19,17 +18,11 @@ from homey_esphomedriver.profile import (
 )
 
 
-def entity(object_id: str, key: int = 1) -> EntityInfo:
-    return EntityInfo(object_id=object_id, key=key, name=object_id)
-
-
-def test_from_manifest_without_esphome_key_returns_default() -> None:
-    assert BrandProfile.from_manifest({"id": "my-driver"}) is DEFAULT_BRAND_PROFILE
-
-
-@pytest.mark.parametrize("manifest", [None, {}, {"esphome": "not-a-mapping"}])
-def test_from_manifest_falls_back_to_default(manifest: Any) -> None:
-    assert BrandProfile.from_manifest(manifest) is DEFAULT_BRAND_PROFILE
+@pytest.mark.parametrize(
+    "manifest", [None, {}, {"id": "my-driver"}, {"esphome": "not-a-mapping"}]
+)
+def test_from_manifest_without_esphome_object_is_the_default(manifest: Any) -> None:
+    assert BrandProfile.from_manifest(manifest) == DEFAULT_BRAND_PROFILE
 
 
 def test_from_manifest_reads_nested_esphome_object() -> None:
@@ -69,16 +62,6 @@ def test_projects_aliases(key: str) -> None:
 def test_project_prefix_aliases(key: str) -> None:
     profile = BrandProfile.from_compose({key: "Brand."})
     assert profile.project_prefix == ("Brand.",)
-
-
-@pytest.mark.parametrize(
-    "key",
-    ["hiddenEntities", "hidden_entities", "skipObjectIds", "skip_object_ids"],
-)
-def test_hidden_entities_aliases(key: str) -> None:
-    profile = BrandProfile.from_compose({key: ["status_led"]})
-    assert profile.skip_entity(entity("status_led")) is True
-    assert profile.skip_entity(entity("relay")) is False
 
 
 def test_scalar_string_is_accepted_where_a_list_is_expected() -> None:
@@ -127,51 +110,6 @@ def test_accepts_discovery_without_project_name_is_rejected_when_filtered() -> N
     assert profile.accepts_discovery({}) is False
 
 
-def test_capability_id_for_returns_default_when_unmapped() -> None:
-    assert DEFAULT_BRAND_PROFILE.capability_id_for(entity("relay"), "onoff") == "onoff"
-
-
-def test_capability_id_for_uses_device_entities() -> None:
-    profile = BrandProfile.from_compose({"deviceEntities": {"relay": "onoff.pump"}})
-    assert profile.capability_id_for(entity("relay"), "onoff") == "onoff.pump"
-
-
-def test_capability_overrides_take_precedence_over_device_entities() -> None:
-    """The (object_id, default) pair is more specific, so it wins."""
-    profile = BrandProfile(
-        device_entities={"relay": "onoff.generic"},
-        capability_overrides={("relay", "onoff"): "onoff.specific"},
-    )
-    assert profile.capability_id_for(entity("relay"), "onoff") == "onoff.specific"
-
-
-def test_capability_overrides_fall_through_on_different_default() -> None:
-    profile = BrandProfile(
-        device_entities={"relay": "onoff.generic"},
-        capability_overrides={("relay", "button"): "onoff.specific"},
-    )
-    assert profile.capability_id_for(entity("relay"), "onoff") == "onoff.generic"
-
-
-def test_capability_overrides_parses_nested_compose_mapping() -> None:
-    profile = BrandProfile.from_compose(
-        {"capabilityOverrides": {"relay": {"onoff": "onoff.pump"}}}
-    )
-    assert profile.capability_overrides == {("relay", "onoff"): "onoff.pump"}
-
-
-def test_capability_overrides_skips_malformed_entries() -> None:
-    profile = BrandProfile.from_compose({"capabilityOverrides": {"relay": "not-a-map"}})
-    assert profile.capability_overrides == {}
-
-
-def test_device_class_for_returns_none_without_entity() -> None:
-    profile = BrandProfile.from_compose({"deviceClassOverrides": {"relay": "socket"}})
-    assert profile.device_class_for(None, None) is None
-    assert profile.device_class_for(None, entity("relay")) == "socket"
-    assert profile.device_class_for(None, entity("other")) is None
-
-
 def test_native_app_suggestion() -> None:
     profile = BrandProfile.from_compose({"nativeApps": {"Brand.AQ-1": "Brand"}})
     assert profile.native_app_suggestion("Brand.AQ-1") == "Brand"
@@ -183,33 +121,3 @@ def test_replace_returns_a_modified_copy() -> None:
     updated = profile.replace(client_info="Changed")
     assert profile.client_info == "Original"
     assert updated.client_info == "Changed"
-
-
-def test_after_map_default_is_a_noop() -> None:
-    assert DEFAULT_BRAND_PROFILE.after_map([entity("relay")], None) is None
-
-
-@pytest.mark.parametrize(
-    ("object_id", "hidden"),
-    [
-        ("debug_uptime", True),
-        ("debug_free_heap", True),
-        ("uptime", False),
-        ("wifi_signal", True),
-        ("wifi_signal_db", False),
-    ],
-)
-def test_hidden_entities_accepts_patterns(object_id: str, hidden: bool) -> None:
-    """A family of entities can be named once instead of enumerated.
-
-    Object ids are slugified to ``[a-z0-9_-]``, so ``*``/``?``/``[`` cannot occur
-    in a literal id and are unambiguous as wildcards.
-    """
-    profile = BrandProfile.from_compose({"hiddenEntities": ["debug_*", "wifi_signal"]})
-    assert profile.skip_entity(entity(object_id)) is hidden
-
-
-def test_hidden_entities_without_patterns_still_matches_exactly() -> None:
-    profile = BrandProfile.from_compose({"hiddenEntities": ["relay"]})
-    assert profile.skip_entity(entity("relay")) is True
-    assert profile.skip_entity(entity("relay_2")) is False
