@@ -190,6 +190,17 @@ homey_export = EspHomeDriver
 
 A new device gets the driver's capabilities. To choose them from what the node has, as the generic ESPHome app does, override `on_pair_device(device, device_info, entities)` and set `capabilities`, `capabilitiesOptions` or `class` on the payload it returns.
 
+### Settings
+
+`esphome-defaults` brings the device information settings, which the library writes. A driver that declares its own `settings` replaces that list (Homey Compose does not merge it), so it keeps the group through its setting template and adds its own around it:
+
+```json
+"settings": [
+  { "type": "group", "label": { "en": "Calibration" }, "children": [ ... ] },
+  { "$extends": "esphome-device-information" }
+]
+```
+
 ### Lifecycle hooks
 
 Core owns `on_init` and `on_uninit` on `EspHomeDriver` and `EspHomeDevice`. Subclass the hooks below instead — same pattern as `homey-oauth2app`'s `onOAuth2Init`. Brand `app.py` exports Homey's `App`.

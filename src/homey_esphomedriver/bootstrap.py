@@ -1,9 +1,9 @@
 """Copy package Homey Compose files into a brand or generic Homey app.
 
-Shared Compose (defaults, pair HTML, locales) is refreshed on every run.
-Capabilities and Flow cards are the app's own. Brand-owned files (app.json,
-driver.compose.json, driver entrypoints) are created once and left alone unless
-``--force``.
+Shared Compose (defaults, pair HTML, setting templates, locales) is refreshed
+on every run. Capabilities and Flow cards are the app's own. Brand-owned files
+(app.json, driver.compose.json, driver entrypoints) are created once and left
+alone unless ``--force``.
 """
 
 from __future__ import annotations
@@ -217,6 +217,15 @@ def _copy_shared(root: Path, app_dir: Path, result: BootstrapResult) -> None:
     ]
     for src, dest, overwrite in mappings:
         _copy_file(src, dest, app_dir, result, overwrite=overwrite)
+    # Setting templates: esphome-defaults uses them, and a brand driver that
+    # declares its own settings pulls the default groups in with $extends.
+    _copy_dir(
+        root / "compose" / "drivers" / "settings",
+        app_dir / ".homeycompose" / "drivers" / "settings",
+        app_dir,
+        result,
+        overwrite=True,
+    )
     _copy_dir(
         root / "compose" / "drivers" / "pair",
         app_dir / ".homeycompose" / "drivers" / "pair",

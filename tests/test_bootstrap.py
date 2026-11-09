@@ -1,12 +1,13 @@
 """Bootstrap tests.
 
 Covers driver-id validation, the derived Homey / ESPHome identifiers used when
-scaffolding a brand app, and what it copies into the app.
+scaffolding a brand app, and the shared setting templates it copies.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -80,6 +81,39 @@ def test_validate_driver_id_accepts(driver_id: str) -> None:
 def test_validate_driver_id_rejects(driver_id: str) -> None:
     with pytest.raises(ValueError, match="Invalid driver id"):
         _validate_driver_id(driver_id)
+
+
+def test_default_settings_expand_to_the_full_settings_page(
+    default_settings: list[dict[str, Any]],
+) -> None:
+    """Splitting the groups into setting templates keeps every setting."""
+    assert [group.get("id") for group in default_settings] == ["device_information"]
+    leaves = [child for group in default_settings for child in group["children"]]
+    assert [setting["id"] for setting in leaves] == [
+        "host",
+        "port",
+        "encryption",
+        "manufacturer",
+        "model",
+        "mac",
+        "hostname",
+        "esphome_version",
+        "compilation_time",
+        "project",
+        "bluetooth_mac",
+        "webserver",
+        "deep_sleep",
+    ]
+
+
+def test_sync_copies_setting_templates(tmp_path: Path) -> None:
+    """A brand driver with its own settings pulls the default groups from here."""
+    _copy_shared(template_root(), tmp_path, BootstrapResult())
+
+    copied = tmp_path / ".homeycompose" / "drivers" / "settings"
+    assert sorted(path.name for path in copied.iterdir()) == [
+        "esphome-device-information.json",
+    ]
 
 
 def test_sync_leaves_capabilities_and_flow_cards_to_the_app(tmp_path: Path) -> None:

@@ -77,6 +77,10 @@ If both `projects` and `projectPrefix` are configured, a match on either is enou
 
 There is nothing to hide or remap: a device shows the capabilities its driver declares. A rare or risky button goes in the Maintenance menu with Homey's own `maintenanceAction` capability option.
 
+### Settings page
+
+The library writes the Device Information labels and reads the connection fields on every connect. Homey Compose cannot append to an `$extends` template's `settings`; a driver that declares `settings` replaces the whole list. So the group is also a setting template (`esphome-device-information`), and a brand driver that adds its own settings keeps it with `{"$extends": "esphome-device-information"}`.
+
 ### Pairing
 
 Pairing probes the node, checks its project, and creates the device with its connection in the store and settings. The payload has no `capabilities`, so Homey gives the device the driver's own. `EspHomeDriver.on_pair_device` may set `capabilities`, `capabilitiesOptions` and `class` from what the node has; `io.esphome` maps every entity there.
