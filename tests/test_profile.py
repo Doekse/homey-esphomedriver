@@ -54,16 +54,13 @@ def test_projects() -> None:
     assert profile.projects == frozenset({"Brand.AQ-1", "Brand.AQ-2"})
 
 
-def test_project_prefix() -> None:
-    profile = BrandProfile.from_compose({"projectPrefix": "Brand."})
-    assert profile.project_prefix == ("Brand.",)
-
-
 @pytest.mark.parametrize(
     "key",
     [
         "hidden_entities",
         "projectNames",
+        # Prefixes are written in projects as "Brand.*".
+        "projectPrefix",
         # Capability keys from before register_capability.
         "hiddenEntities",
         "deviceEntities",
@@ -94,19 +91,31 @@ def test_accepts_project_by_exact_name() -> None:
     assert profile.accepts_project("Brand.AQ-2") is False
 
 
-def test_accepts_project_by_prefix() -> None:
-    profile = BrandProfile.from_compose({"projectPrefix": ["Brand."]})
+def test_accepts_project_by_trailing_wildcard() -> None:
+    profile = BrandProfile.from_compose({"projects": ["Brand.*"]})
     assert profile.accepts_project("Brand.AQ-9") is True
+    assert profile.accepts_project("Brand.") is True
     assert profile.accepts_project("Other.AQ-9") is False
 
 
-def test_projects_and_prefix_are_ored() -> None:
-    profile = BrandProfile.from_compose(
-        {"projects": ["Exact.One"], "projectPrefix": ["Brand."]}
-    )
+def test_exact_names_and_wildcards_mix() -> None:
+    profile = BrandProfile.from_compose({"projects": ["Exact.One", "Brand.*"]})
     assert profile.accepts_project("Exact.One") is True
     assert profile.accepts_project("Brand.Whatever") is True
-    assert profile.accepts_project("Nope.Nope") is False
+    assert profile.accepts_project("Exact.Two") is False
+
+
+def test_lone_wildcard_accepts_every_project() -> None:
+    profile = BrandProfile.from_compose({"projects": ["*"]})
+    assert profile.accepts_project("Anything.Else") is True
+    assert profile.accepts_project("") is True
+
+
+def test_wildcard_before_the_end_is_part_of_the_name() -> None:
+    """Only a trailing ``*`` matches by prefix, so the rule stays predictable."""
+    profile = BrandProfile.from_compose({"projects": ["Brand*.AQ-1"]})
+    assert profile.accepts_project("Brand*.AQ-1") is True
+    assert profile.accepts_project("BrandX.AQ-1") is False
 
 
 def test_empty_projects_list_accepts_nothing() -> None:

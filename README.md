@@ -82,14 +82,13 @@ Like Z-Wave and Zigbee drivers, a driver declares its capabilities in `driver.co
 }
 ```
 
-| `esphome` key   | Purpose                                                         |
-| --------------- | --------------------------------------------------------------- |
-| `projects`      | Exact ESPHome `project.name` this driver accepts                |
-| `projectPrefix` | Prefix match such as `Brand.`                                   |
-| `clientInfo`    | Name shown on the node for this Homey client                    |
-| `nativeApps`    | Suggest a dedicated Homey app for a project (`io.esphome` only) |
+| `esphome` key | Purpose                                                                 |
+| ------------- | ----------------------------------------------------------------------- |
+| `projects`    | ESPHome `project.name` this driver accepts; `Brand.*` matches by prefix |
+| `clientInfo`  | Name shown on the node for this Homey client                            |
+| `nativeApps`  | Suggest a dedicated Homey app for a project (`io.esphome` only)         |
 
-Omit `projects` / `projectPrefix` to accept every project (`io.esphome`). If both are set, either match is enough. Any other key is logged and ignored.
+Omit `projects` to accept every project (`io.esphome`). Only a trailing `*` matches by prefix; anywhere else it is part of the name. Any other key is logged and ignored.
 
 A button for a rare or risky task, such as a calibration, goes in the device's Maintenance menu with Homey's own `maintenanceAction` capability option, as above.
 

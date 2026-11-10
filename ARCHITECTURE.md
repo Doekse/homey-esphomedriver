@@ -67,14 +67,13 @@ Homey CLI does not copy these templates yet. `esphome-homey sync` writes them in
 
 Normally there is one Homey driver per product SKU. Product filters go on that driver's `driver.compose.json`, the same place Zigbee puts `manufacturerName` / `productId`. Homey's driver schema allows extra keys, so `esphome` survives `homey app validate` and is available at runtime as `self.manifest["esphome"]`.
 
-| Compose key     | What a brand uses it for                                                                                         |
-| --------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `projects`      | Only allow specific firmware on this driver, for example `Brand.AQ-1`                                            |
-| `projectPrefix` | Match all projects using a prefix such as `Brand.`. Less common, but useful when several products share a driver |
-| `clientInfo`    | Name shown on the ESPHome device for the connected client, for example `Homey Brand`                             |
-| `nativeApps`    | `io.esphome` only: suggest the dedicated Homey app for a project                                                 |
+| Compose key  | What a brand uses it for                                                                                                    |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `projects`   | Only allow specific firmware on this driver, for example `Brand.AQ-1`. `Brand.*` takes every project starting with `Brand.` |
+| `clientInfo` | Name shown on the ESPHome device for the connected client, for example `Homey Brand`                                        |
+| `nativeApps` | `io.esphome` only: suggest the dedicated Homey app for a project                                                            |
 
-If both `projects` and `projectPrefix` are configured, a match on either is enough. If neither is configured, every ESPHome project is accepted. This is how `io.esphome` works. An unknown key is logged and ignored.
+A `projects` entry ending in `*` matches by prefix, which is useful when several products share a driver; a `*` anywhere else is part of the name. Without `projects`, every ESPHome project is accepted. This is how `io.esphome` works. An unknown key is logged and ignored.
 
 There is nothing to hide or remap: a device shows the capabilities its driver declares. A rare or risky button goes in the Maintenance menu with Homey's own `maintenanceAction` capability option.
 

@@ -7,8 +7,8 @@ device has is the driver's own ``capabilities`` list, bound to entities with
 
 The generic esphome-homey app (``io.esphome``) omits ``projects`` so every
 project is accepted. Brand apps that ship one driver per SKU set ``projects``
-(exact ESPHome ``project.name``); brand-wide or multi-variant drivers can use
-``projectPrefix``.
+to the exact ESPHome ``project.name``; a brand-wide or multi-variant driver
+lists a prefix such as ``Brand.*``.
 """
 
 from __future__ import annotations
@@ -26,7 +26,6 @@ COMPOSE_KEYS = frozenset(
     {
         "clientInfo",
         "projects",
-        "projectPrefix",
         "nativeApps",
     }
 )
@@ -47,12 +46,11 @@ class BrandProfile:
     """Name shown on the node for this Homey client."""
 
     projects: frozenset[str] | None = None
-    """Exact ESPHome ``project.name`` values this driver accepts."""
+    """ESPHome ``project.name`` values this driver accepts.
 
-    project_prefix: tuple[str, ...] | None = None
-    """Prefixes matched with ``startswith``.
-
-    ``None`` with :attr:`projects` unset accepts every project.
+    An entry ending in ``*`` matches every name starting with the text before
+    it, so ``Brand.*`` takes ``Brand.AQ-1`` and ``*`` takes every project. A
+    ``*`` anywhere else is part of the name. ``None`` accepts every project.
     """
 
     native_apps: Mapping[str, str] = field(default_factory=dict)
@@ -104,7 +102,6 @@ class BrandProfile:
         return cls(
             client_info=str(data.get("clientInfo") or DEFAULT_CLIENT_INFO),
             projects=_optional_names(data.get("projects")),
-            project_prefix=_optional_tuple(data.get("projectPrefix")),
             native_apps=_string_map(data.get("nativeApps")),
         )
 
@@ -119,20 +116,15 @@ class BrandProfile:
             project_name: ESPHome firmware ``project.name``.
         """
         names = self.projects
-        prefixes = self.project_prefix
-        if names is None and prefixes is None:
+        if names is None or project_name in names:
             return True
-        if names is not None and project_name in names:
-            return True
-        if prefixes is not None and any(
-            project_name.startswith(prefix) for prefix in prefixes
-        ):
-            return True
-        return False
+        return any(
+            name.endswith("*") and project_name.startswith(name[:-1]) for name in names
+        )
 
     def accepts_discovery(self, txt: Mapping[str, str]) -> bool:
         """Return whether mDNS TXT ``project_name`` is allowed for this driver."""
-        if self.projects is None and self.project_prefix is None:
+        if self.projects is None:
             return True
         return self.accepts_project(txt.get("project_name") or "")
 
@@ -157,12 +149,6 @@ def _optional_names(raw: object) -> frozenset[str] | None:
     if raw is None:
         return None
     return frozenset(_string_list(raw))
-
-
-def _optional_tuple(raw: object) -> tuple[str, ...] | None:
-    if raw is None:
-        return None
-    return tuple(_string_list(raw))
 
 
 def _string_map(value: object) -> dict[str, str]:
