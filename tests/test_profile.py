@@ -141,10 +141,3 @@ def test_native_app_suggestion() -> None:
     profile = BrandProfile.from_compose({"nativeApps": {"Brand.AQ-1": "Brand"}})
     assert profile.native_app_suggestion("Brand.AQ-1") == "Brand"
     assert profile.native_app_suggestion("Unknown") is None
-
-
-def test_replace_returns_a_modified_copy() -> None:
-    profile = BrandProfile.from_compose({"clientInfo": "Original"})
-    updated = profile.replace(client_info="Changed")
-    assert profile.client_info == "Original"
-    assert updated.client_info == "Changed"

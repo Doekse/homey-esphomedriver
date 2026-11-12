@@ -82,7 +82,7 @@ class BrandProfile:
         )
         if not setting_entities:
             return profile
-        return profile.replace(setting_entities=setting_entities)
+        return replace(profile, setting_entities=setting_entities)
 
     @classmethod
     def from_compose(cls, data: Mapping[str, Any]) -> BrandProfile:
@@ -104,10 +104,6 @@ class BrandProfile:
             projects=_optional_names(data.get("projects")),
             native_apps=_string_map(data.get("nativeApps")),
         )
-
-    def replace(self, **kwargs: object) -> BrandProfile:
-        """Return a copy with the given fields overridden."""
-        return replace(self, **kwargs)
 
     def accepts_project(self, project_name: str) -> bool:
         """Return whether this driver should pair or drive the given project.
