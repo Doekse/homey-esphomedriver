@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-12
+
 ### Breaking
 
 - The library no longer adds capabilities on its own. A driver declares its `capabilities` in `driver.compose.json` and binds each one to an ESPHome entity from `on_esphome_init`, the way Z-Wave and Zigbee drivers do:
@@ -153,7 +155,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Brand product filters via the driver compose `esphome` object.
 - `esphome-homey sync` to copy Homey Compose templates into the app.
 
-[unreleased]: https://github.com/Doekse/homey-esphomedriver/compare/v0.5.0...HEAD
+[unreleased]: https://github.com/Doekse/homey-esphomedriver/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.6.0
 [0.5.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.5.0
 [0.4.1]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.4.1
 [0.4.0]: https://github.com/Doekse/homey-esphomedriver/releases/tag/v0.4.0
