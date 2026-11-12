@@ -134,7 +134,7 @@ class BrandProfile:
 
 
 DEFAULT_BRAND_PROFILE = BrandProfile()
-"""Profile that accepts every project and applies no remaps."""
+"""Profile that accepts every project."""
 
 
 def _string_list(value: object) -> list[str]:
