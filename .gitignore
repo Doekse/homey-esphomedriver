@@ -10,6 +10,9 @@ venv/
 env/
 ENV/
 
+# Local uv lockfile; CI installs with pip
+uv.lock
+
 # Packaging / build (setuptools)
 dist/
 build/
