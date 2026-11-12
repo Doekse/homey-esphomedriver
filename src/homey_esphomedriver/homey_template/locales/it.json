@@ -93,7 +93,8 @@
       "ssid_too_long": "SSID o password troppo lunghi",
       "invalid_value": "Il dispositivo Improv ha inviato un valore non valido"
     },
-    "setting_invalid": "Questo valore non è valido per il dispositivo."
+    "setting_invalid": "Questo valore non è valido per il dispositivo.",
+    "entity_missing": "Questo dispositivo non ha nessuna entità __domain__ chiamata __name__."
   },
   "settings": {
     "applied_on_wake": "Salvato. Il dispositivo è in standby e riceverà la nuova impostazione al prossimo risveglio."

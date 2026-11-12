@@ -93,7 +93,8 @@
       "ssid_too_long": "SSID eller lösenord är för långt",
       "invalid_value": "Improv-enheten skickade ett ogiltigt värde"
     },
-    "setting_invalid": "Det här värdet är inte giltigt för enheten."
+    "setting_invalid": "Det här värdet är inte giltigt för enheten.",
+    "entity_missing": "Den här enheten har ingen __domain__ med namnet __name__."
   },
   "settings": {
     "applied_on_wake": "Sparat. Enheten sover och får den nya inställningen nästa gång den vaknar."

@@ -93,7 +93,8 @@
       "ssid_too_long": "El SSID o la contraseña es demasiado largo",
       "invalid_value": "El dispositivo Improv ha enviado un valor no válido"
     },
-    "setting_invalid": "Este valor no es válido para el dispositivo."
+    "setting_invalid": "Este valor no es válido para el dispositivo.",
+    "entity_missing": "Este dispositivo no tiene ninguna entidad __domain__ llamada __name__."
   },
   "settings": {
     "applied_on_wake": "Guardado. El dispositivo está en reposo y recibirá el nuevo ajuste la próxima vez que se active."

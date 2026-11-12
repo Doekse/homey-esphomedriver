@@ -93,7 +93,8 @@
       "ssid_too_long": "SSID oder Passwort ist zu lang",
       "invalid_value": "Improv-Gerät hat einen ungültigen Wert gesendet"
     },
-    "setting_invalid": "Dieser Wert ist für das Gerät nicht gültig."
+    "setting_invalid": "Dieser Wert ist für das Gerät nicht gültig.",
+    "entity_missing": "Dieses Gerät hat keine __domain__-Entität namens __name__."
   },
   "settings": {
     "applied_on_wake": "Gespeichert. Das Gerät schläft und erhält die neue Einstellung, sobald es das nächste Mal aufwacht."
