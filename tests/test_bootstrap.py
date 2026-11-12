@@ -6,6 +6,8 @@ scaffolding a brand app, and the shared setting templates it copies.
 
 from __future__ import annotations
 
+import ast
+import json
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +20,9 @@ from homey_esphomedriver.bootstrap import (
     derive_app_id,
     derive_app_name,
     derive_brand,
+    derive_device_class_name,
     derive_project_name,
+    main,
     template_root,
 )
 
@@ -122,3 +126,77 @@ def test_sync_leaves_capabilities_and_flow_cards_to_the_app(tmp_path: Path) -> N
     assert not (tmp_path / ".homeycompose" / "capabilities").exists()
     assert not (tmp_path / ".homeycompose" / "flow").exists()
     assert not (tmp_path / "assets" / "capabilities").exists()
+
+
+@pytest.mark.parametrize(
+    ("driver_id", "expected"),
+    [
+        ("aq-1", "Aq1Device"),
+        ("everything-presence-one", "EverythingPresenceOneDevice"),
+        ("1pm", "EspHome1pmDevice"),
+    ],
+)
+def test_derive_device_class_name(driver_id: str, expected: str) -> None:
+    assert derive_device_class_name(driver_id) == expected
+    assert expected.isidentifier()
+
+
+def _registered_capabilities(device_py: str) -> list[str]:
+    """Capability ids passed to ``register_capability`` in a device module."""
+    return [
+        node.args[0].value
+        for node in ast.walk(ast.parse(device_py))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "register_capability"
+    ]
+
+
+def test_driver_command_scaffolds_a_bound_driver(tmp_path: Path) -> None:
+    app_dir = tmp_path / "everythingsmart-homey"
+
+    exit_code = main(
+        ["driver", "aq-1", "-p", str(app_dir), "--project", "EverythingSmart.AQ-1"]
+    )
+
+    assert exit_code == 0
+    driver_dir = app_dir / "drivers" / "aq-1"
+    compose = json.loads((driver_dir / "driver.compose.json").read_text())
+    assert compose["$extends"] == ["esphome-defaults"]
+    assert compose["esphome"]["projects"] == ["EverythingSmart.AQ-1"]
+    device_py = (driver_dir / "device.py").read_text()
+    assert "class Aq1Device(EspHomeDevice):" in device_py
+    assert "homey_export = Aq1Device" in device_py
+    assert _registered_capabilities(device_py) == compose["capabilities"]
+    assert "__" not in (driver_dir / "driver.compose.json").read_text()
+    assert (app_dir / ".homeycompose" / "drivers" / "templates").is_dir()
+
+
+def test_driver_command_defaults_the_project_to_the_app_name(tmp_path: Path) -> None:
+    app_dir = tmp_path / "everythingsmart-homey"
+
+    main(["driver", "aq-1", "-p", str(app_dir)])
+
+    compose = json.loads((app_dir / "drivers/aq-1/driver.compose.json").read_text())
+    assert compose["esphome"]["projects"] == ["Everythingsmart.AQ-1"]
+    assert compose["esphome"]["clientInfo"] == "Homey Everythingsmart"
+
+
+def test_driver_command_keeps_existing_driver_code(tmp_path: Path) -> None:
+    device = tmp_path / "drivers" / "aq-1" / "device.py"
+    device.parent.mkdir(parents=True)
+    device.write_text("# mine\n")
+
+    main(["driver", "aq-1", "-p", str(tmp_path)])
+    assert device.read_text() == "# mine\n"
+
+    main(["driver", "aq-1", "-p", str(tmp_path), "--force"])
+    assert "register_capability" in device.read_text()
+
+
+def test_driver_command_rejects_an_invalid_id(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert main(["driver", "AQ_1", "-p", str(tmp_path)]) == 1
+    assert "Invalid driver id" in capsys.readouterr().err
+    assert not (tmp_path / "drivers").exists()

@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `EspHomeDevice.unregister_capability(capability_id)` and `EspHomeDevice.entity(domain, name)`, for an app that adds capabilities at runtime or sends a command itself.
 - Back a settings-page field with an ESPHome `number`, `select` or `switch` entity by adding `"esphome": {"domain": "number", "name": "Temperature offset"}` to the setting (`domain` follows from the setting type when left out). Saving writes the entity, the setting follows what the node reports, and a save while a deep-sleep node is asleep is applied when it wakes. Convert values per setting with `register_setting(setting_id, to_entity=..., to_setting=...)` from `on_esphome_init`, like Z-Wave's `registerSetting`. Based on the idea in #9 by SoundGoof (Markus Häll).
 - A setting template for the device information group, so a driver can declare its own `settings` and keep it with `$extends`. A driver whose own `settings` leave it out fails on init with an error naming the template to add.
+- `esphome-homey driver <id>` adds a driver for one product: it syncs, then writes a `driver.compose.json` that accepts the product's ESPHome project and a `device.py` that binds an example capability with `register_capability`. `--project`, `--name` and `--class` set the project, driver name and device class. The driver files were in the package before but no command wrote them.
 
 ### Changed
 

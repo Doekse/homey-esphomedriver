@@ -88,6 +88,14 @@ def derive_project_name(brand: str, driver_id: str, explicit: str | None = None)
     return f"{brand}.{sku}"
 
 
+def derive_device_class_name(driver_id: str) -> str:
+    """Return the Python class name for a driver's device, e.g. ``Aq1Device``."""
+    name = "".join(part.capitalize() for part in driver_id.split("-"))
+    if not name[:1].isalpha():
+        name = f"EspHome{name}"
+    return f"{name}Device"
+
+
 def bootstrap_app(options: BootstrapOptions) -> BootstrapResult:
     """Copy shared templates and optionally add one product driver stub.
 
@@ -144,7 +152,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="esphome-homey",
         description="Copy homey-esphomedriver Homey Compose files into a Homey app.",
-        epilog="example:\n  esphome-homey sync -p /path/to/app\n",
+        epilog=(
+            "examples:\n"
+            "  esphome-homey sync -p /path/to/app\n"
+            "  esphome-homey driver aq-1 --project EverythingSmart.AQ-1\n"
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     sub = parser.add_subparsers(dest="command")
@@ -155,13 +167,41 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Overwrite app.py / app.json if they exist",
     )
+    driver = sub.add_parser(
+        "driver",
+        help="Add a driver for one ESPHome product, then sync",
+    )
+    driver.add_argument("driver_id", help="Driver folder name, e.g. aq-1")
+    _add_path_arg(driver, "Homey app directory (default: current directory)")
+    driver.add_argument(
+        "--project",
+        help="ESPHome project.name the driver accepts (default: <App>.<DRIVER-ID>)",
+    )
+    driver.add_argument(
+        "--name",
+        dest="driver_name",
+        help="Driver name shown in Homey (default: DRIVER-ID)",
+    )
+    driver.add_argument(
+        "--class",
+        dest="device_class",
+        default="other",
+        help="Homey device class (default: other)",
+    )
+    driver.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite the driver's files, app.py and app.json if they exist",
+    )
 
     args = parser.parse_args(argv)
-    if not args.command:
+    commands = {"sync": _cmd_sync, "driver": _cmd_driver}
+    command = commands.get(args.command)
+    if command is None:
         parser.print_help()
         return 0
     try:
-        return _cmd_sync(args)
+        return command(args)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -171,6 +211,26 @@ def _cmd_sync(args: argparse.Namespace) -> int:
     app_dir = args.path.expanduser().resolve()
     result = bootstrap_app(BootstrapOptions(app_dir=app_dir, force=args.force))
     _print_summary(result, f"Synced {app_dir}")
+    return 0
+
+
+def _cmd_driver(args: argparse.Namespace) -> int:
+    app_dir = args.path.expanduser().resolve()
+    result = bootstrap_app(
+        BootstrapOptions(
+            app_dir=app_dir,
+            driver_id=args.driver_id,
+            project=args.project,
+            driver_name=args.driver_name,
+            device_class=args.device_class,
+            force=args.force,
+        )
+    )
+    _print_summary(result, f"Added driver {args.driver_id} to {app_dir}")
+    print(
+        f"Next: list its capabilities in drivers/{args.driver_id}/driver.compose.json "
+        f"and bind them in drivers/{args.driver_id}/device.py"
+    )
     return 0
 
 
@@ -299,6 +359,7 @@ def _scaffold_driver(
         "DEVICE_CLASS": device_class,
         "CLIENT_INFO": client_info,
         "PROJECT_NAME": project,
+        "DEVICE_CLASS_NAME": derive_device_class_name(driver_id),
     }
     stubs = root / "stubs"
     _write_text(
@@ -309,7 +370,7 @@ def _scaffold_driver(
         overwrite=force,
     )
     _write_text(
-        (stubs / "device.py").read_text(encoding="utf-8"),
+        _render(stubs / "device.py", mapping),
         driver_dir / "device.py",
         app_dir,
         result,

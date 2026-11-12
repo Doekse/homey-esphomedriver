@@ -55,11 +55,9 @@ Typical setup:
 
 1. Create a Homey Python app: `homey app create`
 2. Add the packages: `homey app dependencies add aioesphomeapi homey-esphomedriver`
-3. Copy Compose templates: `esphome-homey sync`
-4. Add one Homey driver per product: `homey app driver create`
-5. Set `$extends: ["esphome-defaults"]`, `esphome.projects` and the product's `capabilities` in `driver.compose.json`
-6. Bind the capabilities in the device's `on_esphome_init`
-7. Add the product names, icons and PNG store images, and publish using the Homey CLI
+3. Add one Homey driver per product: `esphome-homey driver aq-1 --project Brand.AQ-1`. This also copies the Compose templates (`esphome-homey sync`) and writes a `driver.compose.json` with `$extends: ["esphome-defaults"]` and `esphome.projects` set
+4. List the product's `capabilities` in `driver.compose.json` and bind them in the device's `on_esphome_init`
+5. Add the product names, icons and PNG store images, and publish using the Homey CLI
 
 Homey CLI does not copy these templates yet. `esphome-homey sync` writes them into `.homeycompose/`; commit that output so `homey app run` works on a stock CLI. Re-run `sync` after a core upgrade.
 

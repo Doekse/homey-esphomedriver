@@ -289,15 +289,15 @@ $ esphome-homey sync
 
 `-p` / `--path` selects an app directory other than the current one. `sync` leaves `app.json`, `app.py`, `driver.compose.json`, and existing driver code alone unless `--force`.
 
-A brand app is a normal Homey Python app:
+A brand app is a normal Homey Python app. Add one driver per product with `esphome-homey driver`:
 
 ```bash
 $ homey app create
 $ homey app dependencies add aioesphomeapi homey-esphomedriver
-$ homey app driver create
+$ esphome-homey driver aq-1 --project EverythingSmart.AQ-1 --name "AQ-1" --class sensor
 ```
 
-Then set `$extends` and the `esphome` block on each driver's `driver.compose.json`, add store images, and publish with Homey CLI.
+`driver` syncs, then writes `drivers/aq-1/` with a `driver.compose.json` that extends `esphome-defaults` and accepts that project, and a `device.py` that binds one example capability in `on_esphome_init`. Replace the example with the product's capabilities, add store images, and publish with Homey CLI. `--project` defaults to `<App name>.<DRIVER-ID>`; existing driver files are left alone unless `--force`.
 
 ## Documentation
 
